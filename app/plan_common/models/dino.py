@@ -14,7 +14,7 @@ class DinoEncoder(nn.Module):
             self.base_model = torch.hub.load("facebookresearch/dinov2", name)
         elif self.name.startswith("dinov3"):
             pretrained_ckpt_root = os.environ.get("PRETRAINED_CKPT_ROOT")
-            dinov3_path = os.path.join(os.environ.get("JEPA_HOME", os.path.expanduser("~")), "dinov3")
+            dinov3_path = os.path.join(os.environ.get("JEPA_WM_HOME", os.path.expanduser("~")), "dinov3")
             if "vitl16" in self.name:
                 self.base_model = torch.hub.load(
                     dinov3_path,

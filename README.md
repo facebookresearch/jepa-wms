@@ -48,7 +48,7 @@ To make the repository agnostic to specific cluster configurations, we use envir
 
 1. **`DATASET_ROOT`**: Root directory where all datasets are stored
 2. **`CHECKPOINT_ROOT`**: Root directory where checkpoints and experiment outputs will be saved
-3. **`JEPA_HOME`**: parent directory containing all repositories
+3. **`JEPA_WM_HOME`**: parent directory containing all repositories
 4. **`PRETRAINED_CKPT_ROOT`**: Root directory where pretrained checkpoints are stored (e.g., DINOv3, V-JEPA, V-JEPA-2)
 
 Add the following lines to your shell configuration file (e.g., `~/.bashrc`, `~/.zshrc`, or `~/.bash_profile`):
@@ -57,7 +57,7 @@ Add the following lines to your shell configuration file (e.g., `~/.bashrc`, `~/
 # JEPA-WMs Path Configuration
 export DATASET_ROOT=/path/to/your/datasets
 export CHECKPOINT_ROOT=/path/to/your/checkpoints
-export JEPA_HOME=/path/to/your/workspace
+export JEPA_WM_HOME=/path/to/your/workspace
 export PRETRAINED_CKPT_ROOT=/path/to/your/pretrained_encoders  # Optional
 ```
 After adding these lines, reload your shell configuration:
@@ -94,9 +94,9 @@ $DATASET_ROOT/
 
 Similarly, all checkpoints and experiment outputs will be saved under `$CHECKPOINT_ROOT`.
 
-Once you set `JEPA_HOME`, organize your repositories as follows:
+Once you set `JEPA_WM_HOME`, organize your repositories as follows:
 ```
-$JEPA_HOME/
+$JEPA_WM_HOME/
 ├── jepa-internal/     # This repository
 ├── dinov3/            # DINOv3 repository
 ├── robocasa/          # RoboCasa repository

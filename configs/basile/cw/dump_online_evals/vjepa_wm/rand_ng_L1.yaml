@@ -4,9 +4,9 @@ cpus_per_task: 16
 mem_per_gpu: 210G
 copy_code: false
 folder: 
-  /checkpoint/amaia/video/basileterv/experiment/vjepav2/vjepa_wm/droid_final_sweep/droid_8fpcs_fps4_r256_vj2acvitg_repro_2roll_noprop_save_4n
+  /checkpoint/amaia/video/basileterv/experiment/vjepav2/vjepa_wm/droid_final_sweep/debug_droid_4f_fps4_r224_pred_vj2acftcond_depth6_noprop_repro_1roll_4fpcs_save_2n
 tag: 
-  online_gc_zeroshot/droid_L1_ng_sourcedset_H1_nas1_maxnorm01_ctxt2_gH1_r256_alpha0.0_ep16_decode/epoch-315-plan-only
+  online_gc_zeroshot/place_L1_cem_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r224_alpha0.0_ep16_decode/epoch-1
 eval_name: simu_env_planning
 meta:
   quick_debug: false
@@ -23,41 +23,40 @@ logging:
   optional_plots: true
 model_kwargs:
   module_name: app.vjepa_wm.modelcustom.simu_env_planning.vit_enc_preds
-  checkpoint: jepa-latest.pth.tar
+  checkpoint: jepa-e0.pth.tar
   pretrain_kwargs:
     grid_size: 16
     tubelet_size_enc: 1
     use_activation_checkpointing: false
-    action_conditioning: token
-    proprio_encoding: token
-    num_frames_pred: 512
+    action_conditioning: feature
+    proprio_encoding: feature
+    num_frames_pred: 4
     visual_encoder:
-      enc_type: vjepa
-      enc_version: v2_open
-      pretrain_enc_path: 
-        /checkpoint/amaia/video/basileterv/ckpts/vjepa2_opensource/vjepa2_vit_giant.pth
-      pretrain_enc_ckpt_key: encoder
-      embed_dim: 1408
-      enc_use_rope: true
-      enc_name: vit_giant_xformers
-      use_sdpa_enc: true
-      num_frames_enc: 512
+      enc_type: dino
+      enc_version: dinov2_vits14
+      pretrain_enc_path:
+      pretrain_enc_ckpt_key:
+      embed_dim: 384
+      enc_use_rope:
+      enc_name:
+      use_sdpa_enc:
+      num_frames_enc:
       uniform_power: true
     action_encoder:
-      action_tokens: 1
-      action_emb_dim: 0
+      action_tokens: 0
+      action_emb_dim: 16
       act_mlp: false
       action_encoder_inpred: true
     proprio_encoder:
       proprio_tokens: 0
       proprio_emb_dim: 0
       prop_mlp: false
-      proprio_encoder_inpred: true
+      proprio_encoder_inpred: false
     predictor:
       tubelet_size: 1
       pred_num_heads: 16
-      pred_depth: 24
-      pred_embed_dim: 1024
+      pred_depth: 6
+      pred_embed_dim: 384
       pred_use_extrinsics: false
       pred_proj_on_enc:
       pred_type: vjepa2_ac
@@ -66,14 +65,13 @@ model_kwargs:
       use_rope: true
     wm_encoding:
       batchify_video: true
-      dup_image: true
-      normalize_reps: true
-      proprio_rollout_mode: use_ground_truth
+      dup_image: false
+      normalize_reps: false
     rollout_cfg:
-      rollout_steps: 2
-      train_rollout_prefixes: first
-      rollout_stop_gradient: false
-      ctxt_window_train_rollout: 8
+      rollout_steps: 1
+      train_rollout_prefixes: random
+      rollout_stop_gradient: true
+      ctxt_window_train_rollout: 3
       do_parallel_rollout:
       do_sequential_rollout: true
       prepend_gt:
@@ -82,7 +80,7 @@ model_kwargs:
         start: 0.0
         end: 0.0
     attn:
-      local_window_time: 8
+      local_window_time: 3
       local_window_h: -1
       local_window_w: -1
     heads_cfg:
@@ -93,39 +91,52 @@ model_kwargs:
             patch_size: 8
             in_chans: 3
             img_size:
-            - 256
-            - 256
-            embed_dim: 1408
+            - 224
+            - 224
+            embed_dim: 384
             decoder_embed_dim: 1024
-            depth: 12
+            depth: 24
             num_heads: 16
             mlp_ratio: 4.0
             num_views: 1
             use_activation_checkpointing: false
+        state_head:
+          kind: vit
+          config:
+            state_dim: 7
+            embed_dim: 384
+            decoder_embed_dim: 384
+            depth: 6
+            num_heads: 16
+            mlp_ratio: 4.0
+            num_views: 1
+            use_activation_checkpointing: false
+            proprio_dim: 7
       pretrain_dec_path:
-        state_head:
+        state_head: 
+          /checkpoint/amaia/video/basileterv/experiment/vjepav2/vjepa_wm/droid/step2_droid_state_head_dinovits_r224/jepa-latest.pth.tar
         image_head: 
-          /checkpoint/amaia/video/basileterv/experiment/vjepav2/vjepa_wm/vm2m/opensource_decs/step2_lpips_vm2m_vjepa2vitgopen_vgxf_vitldec_dup_256_vjtransf_norm_bs4_4n/jepa-latest.pth.tar
+          /checkpoint/amaia/video/basileterv/experiment/vjepav2/vjepa_wm/vm2m/opensource_decs/step2_lpips_vm2m_vits_vitldec_224_vjtrans05/jepa-latest.pth.tar
       new_path_heads:
-        state_head:
+        state_head: true
         image_head: true
   data:
     dataset_type: custom
     datasets:
-    - DROID
+    - Robocasa
     datasets_weights:
     seed: 234
-    img_size: 256
+    img_size: 224
     validation:
       val_datasets:
-      - Franka_hf
+      - Robocasa
       num_frames_val: 5
       val_dataset_batch_size: 4
       val_dataset_drop_last: false
       val_dataset_fpcs:
       - 5
       val_dataset_camera_views:
-      - exterior_image_2_left
+      - robot0_leftview
       val_viz_rank0_loader: true
       val_datasets_1:
         names:
@@ -139,22 +150,23 @@ model_kwargs:
         - exterior_image_2_left
     loader:
       batch_size: 8
-      num_workers: 16
+      num_workers: 12
       pin_mem: true
       persistent_workers: true
     custom:
-      split_ratio:
-      frameskip: 1
-      action_skip: 1
+      split_ratio: 0
+      frameskip: 5
+      action_skip: 5
       state_skip: 1
       normalize_action: false
       traj_subset: true
       filter_first_episodes:
       filter_tasks:
-      num_hist:
-      num_pred:
+      - PnPCounterTop
+      num_hist: 7
+      num_pred: 1
       with_reward:
-      custom_teleop_dset:
+      custom_teleop_dset: true
     droid:
       camera_frame:
       camera_views:
@@ -163,7 +175,7 @@ model_kwargs:
       rcasa_to_droid_action_format:
       fps: 4
       dataset_fpcs:
-      - 8
+      - 4
       mpk_manifest_patterns:
       - '**/evaluation_tasks/mpk/pick/liftcup_v0/run_0001/episode.h5'
       - '**/evaluation_tasks/mpk/pick/pickandplaceredcube_v0/run_0001/episode.h5'
@@ -186,59 +198,71 @@ model_kwargs:
     random_horizontal_flip: false
     motion_shift: false
     random_resize_aspect_ratio:
-    - 0.75
-    - 1.35
+    - 1.0
+    - 1.0
     random_resize_scale:
     - 1.777
     - 1.777
     reprob: 0.0
     normalize:
-    - - 0.485
-      - 0.456
-      - 0.406
-    - - 0.229
-      - 0.224
-      - 0.225
+    - - 0.5
+      - 0.5
+      - 0.5
+    - - 0.5
+      - 0.5
+      - 0.5
   wrapper_kwargs:
     ctxt_window: 2
-    proprio_mode: compute_new_pose
 task_specification:
-  task: droid-base
+  task: robocasa-PnPCounterTop
   obs: rgb
   obs_concat_channels: false
   goal_source: dset
   succ_def: simu
   done_at_succ: false
-  max_episode_steps: 100
-  goal_H: 1
+  max_episode_steps: 60
+  goal_last: true
+  goal_H: 75
+  replay_expert: false
   num_frames: 1
   num_proprios: 1
-  img_size: 256
+  img_size: 224
   env:
     with_target: true
     with_velocity: true
     freeze_rand_vec: false
+    manip_only: true
+    custom_task: false
+    camera_name: robot0_leftview
+    rescale_act_droid_to_rcasa: true
+    subtask: place
+    sample_subtask_slice: true
+    reach_threshold: 0.2
+    place_threshold: 0.15
 planner:
-  planner_name: nevergrad
+  planner_name: cem
   optimizer_name: NGOpt
   iterations: 15
   num_samples: 300
   num_elites: 10
-  horizon: 1
+  horizon: 3
   var_scale: 0.1
   max_norms:
-  - 0.1
-  - 0.75
+  - 0.05
+  - 0.01
+  - 1.
   max_norm_dims:
   - - 0
     - 1
     - 2
-    - 3
+  - - 3
     - 4
     - 5
   - - 6
+  momentum_mean: 0.
+  momentum_std: 0.
   num_act_stepped: 1
-  repeat_actskip: false
+  repeat_actskip: true
   decode_each_iteration: true
   distribute_planner: false
   planning_objective:

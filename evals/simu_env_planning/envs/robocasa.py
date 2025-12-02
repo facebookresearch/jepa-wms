@@ -14,7 +14,7 @@ from scipy.spatial.transform import Rotation as R
 from evals.simu_env_planning.envs.wrappers.time_limit import TimeLimit
 
 BASE_ASSET_ROOT_PATH = os.path.join(
-    os.environ.get("JEPA_HOME", os.path.expanduser("~")),
+    os.environ.get("JEPA_WM_HOME", os.path.expanduser("~")),
     "robocasa/robocasa/models/assets/objects"
 )
 

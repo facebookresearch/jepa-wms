@@ -1201,7 +1201,7 @@ requires-dist = [
     { name = "metaworld", git = "https://github.com/Farama-Foundation/Metaworld.git?rev=master" },
     { name = "moviepy" },
     { name = "mujoco", specifier = ">=3.2.0" },
-    { name = "numpy", specifier = "==1.23.3" },
+    { name = "numpy" },
     { name = "omegaconf" },
     { name = "opencv-python" },
     { name = "pandas" },

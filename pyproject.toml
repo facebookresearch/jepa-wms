@@ -24,7 +24,6 @@ dependencies = [
 
     # Data processing
     "numpy",
-    # "numpy==1.23.3",
     "opencv-python",
     "pillow",
     "decord>=0.6.0",
