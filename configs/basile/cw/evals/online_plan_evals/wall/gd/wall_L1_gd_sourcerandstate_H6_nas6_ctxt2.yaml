@@ -1,0 +1,57 @@
+nodes: 1
+tasks_per_node: 8
+cpus_per_task: 16
+mem_per_gpu: 210G
+copy_code: false
+tag: gc_zeroshot/wall_L1_gd_sourcerandstate_H6_nas6_ctxt2
+eval_name: simu_env_planning
+meta:
+  quick_debug: false
+  seed: 1
+  eval_episodes: 96
+distributed:
+  distribute_multitask_eval: true
+  local_rng_samplers: true
+  seed_shift: horizon_1000
+logging:
+  exp_name: gc_zeroshot_dist
+  save_csv: true
+  tqdm_silent: false
+  optional_plots: true
+model_kwargs:
+  module_name:
+  checkpoint:
+  pretrain_kwargs:
+    data: {}
+    ctxt_window: 2
+    data_aug: {}
+task_specification:
+  task: wall-base
+  obs: rgb
+  obs_concat_channels: false
+  goal_source: random_state
+  succ_def: simu
+  done_at_succ: false
+  goal_H: 6
+  num_frames: 1
+  num_proprios: 1
+  img_size: 256
+  env:
+    with_target: true
+    with_velocity: true
+    freeze_rand_vec: false
+planner:
+  planner_name: gd
+  action_noise: 0.003
+  sample_type: randn
+  lr: 1
+  iterations: 1000
+  horizon: 6
+  num_act_stepped: 6
+  repeat_actskip: false
+  decode_each_iteration: false
+  distribute_planner: false
+  planning_objective:
+    objective_type: repr_l1
+    sum_all_diffs: false
+    alpha: 0.0

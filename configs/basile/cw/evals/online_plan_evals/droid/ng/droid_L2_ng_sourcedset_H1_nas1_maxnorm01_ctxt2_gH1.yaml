@@ -1,0 +1,63 @@
+nodes: 1
+tasks_per_node: 8
+cpus_per_task: 16
+mem_per_gpu: 210G
+copy_code: false
+folder:
+tag: gc_zeroshot/droid_L2_ng_sourcedset_H1_nas1_maxnorm01_ctxt2_gH1
+eval_name: simu_env_planning
+meta:
+  quick_debug: false
+  seed: 1
+  eval_episodes: 16
+distributed:
+  distribute_multitask_eval: true
+  local_rng_samplers: true
+  seed_shift: horizon_1000
+logging:
+  exp_name: gc_zeroshot_dist
+  save_csv: true
+  tqdm_silent: false
+  optional_plots: true
+model_kwargs:
+  module_name:
+  checkpoint:
+  pretrain_kwargs: {}
+  data: {}
+  data_aug: {}
+  wrapper_kwargs:
+    ctxt_window: 2
+task_specification:
+  task: droid-base
+  obs: rgb
+  obs_concat_channels: false
+  goal_source: dset
+  succ_def: simu
+  done_at_succ: false
+  max_episode_steps: 100
+  goal_H: 1
+  num_frames: 1
+  num_proprios: 1
+  img_size: 224
+  env:
+    with_target: true
+    with_velocity: true
+    freeze_rand_vec: false
+planner:
+  planner_name: nevergrad
+  optimizer_name: NGOpt
+  iterations: 15 # important difference with other envs
+  num_samples: 300
+  num_elites: 10
+  horizon: 1
+  var_scale: 0.1 # since usually use DROID not normalized
+  max_norms: [0.1, 0.75]
+  max_norm_dims: [[0, 1, 2, 3, 4, 5], [6]]
+  num_act_stepped: 1
+  repeat_actskip: false
+  decode_each_iteration: true
+  distribute_planner: false
+  planning_objective:
+    objective_type: repr_dist
+    sum_all_diffs: false
+    alpha: 0.0

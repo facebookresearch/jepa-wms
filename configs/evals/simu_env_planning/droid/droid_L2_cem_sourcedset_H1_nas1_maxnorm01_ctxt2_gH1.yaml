@@ -1,0 +1,246 @@
+nodes: 1
+tasks_per_node: 8
+cpus_per_task: 10
+mem_per_gpu: 55G
+copy_code: false
+folder: ${CHECKPOINT_ROOT}/droid_final_sweep/droid_4f_fps4_r256_dv3vits_vjtranoaug_pred_AdaLN_ftprop_depth6_repro_2roll_4fpcs_2n
+tag: online_gc_zeroshot/droid_L2_cem_sourcedset_H1_nas1_maxnorm01_ctxt2_gH1_r256_alpha0.0_ep16_decode/epoch-315-plan-only
+eval_name: simu_env_planning
+meta:
+  quick_debug: false
+  seed: 1
+  eval_episodes: 16
+distributed:
+  distribute_multitask_eval: true
+  local_rng_samplers: true
+  seed_shift: horizon_1000
+logging:
+  exp_name: gc_zeroshot_dist
+  save_csv: true
+  tqdm_silent: false
+  optional_plots: true
+model_kwargs:
+  module_name: app.vjepa_wm.modelcustom.simu_env_planning.vit_enc_preds
+  checkpoint: jepa-latest.pth.tar
+  pretrain_kwargs:
+    grid_size: 16
+    tubelet_size_enc: 1
+    use_activation_checkpointing: null
+    action_conditioning: token
+    proprio_encoding: feature
+    num_frames_pred: 4
+    visual_encoder:
+      enc_type: dino
+      enc_version: dinov3_vits16
+      pretrain_enc_path: null
+      pretrain_enc_ckpt_key: null
+      embed_dim: 384
+      enc_use_rope: null
+      enc_name: null
+      use_sdpa_enc: null
+      num_frames_enc: null
+      uniform_power: true
+    action_encoder:
+      action_tokens: 1
+      action_emb_dim: 0
+      act_mlp: false
+      action_encoder_inpred: true
+    proprio_encoder:
+      proprio_tokens: 0
+      proprio_emb_dim: 16
+      prop_mlp: false
+      proprio_encoder_inpred: false
+    predictor:
+      tubelet_size: 1
+      pred_num_heads: 16
+      pred_depth: 6
+      pred_embed_dim: 384
+      pred_patch_size: null
+      pred_use_extrinsics: null
+      pred_proj_on_enc: null
+      pred_type: AdaLN
+      act_pred_projector: null
+      use_SiLU: null
+      use_rope: null
+    wm_encoding:
+      batchify_video: true
+      dup_image: false
+      normalize_reps: null
+    rollout_cfg:
+      rollout_steps: 2
+      train_rollout_prefixes: random
+      rollout_stop_gradient: true
+      ctxt_window_train_rollout: null
+      do_parallel_rollout: null
+      do_sequential_rollout: null
+      prepend_gt: null
+      sampling_scheduler:
+        type: linear
+        start: 0.0
+        end: 0.0
+    attn:
+      local_window_time: 3
+      local_window_h: -1
+      local_window_w: -1
+    heads_cfg:
+      architectures:
+        image_head:
+          kind: vit
+          config:
+            patch_size: 8
+            in_chans: 3
+            img_size:
+            - 256
+            - 256
+            embed_dim: 384
+            decoder_embed_dim: 384
+            depth: 12
+            num_heads: 16
+            mlp_ratio: 4.0
+            num_views: 1
+            use_activation_checkpointing: false
+      pretrain_dec_path:
+        image_head: ${CHECKPOINT_ROOT}/vm2m/opensource_decs/step2_lpips_vm2m_dv3_vits_256_vjtrans/jepa-latest.pth.tar
+      new_path_heads:
+        state_head: true
+        image_head: true
+  data:
+    dataset_type: custom
+    datasets:
+    - DROID
+    datasets_weights: null
+    zero_proprio: null
+    seed: 234
+    img_size: 256
+    validation:
+      val_datasets:
+      - Franka_hf
+      num_frames_val: 5
+      val_dataset_batch_size: 4
+      val_dataset_drop_last: false
+      val_dataset_fpcs:
+      - 5
+      val_dataset_camera_views:
+      - exterior_image_2_left
+      val_viz_rank0_loader: true
+      val_datasets_1:
+        names:
+        - Franka_hf
+        batch_size: 4
+        drop_last: false
+        fps: 4
+        fpcs:
+        - 5
+        camera_views:
+        - exterior_image_2_left
+    loader:
+      batch_size: 8
+      num_workers: 12
+      pin_mem: true
+      persistent_workers: true
+    custom:
+      split_ratio: null
+      frameskip: 1
+      action_skip: 1
+      state_skip: 1
+      normalize_action: false
+      traj_subset: true
+      filter_first_episodes: null
+      filter_tasks: null
+      num_hist: null
+      num_pred: null
+      with_reward: null
+      custom_teleop_dset: null
+    droid:
+      camera_frame: null
+      camera_views:
+      - left_mp4_path
+      droid_to_rcasa_action_format: 1
+      rcasa_to_droid_action_format: null
+      fps: 4
+      dataset_fpcs:
+      - 4
+      mpk_manifest_patterns:
+      - '**/evaluation_tasks/mpk/pick/liftcup_v0/run_0001/episode.h5'
+      - '**/evaluation_tasks/mpk/pick/pickandplaceredcube_v0/run_0001/episode.h5'
+      - '**/evaluation_tasks/mpk/pick/pickcube_v0/run_0001/episode.h5'
+      - '**/evaluation_tasks/mpk/pick/pickpen_v0/run_0001/episode.h5'
+      - '**/evaluation_tasks/mpk/pick/pickupcup_v0/run_0001/episode.h5'
+      - '**/evaluation_tasks/mpk/pick/reachcup_v0/run_0001/episode.h5'
+      - '**/evaluation_tasks/mpk/pick/reachliftcup_v0/run_0001/episode.h5'
+      - '**/evaluation_tasks/mpk/pick/reachliftcup_v1/run_0001/episode.h5'
+      - '**/evaluation_tasks/mpk/push/brownboxpush_v0/run_0001/episode.h5'
+      - '**/evaluation_tasks/mpk/push/push_various_objects/blue_bowl/episode.h5'
+      - '**/evaluation_tasks/mpk/push/push_various_objects/blue_box/episode.h5'
+      - '**/evaluation_tasks/mpk/push/push_various_objects/cap/episode.h5'
+      - '**/evaluation_tasks/mpk/push/push_various_objects/pengiun_plush/episode.h5'
+      - '**/evaluation_tasks/mpk/folding/foldjacketsleeve_v0/run_0001/episode.h5'
+      - '**/evaluation_tasks/mpk/folding/foldjacketsleeve_v1/run_0001/episode.h5'
+  data_aug:
+    transform_name: vjepa
+    auto_augment: false
+    random_horizontal_flip: false
+    motion_shift: false
+    random_resize_aspect_ratio:
+    - 1.0
+    - 1.0
+    random_resize_scale:
+    - 1.777
+    - 1.777
+    reprob: 0.0
+    normalize:
+    - - 0.485
+      - 0.456
+      - 0.406
+    - - 0.229
+      - 0.224
+      - 0.225
+  wrapper_kwargs:
+    ctxt_window: 2
+task_specification:
+  task: droid-base
+  obs: rgb_state
+  obs_concat_channels: false
+  goal_source: dset
+  succ_def: simu
+  done_at_succ: false
+  max_episode_steps: 100
+  goal_H: 1
+  num_frames: 1
+  num_proprios: 1
+  img_size: 256
+  env:
+    with_target: true
+    with_velocity: true
+    freeze_rand_vec: false
+planner:
+  planner_name: cem
+  optimizer_name: NGOpt
+  iterations: 15
+  num_samples: 300
+  num_elites: 10
+  horizon: 1
+  var_scale: 0.1
+  max_norms:
+  - 0.1
+  - 0.75
+  max_norm_dims:
+  - - 0
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+  - - 6
+  momentum_mean: 0.0
+  momentum_std: 0.0
+  num_act_stepped: 1
+  repeat_actskip: false
+  decode_each_iteration: true
+  distribute_planner: false
+  planning_objective:
+    objective_type: repr_dist
+    sum_all_diffs: false
+    angle_model_path: null
+    distance_model_path: null
+    alpha: 0.0
