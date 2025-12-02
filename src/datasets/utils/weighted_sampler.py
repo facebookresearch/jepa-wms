@@ -214,7 +214,6 @@ class MemoryEfficientDistributedWeightedSamplerLessRepeat(DistributedSampler):
     this sampler only permutes the indices in range(2, n, 12)
 
     Compared with MemoryEfficientDistributedWeightedSampler, this will reduce the effective number of repeat.
-    See discussions here: https://github.com/fairinternal/jepa-internal/pull/254
     """
 
     def __init__(

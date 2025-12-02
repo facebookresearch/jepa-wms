@@ -97,7 +97,7 @@ For this eval to be run, we require a wrapper, the default one being `app.vjepa_
 In the wrapper, we initiliaze:
 - the **world model** (encoder, predictor and optional other modules).
 
-This wrapper requires prior loading, in in `evals/simu_env_planning/eval.py`, of: 
+This wrapper requires prior loading, in in `evals/simu_env_planning/eval.py`, of:
 - a **data_preprocessor**. It is used to normalize and denormalize the actions and the proprioception if we used normalize_action = True. We should use denormalization of planned actions outputted by the world model so they can be stepped in the associated simulator.
 - the **validation set**. It is needed:
   - to determine the action and proprioception input dimensions
@@ -108,13 +108,3 @@ This wrapper requires prior loading, in in `evals/simu_env_planning/eval.py`, of
 You can find:
 - Some full example configs at `configs/evals/simu_env_planning` to evaluate on the Metaworld, Robocasa envs or on offline DROID dataset trajectories.
 - Some configs templates for the same environments to fill with your model kwargs at `evals/simu_env_planning/base_configs`
-
-## Conda envs
-
-To evaluate on these simulators you need a conda env that includes both the dependencies of the JEPA codebase and other environments. The below envs have xformers already installed.
-- For most envs, you can copy or just activate my default conda env at `/home/basileterv/.conda/envs/rskills310_xfdwm`. This env installs robocasa, robosuite and mimicgen from a custom branch of the internal `https://github.com/fairinternal/robot-skills-sim/tree/basile_jimmy` repository. 
-- To evaluate on the PointMaze environment, you need d4rl, which is not compatible with dependencies needed in, so you should activate `/home/basileterv/.conda/envs/muj310xfdwm_rmimic`.
-
-## Cluster Support
-
-**Note:** This evaluation currently supports **H2 cluster and Coreweave cluster only**. RSC and AWS clusters are not supported at this time due to environment and dependency compatibility issues.

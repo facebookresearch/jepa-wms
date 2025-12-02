@@ -1,6 +1,6 @@
-# Contributing to JEPA-Internal
+# Contributing to jepa-wms
 We want to make contributing to this project as easy and transparent as
-possible. Codebase norms are described at https://fburl.com/gdoc/kk9rd2ul.
+possible.
 
 ## Pull Requests
 We welcome your pull requests.
@@ -40,9 +40,6 @@ outlined on that page and do not file a public issue.
 * 4 spaces for indentation rather than tabs
 * 119 character line length
 * PEP8 formatting
-
-See https://fburl.com/gdoc/kk9rd2ul for detailed guidance, required for changes to `src/`
-and other code that is not project-specific.
 
 ## License
 By contributing to this repository, you agree that your contributions will be licensed

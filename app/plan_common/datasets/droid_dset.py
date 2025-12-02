@@ -346,11 +346,6 @@ class DROIDVideoDataset(torch.utils.data.Dataset):
         indices = np.arange(sf, sf + nframes, fstp).astype(np.int64)
 
         states = states[indices, :][:: self.frameskip]
-
-        # action def from robot-world-models
-        # actions = _get_actions(trajectory, action_type=self._action_type)
-        # actions = actions[indices, :][::self.frameskip]
-        # OR action def from jepa-internal
         actions = poses_to_diffs(states[:: self.action_skip])
 
         buffer = trajectory["episode_data"]["observation"][camera_view][indices, :][:: self.frameskip]

@@ -75,7 +75,6 @@ class TestVideoTransformFunctionalResize(unittest.TestCase):
 
             # Transformatinos can not exactly match because of their interpolation functions coming from
             # two different sources. Here we check for their relative differences.
-            # See the discussion here: https://github.com/fairinternal/jepa-internal/pull/65#issuecomment-2101833959
             self.assertLess(diff, 0.05)
 
 

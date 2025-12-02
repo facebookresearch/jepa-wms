@@ -33,6 +33,12 @@ The environment to run the codebase is straightforward to create using [`uv`](ht
 curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
+Then clone the repository in the `JEPA_WM_HOME` (see [Path Configuration](#path-configuration)) with:
+```
+git clone git@github.com:facebookresearch/jepa-wms.git
+cd jepa-wms
+```
+
 Once it is installed, you can create your environment using:
 ```bash
 uv sync
@@ -55,55 +61,28 @@ Add the following lines to your shell configuration file (e.g., `~/.bashrc`, `~/
 
 ```bash
 # JEPA-WMs Path Configuration
-export DATASET_ROOT=/path/to/your/datasets
-export CHECKPOINT_ROOT=/path/to/your/checkpoints
-export JEPA_WM_HOME=/path/to/your/workspace
-export PRETRAINED_CKPT_ROOT=/path/to/your/pretrained_encoders  # Optional
+export DATASET_ROOT=</path/to/your/datasets>
+export CHECKPOINT_ROOT=</path/to/your/checkpoints>
+export JEPA_WM_HOME=</path/to/your/workspace>
+export PRETRAINED_CKPT_ROOT=</path/to/your/pretrained_encoders>  # Optional
 ```
 After adding these lines, reload your shell configuration:
 ```bash
 source ~/.bashrc  # or ~/.zshrc, depending on your shell
 ```
 
-Once you set `DATASET_ROOT`, organize your datasets as follows:
-
-```
-$DATASET_ROOT/
-├── pusht_noise/           # Push-T dataset
-├── point_maze/            # PointMaze dataset
-├── wall_single/           # Wall dataset
-├── Metaworld/             # Metaworld dataset
-│   └── train_paths.csv
-├── robocasa/              # RoboCasa dataset
-│   └── v0.1/
-├── droid/                 # DROID dataset
-│   ├── droid_train_paths.csv
-│   └── droid_val_paths.csv
-├── kinetics400/           # Kinetics-400 dataset (optional)
-│   ├── k400_train_paths.csv
-│   └── k400_val_paths.csv
-├── kinetics710/           # Kinetics-710 dataset (optional)
-│   ├── k710_train_paths.csv
-│   └── k710_val_paths.csv
-├── ssv2/                  # Something-Something-v2 dataset (optional)
-│   ├── ssv2_train_paths.csv
-│   └── ssv2_val_paths.csv
-└── howto100m/             # HowTo100M dataset (optional)
-    └── howto100m_paths.csv
-```
-
-Similarly, all checkpoints and experiment outputs will be saved under `$CHECKPOINT_ROOT`.
-
-Once you set `JEPA_WM_HOME`, organize your repositories as follows:
+Once you set `JEPA_WM_HOME`, you will have to organize your cloned repositories as follows (see below instructions on [installing Robocasa](#optional-robocasa-install) and [Downloading pretrained encoders](#downloading-pretrained-encoders)):
 ```
 $JEPA_WM_HOME/
-├── jepa-internal/     # This repository
+├── jepa-wms/          # This repository
 ├── dinov3/            # DINOv3 repository
 ├── robocasa/          # RoboCasa repository
 └── robosuite/         # RoboSuite repository
 ```
 
-Once you set `PRETRAINED_CKPT_ROOT`, organize your pretrained checkpoints as follows:
+### Downloading pretrained encoders
+
+Once you set `PRETRAINED_CKPT_ROOT`, organize your pretrained checkpoints as follows :
 
 ```
 $PRETRAINED_CKPT_ROOT/
@@ -115,13 +94,13 @@ $PRETRAINED_CKPT_ROOT/
 
 To download pretrained encoders, follow the instructions from their respective repositories:
 
-- **DINOv3**: Follow instructions at [dinov3](https://github.com/facebookresearch/dinov3) to download DINOv3 checkpoints. Place the downloaded checkpoints in `$PRETRAINED_CKPT_ROOT/dinov3/`.
+- **DINOv3**: Follow instructions at [dinov3](https://github.com/facebookresearch/dinov3) to download DINOv3 checkpoints. To reproduce our paper, you only need to download the [ViT-S/16 distilled](https://ai.meta.com/resources/models-and-libraries/dinov3-downloads/). Place the downloaded checkpoint(s) in `$PRETRAINED_CKPT_ROOT/dinov3/`. You will receive an e-mail with downloading urls. You should also `git clone git@github.com:facebookresearch/dinov3.git` inside `JEPA_WM_HOME`
 
-- **V-JEPA (v1)**: Follow instructions at [jepa](https://github.com/facebookresearch/jepa) to download V-JEPA v1 checkpoints. Place the downloaded checkpoints in `$PRETRAINED_CKPT_ROOT/vjepa1_opensource/`.
+- **V-JEPA**: Follow instructions at [vjepa](https://github.com/facebookresearch/jepa) to download V-JEPA v1 checkpoints. You only need the [ViT-L/16](https://dl.fbaipublicfiles.com/jepa/vitl16/vitl16.pth.tar) to reproduce our paper. Place the downloaded checkpoints in `$PRETRAINED_CKPT_ROOT/vjepa1_opensource/`.
 
-- **V-JEPA-2 (v2)**: Follow instructions at [vjepa2](https://github.com/facebookresearch/vjepa2) to download V-JEPA-2 checkpoints. Place the downloaded checkpoints in `$PRETRAINED_CKPT_ROOT/vjepa2_opensource/`.
+- **V-JEPA-2**: Follow instructions at [vjepa2](https://github.com/facebookresearch/vjepa2) to download V-JEPA-2 checkpoints. You only need the [ViT-L/16](https://dl.fbaipublicfiles.com/vjepa2/vitl.pt) to reproduce our paper. Place the downloaded checkpoints in `$PRETRAINED_CKPT_ROOT/vjepa2_opensource/`.
 
-#### Optional: Robocasa install
+### Optional: Robocasa install
 
 For robot manipulation environments (RoboCasa, RoboSuite), you need to manually install these dependencies from source, as they cannot be installed via pip alone.
 
@@ -157,11 +136,38 @@ For robot manipulation environments (RoboCasa, RoboSuite), you need to manually 
 
 **Note**: If you're not using `uv`, replace `uv pip install` with `pip install` in the commands above.
 
-## Data
+### Downloading Data
 
-Our experiments use datasets from multiple sources. Below are instructions for obtaining and setting up each dataset.
+Our experiments use datasets from multiple sources. Below are instructions for obtaining and setting up each dataset. We remind that you should have **set the environment variable** `export DATASET_ROOT=</path/to/your/datasets>`.
 
-### Push-T, Wall, and PointMaze
+Once you have set `DATASET_ROOT`, you can follow the below instructions per dataset to organize your datasets as follows (see below instructions on [Downloading Data](#downloading-data)):
+
+```
+$DATASET_ROOT/
+├── pusht_noise/           # Push-T dataset
+├── point_maze/            # PointMaze dataset
+├── wall_single/           # Wall dataset
+├── Metaworld/             # Metaworld dataset
+│   └── train_paths.csv
+├── robocasa/              # RoboCasa dataset
+│   └── v0.1/
+├── droid/                 # DROID dataset
+│   ├── droid_train_paths.csv
+│   └── droid_val_paths.csv
+├── kinetics400/           # Kinetics-400 dataset (optional)
+│   ├── k400_train_paths.csv
+│   └── k400_val_paths.csv
+├── kinetics710/           # Kinetics-710 dataset (optional)
+│   ├── k710_train_paths.csv
+│   └── k710_val_paths.csv
+├── ssv2/                  # Something-Something-v2 dataset (optional)
+│   ├── ssv2_train_paths.csv
+│   └── ssv2_val_paths.csv
+└── howto100m/             # HowTo100M dataset (optional)
+    └── howto100m_paths.csv
+```
+
+#### Push-T, Wall, and PointMaze
 
 For these environments, we use datasets from the [DINO-WM project](https://osf.io/bmw48/?view_only=a56a296ce3b24cceaf408383a175ce28).
 
@@ -169,31 +175,17 @@ For these environments, we use datasets from the [DINO-WM project](https://osf.i
 
 2. **Extract the datasets**: Unzip the downloaded files.
 
-3. **Set the environment variable**:
-   ```bash
-   # Replace /path/to/data with the actual path to your dataset folder
-   export DATASET_DIR=/path/to/data
-   ```
-
-4. **Expected directory structure**:
-   ```
-   data
-   ├── point_maze
-   ├── pusht_noise
-   └── wall_single
-   ```
-
 **Note**: We do not use the deformable data from DINO-WM.
 
-### Metaworld
+#### Metaworld
 
 For Metaworld, we create a custom dataset by training [TD-MPC2](https://github.com/nicklashansen/tdmpc2) online agents and collecting the first 100 episodes from each of the 42 tasks considered in our experiments.
 
-### DROID
+#### DROID
 
 Download the DROID dataset from the [official DROID repository](https://github.com/droid-dataset/droid) and follow their instructions for setup.
 
-### RoboCasa
+#### RoboCasa
 
 For RoboCasa, download the trajectories from the following URL:
 

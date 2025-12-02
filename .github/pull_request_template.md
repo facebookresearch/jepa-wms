@@ -2,7 +2,7 @@
 
 <!--- Can skip this if the PR title is sufficient -->
 
-## Does this PR touch [common code](https://fburl.com/gdoc/qh6f58jp)? [ ] YES [ ] NO
+## Does this PR touch common code? [ ] YES [ ] NO
 
 <!--- Check the corresponding box -->
 

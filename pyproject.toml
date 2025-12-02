@@ -104,8 +104,8 @@ all = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/fairinternal/jepa-internal"
-Repository = "https://github.com/fairinternal/jepa-internal"
+Homepage = "https://github.com/facebookresearch/jepa-wms"
+Repository = "https://github.com/facebookresearch/jepa-wms"
 
 [tool.setuptools.packages.find]
 where = ["."]
