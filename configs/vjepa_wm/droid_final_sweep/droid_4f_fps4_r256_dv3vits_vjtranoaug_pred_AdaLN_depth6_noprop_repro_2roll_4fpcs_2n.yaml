@@ -1,5 +1,5 @@
 app: vjepa_wm
-nodes: 4
+nodes: 2
 tasks_per_node: 8
 cpus_per_task: 16
 folder: ${CHECKPOINT_ROOT}/droid_final_sweep/droid_4f_fps4_r256_dv3vits_vjtranoaug_pred_AdaLN_depth6_noprop_repro_2roll_4fpcs_2n

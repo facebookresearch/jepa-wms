@@ -34,7 +34,7 @@ data:
   # DataLoader configuration
   loader:
     batch_size: 8
-    num_workers: 12
+    num_workers: 16
     pin_mem: true
     persistent_workers: true
   # Custom dataset parameters
