@@ -13,23 +13,27 @@ authors = [
 keywords = ["machine learning", "world models", "jepa", "reinforcement learning"]
 
 dependencies = [
-    # Core dependencies
+    # Core ML framework
     "torch>=2.7.0",
     "torchvision==0.22.0",
     "torchrl>=0.9.2",
     "tensordict>=0.9.1",
-
-    # Vision and transformers
     "timm>=1.0.19",
 
     # Data processing
     "numpy",
+    "pandas",
+    "h5py",
+    "einops",
+
+    # Image and video processing
     "opencv-python",
     "pillow",
     "decord>=0.6.0",
-    "h5py",
-    "pandas",
-    "einops",
+    "imageio",
+    "imageio-ffmpeg",
+    "moviepy",
+    "mediapy",
 
     # Scientific computing
     "scipy",
@@ -39,24 +43,20 @@ dependencies = [
     "matplotlib",
     "seaborn",
     "plotly",
-    "mediapy",
-    "imageio",
-    "imageio-ffmpeg",
-    "moviepy",
     "termcolor",
 
-    # Configuration management
+    # Configuration and logging
     "omegaconf",
-
-    # ML experiment tracking and logging
     "wandb",
 
     # Utilities
     "tqdm",
     "submitit",
     "clusterscope",
+    "ruamel.yaml",
+    "nevergrad",
 
-    # Robotics and simulation environments
+    # Simulation environments
     "gym==0.23.1",
     "gymnasium>=1.2.0",
     "pygame>=2.6.0",
@@ -65,16 +65,15 @@ dependencies = [
     "pybullet",
     "mujoco>=3.2.0",
     "dm-control>=1.0.34",
+    "metaworld",
 
-    # Metaworld (from git)
-    "metaworld @ git+https://github.com/Farama-Foundation/Metaworld.git@master",
-
-    # Additional utilities
-    "ruamel.yaml",
+    # PointMaze environment (requires both mujoco and mujoco-py)
+    "d4rl",
+    "cython<3.0",  # Required for mujoco-py compatibility
+    "patchelf",    # Required for mujoco-py compilation
 ]
 
 [project.optional-dependencies]
-# Development dependencies
 dev = [
     "pytest>=8.4.0",
     "black>=25.0.0",
@@ -84,24 +83,14 @@ dev = [
     "jupyterlab",
 ]
 
-# Robot manipulation environments
-# NOTE: robocasa and robosuite must be installed manually from source.
-# See the "Optional: Robocasa" section in README.md for installation instructions.
-# These packages cannot be installed via pip alone as they require:
-# - Cloning from specific git repositories:
-#   - https://github.com/Basile-Terv/robosuite (robocasa-dev branch)
-#   - https://github.com/Basile-Terv/robocasa
-# - Installing with pip install -e .
-# - Downloading additional assets (~5GB) for robocasa
-robocasa = [
-    # "robocasa",  # Install manually - see README.md
-    # "robosuite",  # Install manually - see README.md
-]
+[tool.uv.sources]
+metaworld = { git = "https://github.com/Farama-Foundation/Metaworld.git", branch = "master" }
+d4rl = { git = "git+https://github.com/Farama-Foundation/D4RL.git", branch = "master" }
 
-# Full environment with all extras
-all = [
-    "jepa[dev,robocasa]",
-]
+# NOTE: robocasa and robosuite must be installed manually from source.
+# See README.md "Optional: Robocasa" section for details.
+# Repos: https://github.com/Basile-Terv/robosuite (robocasa-dev branch)
+#        https://github.com/Basile-Terv/robocasa
 
 [project.urls]
 Homepage = "https://github.com/facebookresearch/jepa-wms"

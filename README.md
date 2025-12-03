@@ -94,7 +94,8 @@ cd jepa-wms
 
 Once it is installed, you can create your environment using:
 ```bash
-uv sync
+uv sync                # Install base dependencies
+uv sync --extra dev    # Install base + dev dependencies
 ```
 
 This environment can be activated using `. .venv/bin/activate`, and deactivated using `deactivate`. For convenience, you can also run Python scripts using the environment without activating it using `uv run script.py`.
