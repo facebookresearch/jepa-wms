@@ -15,13 +15,66 @@ PyTorch implementation and pretrained models for JEPA-WMs. For details, see [**W
 ![JEPA-WMs diagram](assets/train_plan_schema.png)
 
 ## Pretrained models
-`TODO`
-<!-- | arch     | #params | FLOP/fwd @224 | Pretraining dataset | k-nn ADE20K | attentive IN1k | weights |
-|----------|---------|---------------|---------------------|-------------|----------------|---------|
-| ViT-L/14 | 302M    |      1.70E+11 | Places205           |        35.2 |           79.2 | [weights](https://dl.fbaipublicfiles.com/capi/capi_vitl14_p205.pth)   |
-| ViT-L/14 | 302M    |      1.70E+11 | LVD-142M            |        32.1 |           83.8 | [weights](https://dl.fbaipublicfiles.com/capi/capi_vitl14_lvd.pth)   |
-| ViT-L/14 | 302M    |      1.70E+11 | IN22k               |        29.7 |           83.6 | [weights](https://dl.fbaipublicfiles.com/capi/capi_vitl14_i22k.pth)   |
-| ViT-L/14 | 302M    |      1.70E+11 | IN1k                |        29.2 |           82.9 | [weights](https://dl.fbaipublicfiles.com/capi/capi_vitl14_in1k.pth)   | -->
+
+We provide pretrained JEPA-WM models and DINO-WM baseline models for various environments.
+
+### JEPA-WM Models
+
+| Environment | Resolution | Encoder | Predictor Depth | Weights |
+|-------------|------------|---------|-----------------|---------|
+| Metaworld | 256×256 | DINOv3 ViT-S/16 | 6 | [download](https://dl.fbaipublicfiles.com/jepa-wms/jepa_wm_metaworld.pth) |
+| Push-T | 224×224 | - | 6 | [download](https://dl.fbaipublicfiles.com/jepa-wms/jepa_wm_pusht.pth) |
+| PointMaze | 224×224 | - | 6 | [download](https://dl.fbaipublicfiles.com/jepa-wms/jepa_wm_pointmaze.pth) |
+| Wall | 224×224 | - | 6 | [download](https://dl.fbaipublicfiles.com/jepa-wms/jepa_wm_wall.pth) |
+| RoboCasa | 256×256 | DINOv3 ViT-S/16 | 6 | [download](https://dl.fbaipublicfiles.com/jepa-wms/jepa_wm_robocasa.pth) |
+| DROID | 256×256 | DINOv3 ViT-S/16 | 6 | [download](https://dl.fbaipublicfiles.com/jepa-wms/jepa_wm_droid.pth) |
+
+### DINO-WM Baseline Models
+
+| Environment | Resolution | Predictor Depth | Weights |
+|-------------|------------|-----------------|---------|
+| Metaworld | 224×224 | 6 | [download](https://dl.fbaipublicfiles.com/jepa-wms/dino_wm_metaworld.pth) |
+| Push-T | 224×224 | 6 | [download](https://dl.fbaipublicfiles.com/jepa-wms/dino_wm_pusht.pth) |
+| PointMaze | 224×224 | 6 | [download](https://dl.fbaipublicfiles.com/jepa-wms/dino_wm_pointmaze.pth) |
+| Wall | 224×224 | 6 | [download](https://dl.fbaipublicfiles.com/jepa-wms/dino_wm_wall.pth) |
+| DROID | 224×224 | 6 | [download](https://dl.fbaipublicfiles.com/jepa-wms/dino_wm_droid.pth) |
+
+### Loading Models with PyTorch Hub
+
+You can easily load pretrained models using PyTorch Hub:
+
+```python
+import torch
+
+# Load a pretrained JEPA-WM model for Metaworld
+model = torch.hub.load('facebookresearch/jepa-wms', 'jepa_wm_metaworld', pretrained=True)
+
+# Load a pretrained JEPA-WM model for Push-T
+model = torch.hub.load('facebookresearch/jepa-wms', 'jepa_wm_pusht', pretrained=True)
+
+# Load a pretrained JEPA-WM model for PointMaze
+model = torch.hub.load('facebookresearch/jepa-wms', 'jepa_wm_pointmaze', pretrained=True)
+
+# Load a pretrained JEPA-WM model for Wall
+model = torch.hub.load('facebookresearch/jepa-wms', 'jepa_wm_wall', pretrained=True)
+
+# Load a pretrained JEPA-WM model for RoboCasa
+model = torch.hub.load('facebookresearch/jepa-wms', 'jepa_wm_robocasa', pretrained=True)
+
+# Load a pretrained JEPA-WM model for DROID
+model = torch.hub.load('facebookresearch/jepa-wms', 'jepa_wm_droid', pretrained=True)
+
+# Load DINO-WM baseline models
+model = torch.hub.load('facebookresearch/jepa-wms', 'dino_wm_metaworld', pretrained=True)
+model = torch.hub.load('facebookresearch/jepa-wms', 'dino_wm_pusht', pretrained=True)
+model = torch.hub.load('facebookresearch/jepa-wms', 'dino_wm_pointmaze', pretrained=True)
+model = torch.hub.load('facebookresearch/jepa-wms', 'dino_wm_wall', pretrained=True)
+model = torch.hub.load('facebookresearch/jepa-wms', 'dino_wm_droid', pretrained=True)
+```
+
+Available model functions:
+- **JEPA-WM**: `jepa_wm_metaworld`, `jepa_wm_pusht`, `jepa_wm_pointmaze`, `jepa_wm_wall`, `jepa_wm_robocasa`, `jepa_wm_droid`
+- **DINO-WM**: `dino_wm_metaworld`, `dino_wm_pusht`, `dino_wm_pointmaze`, `dino_wm_wall`, `dino_wm_droid`
 
 
 ## Getting Started
@@ -94,7 +147,7 @@ $PRETRAINED_CKPT_ROOT/
 
 To download pretrained encoders, follow the instructions from their respective repositories:
 
-- **DINOv3**: Follow instructions at [dinov3](https://github.com/facebookresearch/dinov3) to download DINOv3 checkpoints. To reproduce our paper, you only need to download the [ViT-S/16 distilled](https://ai.meta.com/resources/models-and-libraries/dinov3-downloads/). Place the downloaded checkpoint(s) in `$PRETRAINED_CKPT_ROOT/dinov3/`. You will receive an e-mail with downloading urls. You should also `git clone git@github.com:facebookresearch/dinov3.git` inside `JEPA_WM_HOME`
+- **DINOv3**: Follow instructions at [dinov3](https://github.com/facebookresearch/dinov3) to download DINOv3 checkpoints. To reproduce our paper, you only need to download the [ViT-S/16 distilled](https://ai.meta.com/resources/models-and-libraries/dinov3-downloads/). You will receive an e-mail with downloading urls. Place the downloaded checkpoint(s) in `$PRETRAINED_CKPT_ROOT/dinov3/`. You should also `git clone git@github.com:facebookresearch/dinov3.git` inside `JEPA_WM_HOME`. Optional: If you want to use the ViT-L/16 encoder, you should replace the hashkey `pretrain_lvd1689m-<your-hashkey>.pth` with yours in `app/plan_common/models/dino.py`
 
 - **V-JEPA**: Follow instructions at [vjepa](https://github.com/facebookresearch/jepa) to download V-JEPA v1 checkpoints. You only need the [ViT-L/16](https://dl.fbaipublicfiles.com/jepa/vitl16/vitl16.pth.tar) to reproduce our paper. Place the downloaded checkpoints in `$PRETRAINED_CKPT_ROOT/vjepa1_opensource/`.
 
@@ -203,19 +256,19 @@ This generic app covers the DINO-WM method and offers other possibilities in ter
 
 Launch training of models of the paper with
 
-```python -m app.main --fname configs/basile/cw/vjepa_wm/<env>_sweep/<env>_4f_fsk5_ask1_r224_pred_dino_wm_depth6_noprop_repro_1roll_save.yaml```
+```python -m app.main --fname configs/vjepa_wm/<env>_sweep/<env>_4f_fsk5_ask1_r224_pred_dino_wm_depth6_noprop_repro_1roll_save.yaml```
 
 Replace `<env>` with your target environment (e.g., mw, wall, mz).
 
 You can also train heads by launching for example, for DINOv2 ViT-B:
-```python -m app.main --fname configs/basile/cw/vjepa_wm/<env>/step2_<env>_state_head_dinovitb_r224.yaml```
+```python -m app.main --fname configs/vjepa_wm/<env>/step2_<env>_state_head_dinovitb_r224.yaml```
 or
-```python -m app.main --fname configs/basile/cw/vjepa_wm/<env>/step2_<env>_vitbdec_dinovitbenc_224_beta0.95.yaml```
+```python -m app.main --fname configs/vjepa_wm/<env>/step2_<env>_vitbdec_dinovitbenc_224_beta0.95.yaml```
 
 Those heads can then be used by the online ***light evals***, performed in the val_rollout() function of the training loops of both dino_wm and vjepa_wm.
 
 This app covers:
-- DINO-WM with the configs `configs/basile/cw/vjepa_wm/<env>_sweep/<env>_4f_fsk5_ask1_r224_pred_dino_wm_depth6_repro_1roll_save.yaml`
+- DINO-WM with the configs `configs/vjepa_wm/<env>_sweep/<env>_4f_fsk5_ask1_r224_pred_dino_wm_depth6_repro_1roll_save.yaml`
 - Our best JEPA-WMs with
   - `mw_sweep/mw_4f_fsk5_ask1_r256_dv3vits_vjtranoaug_pred_AdaLN_ftprop_depth6_repro_2roll_save`
   - `mz_sweep/mz_4f_fsk5_ask1_r224_vjtranoaug_predAdaLN_ftprop_depth6_repro_2roll_save_2n`
@@ -230,17 +283,17 @@ This app covers:
 ### Config generation
 In the train.py script of both the vjepa_wm and dino_wm apps, you can uncomment the highlighted snippet in launch_planning_evals() to stop to breakpoint after having generated the planning eval configs of the model.
 Then run in debug mode for example
-```python -m app.main --fname configs/basile/cw/vjepa_wm/<env>_sweep/<env>_4f_fsk5_ask1_r224_pred_dino_wm_depth6_noprop_repro_1roll_save.yaml --debug```.
+```python -m app.main --fname configs/vjepa_wm/<env>_sweep/<env>_4f_fsk5_ask1_r224_pred_dino_wm_depth6_noprop_repro_1roll_save.yaml --debug```.
 
-This will dump the generated yaml files in `configs/basile/cw/dump_online_evals/vjepa_wm` or `configs/basile/cw/dump_online_evals/dino_wm`.
+This will dump the generated yaml files in `configs/dump_online_evals/vjepa_wm` or `configs/dump_online_evals/dino_wm`.
 
 To launch planning evaluation with, for example, the generated config for a goal source that is from the dataset (dset), with a planner based on NeverGrad (ng), using the L_2 latent distance as planning objective, do
 
-```python -m evals.main --fname configs/basile/cw/dump_online_evals/vjepa_wm/dset_ng_L2.yaml```
+```python -m evals.main --fname configs/dump_online_evals/vjepa_wm/dset_ng_L2.yaml```
 
 or
 
-```python -m evals.main_distributed --fname configs/basile/cw/dump_online_evals/vjepa_wm/dset_ng_L2.yaml --account fair_amaia_cw_video --qos lowest --time 120```
+```python -m evals.main_distributed --fname configs/dump_online_evals/vjepa_wm/dset_ng_L2.yaml --account fair_amaia_cw_video --qos lowest --time 120```
 
 The notebook to visualise these planning eval results is `app/plan_common/notebooks/logs_planning_joint.ipynb`.
 

@@ -1545,7 +1545,7 @@ def launch_planning_evals(
         # # # #####################
         # # Uncomment for debug: save online eval cfgs
         if rank == 0:
-            dir = "configs/basile/cw/dump_online_evals/vjepa_wm"
+            dir = "configs/dump_online_evals/vjepa_wm"
             yaml_paths = [
                 os.path.join(dir, "dset_ng_L2.yaml"),
                 os.path.join(dir, "dset_cem_L2.yaml"),
@@ -1655,7 +1655,7 @@ def launch_unroll_decode_eval(
 
         # # # #####################
         # # # # Uncomment for debug: save online eval cfgs
-        dump_dir = "configs/basile/cw/dump_online_evals/vjepa_wm/unroll_decode"
+        dump_dir = "configs/dump_online_evals/vjepa_wm/unroll_decode"
         os.makedirs(dump_dir, exist_ok=True)
         yaml_paths = []
         for i, cfg in enumerate(args_eval):
