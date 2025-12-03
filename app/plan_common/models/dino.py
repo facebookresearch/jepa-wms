@@ -1,3 +1,5 @@
+# Inspired from https://github.com/gaoyuezhou/dino_wm
+
 import os
 
 import torch

@@ -10,7 +10,7 @@ import torch
 import torch.nn as nn
 from einops import repeat
 
-from app.plan_common.models.modules import Block, build_action_block_causal_attention_mask
+from src.models.utils.modules import Block, build_action_block_causal_attention_mask
 from src.utils.tensors import trunc_normal_
 
 

@@ -14,8 +14,8 @@ import torch.nn as nn
 from src.utils.tensors import trunc_normal_
 from src.masks.utils import apply_masks
 
-from app.plan_common.models.patch_embed import PatchEmbed, PatchEmbed3D
-from app.plan_common.models.modules import Block, build_causal_attention_mask
+from src.models.utils.patch_embed import PatchEmbed, PatchEmbed3D
+from src.models.utils.modules import Block, build_causal_attention_mask
 from src.models.utils.pos_embs import get_2d_sincos_pos_embed, get_3d_sincos_pos_embed
 
 

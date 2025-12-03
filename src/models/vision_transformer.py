@@ -42,7 +42,7 @@ class VisionTransformer(nn.Module):
         out_layers=None,
         uniform_power=False,
         use_SiLU=False,
-        wide_SiLU=True,
+        wide_silu=True,
         is_causal=False,
         use_sdpa=True,
         use_activation_checkpointing=False,
@@ -94,7 +94,7 @@ class VisionTransformer(nn.Module):
                     qk_scale=qk_scale,
                     drop=drop_rate,
                     act_layer=nn.SiLU if use_SiLU else nn.GELU,
-                    wide_SiLU=wide_SiLU,
+                    wide_silu=wide_silu,
                     attn_drop=attn_drop_rate,
                     drop_path=dpr[i],
                     norm_layer=norm_layer,
@@ -180,9 +180,25 @@ class VisionTransformer(nn.Module):
         outs = []
         for i, blk in enumerate(self.blocks):
             if self.use_activation_checkpointing:
-                x = torch.utils.checkpoint.checkpoint(blk, x, False, masks, use_reentrant=False)
+                x = torch.utils.checkpoint.checkpoint(
+                    blk,
+                    x,
+                    masks,
+                    None,
+                    None,
+                    None,
+                    None,
+                    use_reentrant=False,
+                )
             else:
-                x = blk(x, mask=masks)
+                x = blk(
+                    x,
+                    masks,
+                    None,
+                    None,
+                    None,
+                    None,
+                )
             if self.out_layers is not None and i in self.out_layers:
                 outs.append(self.norm(x))
 

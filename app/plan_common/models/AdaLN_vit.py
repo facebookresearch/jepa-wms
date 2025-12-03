@@ -6,7 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from einops import rearrange, repeat
 
-from app.plan_common.models.modules import (
+from src.models.utils.modules import (
     MLP,
     Attention,
     DropPath,

@@ -1,4 +1,6 @@
-# adapted from https://github.com/lucidrains/vit-pytorch/blob/main/vit_pytorch/vit.py
+# Taken from https://github.com/gaoyuezhou/dino_wm,
+# itself adapted from https://github.com/lucidrains/vit-pytorch/blob/main/vit_pytorch/vit.py
+
 import torch
 from einops import rearrange
 from torch import nn

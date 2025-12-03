@@ -140,8 +140,13 @@ Once you set `PRETRAINED_CKPT_ROOT`, organize your pretrained checkpoints as fol
 ```
 $PRETRAINED_CKPT_ROOT/
 ├── dinov3/                # DINOv3 checkpoints
+│   ├── dinov3_vits16_pretrain_lvd1689m.pth
+│   └── dinov3_vitl16_pretrain_lvd1689m-<your-hashkey>.pth
 ├── vjepa1_opensource/     # V-JEPA v1 checkpoints
+│   └── vitl16.pth.tar
 ├── vjepa2_opensource/     # V-JEPA v2 checkpoints
+│   ├── vjepa2_vit_large.pth
+│   └── vjepa2_vit_giant.pth
 └── vgg_lpips.pth         # VGG-based LPIPS model (optional)
 ```
 
@@ -151,7 +156,7 @@ To download pretrained encoders, follow the instructions from their respective r
 
 - **V-JEPA**: Follow instructions at [vjepa](https://github.com/facebookresearch/jepa) to download V-JEPA v1 checkpoints. You only need the [ViT-L/16](https://dl.fbaipublicfiles.com/jepa/vitl16/vitl16.pth.tar) to reproduce our paper. Place the downloaded checkpoints in `$PRETRAINED_CKPT_ROOT/vjepa1_opensource/`.
 
-- **V-JEPA-2**: Follow instructions at [vjepa2](https://github.com/facebookresearch/vjepa2) to download V-JEPA-2 checkpoints. You only need the [ViT-L/16](https://dl.fbaipublicfiles.com/vjepa2/vitl.pt) to reproduce our paper. Place the downloaded checkpoints in `$PRETRAINED_CKPT_ROOT/vjepa2_opensource/`.
+- **V-JEPA-2**: Follow instructions at [vjepa2](https://github.com/facebookresearch/vjepa2) to download V-JEPA-2 checkpoints. You only need the [ViT-L/16](https://dl.fbaipublicfiles.com/vjepa2/vitl.pt) to reproduce our paper and need the [ViT-G/16](https://dl.fbaipublicfiles.com/vjepa2/vitg.pt) to reproduce the V-JEPA-2-AC baseline. Place the downloaded checkpoints in `$PRETRAINED_CKPT_ROOT/vjepa2_opensource/`.
 
 ### Optional: Robocasa install
 
@@ -409,11 +414,14 @@ You can find:
 ```
 .
 ├── app                              # training loops
-│   ├── vjepa_wm                      #   training the world model or heads
+│   ├── vjepa_wm                     #   training the world model or heads
 │   ├── main_distributed.py          #   entrypoint for launch app on slurm cluster
 │   └── main.py                      #   entrypoint for launch app locally on your machine
 ├── configs                          # config files with experiment params for training and evaluation
-│   ├── train                        #   training world model
+│   ├── dump_online_evals            #   dump generated eval configs from train loop
+│   ├── evals                        #   already generated full eval configs
+│   ├── online_plan_evals            #   eval templates to fill with trained model config
+│   ├── vjepa_wm                     #   train configs
 ├── evals                            # evaluations
 │   ├── simu_env_planning            #   planning evaluation
 │   ├── main_distributed.py          #   entrypoint for distributed evaluations

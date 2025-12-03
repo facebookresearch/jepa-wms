@@ -14,8 +14,8 @@ import torch
 from torch import nn
 
 from src.utils.yaml_utils import load_yaml
-import app.plan_common.models.ac_predictor_upd as vit_ac_pred
-import app.plan_common.models.vision_transformer as vit_v2_open
+import src.models.ac_predictor as vit_ac_pred
+import src.models.vision_transformer_v2 as vit_v2_open
 from app.plan_common.models.AdaLN_vit import vit_predictor_AdaLN
 from app.plan_common.models.dino import DinoEncoder
 from app.plan_common.models.prop_embedding import ProprioceptiveEmbedding

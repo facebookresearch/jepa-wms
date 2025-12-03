@@ -10,8 +10,8 @@ from functools import partial
 import torch
 import torch.nn as nn
 
-from app.plan_common.models.modules import Block
-from src.models.utils.pos_embs import get_2d_sincos_pos_embed, get_3d_sincos_pos_embed
+from src.models.utils.modules import Block
+from src.models.utils.pos_embs import get_2d_sincos_pos_embed
 from src.utils.tensors import trunc_normal_
 
 
