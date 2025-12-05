@@ -19,13 +19,11 @@ dependencies = [
     "torchrl>=0.9.2",
     "tensordict>=0.9.1",
     "timm>=1.0.19",
-
     # Data processing
     "numpy",
     "pandas",
     "h5py",
     "einops",
-
     # Image and video processing
     "opencv-python",
     "pillow",
@@ -34,28 +32,24 @@ dependencies = [
     "imageio-ffmpeg",
     "moviepy",
     "mediapy",
-
+    "lpips>=0.1.4",
     # Scientific computing
     "scipy",
     "scikit-image",
-
     # Visualization
     "matplotlib",
     "seaborn",
     "plotly",
     "termcolor",
-
     # Configuration and logging
     "omegaconf",
     "wandb",
-
     # Utilities
     "tqdm",
     "submitit",
     "clusterscope",
     "ruamel.yaml",
     "nevergrad",
-
     # Simulation environments
     "gym==0.23.1",
     "gymnasium>=1.2.0",
@@ -66,11 +60,10 @@ dependencies = [
     "mujoco>=3.2.0",
     "dm-control>=1.0.34",
     "metaworld",
-
     # PointMaze environment (requires both mujoco and mujoco-py)
     "d4rl",
-    "cython<3.0",  # Required for mujoco-py compatibility
-    "patchelf",    # Required for mujoco-py compilation
+    "cython<3.0", # Required for mujoco-py compatibility
+    "patchelf", # Required for mujoco-py compilation
 ]
 
 [project.optional-dependencies]
