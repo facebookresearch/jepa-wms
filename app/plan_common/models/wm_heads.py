@@ -49,16 +49,12 @@ class WorldModelViTImageHead(TrainableModel):
 
         # Initialize LPIPS if needed
         if self.use_lpips:
-            pretrained_ckpt_root = os.environ.get("PRETRAINED_CKPT_ROOT")
-            lpips_ckpt = f"{pretrained_ckpt_root}/vgg_lpips.pth"
-
             self.combined_loss = LPIPSWithDiscriminator(
                 disc_start=1000000000000,
                 logvar_init=0.0,
                 kl_weight=0.0,
                 pixelloss_weight=self.pixelloss_weight,
                 perceptual_weight=self.perceptual_weight,
-                lpips_ckpt=lpips_ckpt,
                 # --- Discriminator Loss ---
                 disc_num_layers=4,
                 disc_in_channels=3,

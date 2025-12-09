@@ -1,0 +1,38 @@
+Plan setup: [
+  # S
+  "${CHECKPOINT_ROOT}/mw_sweep/mw_4f_fsk5_ask1_r224_pred_dino_wm_depth6_noprop_repro_1roll_save_seed1",
+  "${CHECKPOINT_ROOT}/mz_sweep/mz_4f_fsk5_ask1_r224_pred_dino_wm_depth6_noprop_repro_1roll_save_2n",
+  "${CHECKPOINT_ROOT}/pt_sweep/pt_4f_fsk5_ask1_r224_pred_dino_wm_depth6_noprop_repro_1roll_save",
+  "${CHECKPOINT_ROOT}/wall_sweep/wall_4f_fsk5_ask1_r224_pred_dino_wm_depth6_noprop_repro_1roll_save_2n",
+  "${CHECKPOINT_ROOT}/droid_final_sweep/droid_4f_fps4_r224_pred_dino_wm_depth6_noprop_repro_1roll_4fpcs_2n",
+  # B
+  '${CHECKPOINT_ROOT}/mw_sweep/mw_4f_fsk5_ask1_r224_pred_dino_wm_depth6_noprop_repro_1roll_save',
+  '${CHECKPOINT_ROOT}/wall_sweep/wall_4f_fsk5_ask1_r224_pred_dino_wm_depth6_noprop_repro_1roll_save_2n',
+  '${CHECKPOINT_ROOT}/pt_sweep/pt_4f_fsk5_ask1_r224_pred_dino_wm_depth6_noprop_repro_1roll_save',
+  '${CHECKPOINT_ROOT}/mz_sweep/mz_4f_fsk5_ask1_r224_pred_dino_wm_depth6_noprop_repro_1roll_save_2n',
+  '${CHECKPOINT_ROOT}/droid_final_sweep/droid_4f_fps4_r224_pred_dino_wm_dinovitb_depth6_noprop_repro_1roll_4fpcs_2n',
+  # L
+  '${CHECKPOINT_ROOT}/mw_sweep/mw_4f_fsk5_ask1_r224_pred_dino_wm_dinovitl_depth6_noprop_repro_1roll_save',
+  '${CHECKPOINT_ROOT}/wall_sweep/wall_4f_fsk5_ask1_r224_pred_dino_wm_dinovitl_depth6_noprop_repro_1roll_save_2n',
+  '${CHECKPOINT_ROOT}/pt_sweep/pt_4f_fsk5_ask1_r224_pred_dino_wm_dinovitl_depth6_noprop_repro_1roll_save',
+  '${CHECKPOINT_ROOT}/mz_sweep/mz_4f_fsk5_ask1_r224_pred_dino_wm_dinovitl_depth6_noprop_repro_1roll_save_2n',
+  '${CHECKPOINT_ROOT}/droid_final_sweep/droid_4f_fps4_r224_pred_dino_wm_dinovitl_depth6_noprop_repro_1roll_4fpcs_2n',
+  # 2-stp
+  "${CHECKPOINT_ROOT}/mw_sweep/mw_4f_fsk5_ask1_r224_pred_dino_wm_depth6_repro_2roll_save",
+  "${CHECKPOINT_ROOT}/mz_sweep/mz_4f_fsk5_ask1_r224_pred_dino_wm_depth6_noprop_repro_2roll_save_2n",
+  "${CHECKPOINT_ROOT}/pt_sweep/pt_4f_fsk5_ask1_r224_pred_dino_wm_depth6_noprop_repro_2roll_save",
+  "${CHECKPOINT_ROOT}/wall_sweep/wall_4f_fsk5_ask1_r224_pred_dino_wm_depth6_noprop_repro_2roll_save_2n",
+  "${CHECKPOINT_ROOT}/droid_final_sweep/droid_4f_fps4_r224_pred_dino_wm_depth6_noprop_repro_2roll_4fpcs_2n",
+  # 3-st
+  "${CHECKPOINT_ROOT}/mw_sweep/mw_4f_fsk5_ask1_r224_pred_dino_wm_depth6_noprop_repro_3roll_save",
+  "${CHECKPOINT_ROOT}/mz_sweep/mz_4f_fsk5_ask1_r224_pred_dino_wm_depth6_noprop_repro_3roll_save_2n",
+  "${CHECKPOINT_ROOT}/pt_sweep/pt_4f_fsk5_ask1_r224_pred_dino_wm_depth6_noprop_repro_3roll_save",
+  "${CHECKPOINT_ROOT}/wall_sweep/wall_4f_fsk5_ask1_r224_pred_dino_wm_depth6_noprop_repro_3roll_save_2n",
+  "${CHECKPOINT_ROOT}/droid_final_sweep/droid_4f_fps4_r224_pred_dino_wm_depth6_noprop_repro_3roll_4fpcs_2n",
+  # 6-st
+  "${CHECKPOINT_ROOT}/mw_sweep/mw_4f_fsk5_ask1_r224_pred_dino_wm_depth6_noprop_repro_6roll_hist7_bs4_save",
+  "${CHECKPOINT_ROOT}/mz_sweep/mz_4f_fsk5_ask1_r224_pred_dino_wm_depth6_noprop_repro_6roll_hist7_bs4_save_2n",
+  "${CHECKPOINT_ROOT}/pt_sweep/pt_4f_fsk5_ask1_r224_pred_dino_wm_depth6_noprop_repro_6roll_hist7_bs4_save",
+  "${CHECKPOINT_ROOT}/wall_sweep/wall_4f_fsk5_ask1_r224_pred_dino_wm_depth6_noprop_repro_6roll_hist7_bs4_save_2n",
+  "${CHECKPOINT_ROOT}/droid_final_sweep/droid_4f_fps4_r224_pred_dino_wm_depth6_noprop_repro_6roll_8fpcs_2n",
+]

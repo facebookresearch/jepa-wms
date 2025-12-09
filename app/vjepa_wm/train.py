@@ -20,6 +20,7 @@ import time
 from collections import defaultdict
 
 import imageio
+import lpips as lpips_lib
 import matplotlib
 import numpy as np
 import submitit
@@ -33,7 +34,6 @@ from tqdm import tqdm
 from app.plan_common.datasets.preprocessor import Preprocessor
 from app.plan_common.datasets.transforms import make_inverse_transforms, make_transforms
 from app.plan_common.datasets.utils import init_data
-from app.plan_common.models.lpips import LPIPS
 from app.plan_common.models.wm_heads import (
     WorldModelPoseReadoutHead,
     WorldModelRewardReadoutHead,
@@ -702,7 +702,7 @@ def main(args, resume_preempt=False):
     world_model = VideoWM(**wm_kwargs)
 
     # -- Initialize LPIPS once for evaluation
-    lpips = LPIPS().eval().to(device)
+    lpips = lpips_lib.LPIPS(net="vgg").eval().to(device)
 
     def save_checkpoint(epoch, path):
         if rank != 0:
@@ -1544,28 +1544,28 @@ def launch_planning_evals(
 
         # # # #####################
         # # Uncomment for debug: save online eval cfgs
-        if rank == 0:
-            dir = "configs/dump_online_evals/vjepa_wm"
-            yaml_paths = [
-                os.path.join(dir, "dset_ng_L2.yaml"),
-                os.path.join(dir, "dset_cem_L2.yaml"),
-                os.path.join(dir, "dset_ng_L1.yaml"),
-                os.path.join(dir, "dset_cem_L1.yaml"),
-                # # # # rand state
-                os.path.join(dir, "rand_ng_L2.yaml"),
-                os.path.join(dir, "rand_cem_L2.yaml"),
-                os.path.join(dir, "rand_ng_L1.yaml"),
-                os.path.join(dir, "rand_cem_L1.yaml"),
-                # itr
-                os.path.join(dir, "itr_ng_L2.yaml"),
-                os.path.join(dir, "itr_cem_L2.yaml"),
-                os.path.join(dir, "itr_ng_L1.yaml"),
-                os.path.join(dir, "itr_cem_L1.yaml"),
-            ]
-            os.makedirs(dir, exist_ok=True)
-            for i, args in enumerate(args_eval):
-                dump_yaml(args_eval[i], yaml_paths[i])
-            breakpoint()
+        # if rank == 0:
+        #     dir = "configs/dump_online_evals/vjepa_wm"
+        #     yaml_paths = [
+        #         os.path.join(dir, "dset_ng_L2.yaml"),
+        #         os.path.join(dir, "dset_cem_L2.yaml"),
+        #         os.path.join(dir, "dset_ng_L1.yaml"),
+        #         os.path.join(dir, "dset_cem_L1.yaml"),
+        #         # # # # rand state
+        #         os.path.join(dir, "rand_ng_L2.yaml"),
+        #         os.path.join(dir, "rand_cem_L2.yaml"),
+        #         os.path.join(dir, "rand_ng_L1.yaml"),
+        #         os.path.join(dir, "rand_cem_L1.yaml"),
+        #         # itr
+        #         os.path.join(dir, "itr_ng_L2.yaml"),
+        #         os.path.join(dir, "itr_cem_L2.yaml"),
+        #         os.path.join(dir, "itr_ng_L1.yaml"),
+        #         os.path.join(dir, "itr_cem_L1.yaml"),
+        #     ]
+        #     os.makedirs(dir, exist_ok=True)
+        #     for i, args in enumerate(args_eval):
+        #         dump_yaml(args_eval[i], yaml_paths[i])
+        #     breakpoint()
         # # #     # #####################
 
         for i, cfg in enumerate(args_eval):

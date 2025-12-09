@@ -1,11 +1,8 @@
-import os
-
+import lpips as lpips_lib
 import torch
 import torch.nn.functional as F
 from einops import rearrange
 from torch import nn
-
-from app.plan_common.models.lpips import LPIPS
 
 
 class AdaptiveLossWeight:
@@ -67,11 +64,8 @@ class LPIPSWithDiscriminator(nn.Module):
         self.kl_weight = kl_weight
         self.pixel_weight = pixelloss_weight
 
-        if lpips_ckpt is None:
-            pretrained_ckpt_root = os.environ.get("PRETRAINED_CKPT_ROOT")
-            lpips_ckpt = f"{pretrained_ckpt_root}/vgg_lpips.pth"
-
-        self.perceptual_loss = LPIPS(lpips_ckpt_path=lpips_ckpt).eval()
+        # Use the lpips package with VGG backbone
+        self.perceptual_loss = lpips_lib.LPIPS(net="vgg").eval()
         self.perceptual_weight = perceptual_weight
         self.logvar = nn.Parameter(torch.ones(size=()) * logvar_init)
 

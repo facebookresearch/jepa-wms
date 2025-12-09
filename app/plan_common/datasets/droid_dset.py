@@ -96,8 +96,6 @@ class DROIDVideoDataset(torch.utils.data.Dataset):
         self.camera_views = camera_views
         logger.info(f"Using DROID with camera views: {self.camera_views}")
         if self.mpk_dset:
-            self._repo_id = "facebook/robotics-world-models"
-            self.hf_api = HfApi()
             self._action_type = "delta-state"
             self.samples = self._load()
             num_samples_stored = len(self.samples) if normalize_action else 1
@@ -240,72 +238,16 @@ class DROIDVideoDataset(torch.utils.data.Dataset):
         return np.concatenate([new_pose, gripper], axis=1)
 
     def _load(self):
-        if self.local:
-            # Use local files
-            paths = []
-            for pattern in self.mpk_manifest_patterns:
-                # Remove leading '**/' if present, since Path.glob expects relative patterns
-                cleaned_pattern = pattern.lstrip("/")
-                # Use glob with the full pattern, relative to data_path
-                found = list(Path(self.data_path).glob(cleaned_pattern))
-                if not found:
-                    print(f"Warning: No files found for pattern {cleaned_pattern}")
-                paths.extend(found)
-            return [str(p) for p in paths]
-        else:
-            # Create a cache file path based on repo_id and patterns
-            cache_dir = Path("mpk_dataset_cache")
-            cache_dir.mkdir(exist_ok=True)
-
-            # Create a unique filename based on repo_id and patterns
-            patterns_str = "_".join(self.mpk_manifest_patterns).replace("/", "_").replace("*", "star")
-            patterns_str = str(hashlib.md5(patterns_str.encode()).hexdigest())
-            repo_str = self._repo_id.replace("/", "_")
-            cache_file = cache_dir / f"{repo_str}_{patterns_str}_files.json"
-
-            # Check if we're in distributed mode
-            is_distributed = dist.is_initialized()
-            is_main_process = not is_distributed or dist.get_rank() == 0
-            if is_distributed:
-                if is_main_process:
-                    # Only rank 0 fetches from HuggingFace and saves to cache
-                    logger.info(f"Rank 0: Fetching file list from HuggingFace repo {self._repo_id}")
-                    files = self.hf_api.list_repo_files(repo_id=self._repo_id, repo_type="model")
-                    paths = []
-                    for pattern in self.mpk_manifest_patterns:
-                        paths.extend(fnmatch.filter(files, pattern))
-
-                    # Save to cache file
-                    with open(cache_file, "w") as f:
-                        json.dump(paths, f)
-                    logger.info(f"Rank 0: Saved {len(paths)} file paths to cache: {cache_file}")
-
-                # Synchronize all processes
-                dist.barrier()
-                # dist.barrier(device_ids=[dist.get_local_rank()])
-
-                # All ranks (including rank 0) now read from the cache file
-                logger.info(f"Rank {dist.get_rank()}:  paths from cache: {cache_file}")
-                with open(cache_file, "r") as f:
-                    paths = json.load(f)
-            else:
-                # Non-distributed mode: check cache first, then fetch if needed
-                if cache_file.exists():
-                    logger.info(f"Loading file paths from existing cache: {cache_file}")
-                    with open(cache_file, "r") as f:
-                        paths = json.load(f)
-                else:
-                    logger.info(f"Fetching file list from HuggingFace repo {self._repo_id}")
-                    files = self.hf_api.list_repo_files(repo_id=self._repo_id, repo_type="model")
-                    paths = []
-                    for pattern in self.mpk_manifest_patterns:
-                        paths.extend(fnmatch.filter(files, pattern))
-
-                    # Save to cache for future use
-                    with open(cache_file, "w") as f:
-                        json.dump(paths, f)
-                    logger.info(f"Saved {len(paths)} file paths to cache: {cache_file}")
-            return paths
+        paths = []
+        for pattern in self.mpk_manifest_patterns:
+            # Remove leading '**/' if present, since Path.glob expects relative patterns
+            cleaned_pattern = pattern.lstrip("/")
+            # Use glob with the full pattern, relative to data_path
+            found = list(Path(self.data_path).glob(cleaned_pattern))
+            if not found:
+                print(f"Warning: No files found for pattern {cleaned_pattern}")
+            paths.extend(found)
+        return [str(p) for p in paths]
 
     def loadvideo_hf(self, path):
         """
@@ -316,11 +258,7 @@ class DROIDVideoDataset(torch.utils.data.Dataset):
             extrinsics: None (not used in this dataset)
             indices: np.ndarray of shape [T] with sampled frame indices
         """
-        if self.local:
-            local_path = path
-        else:
-            local_path = hf_hub_download(repo_id="facebook/robotics-world-models", filename=path)
-        trajectory = h5py.File(local_path)
+        trajectory = h5py.File(path)
         camera_view = self.camera_views[self.rng.randint(0, len(self.camera_views))]
         states = np.concatenate(
             [
@@ -339,7 +277,7 @@ class DROIDVideoDataset(torch.utils.data.Dataset):
         vlen = len(states)
 
         if vlen < nframes:
-            raise Exception(f"Video is too short {local_path=}, {nframes=}, {vlen=}")
+            raise Exception(f"Video is too short {path=}, {nframes=}, {vlen=}")
 
         ef = self.rng.randint(nframes, vlen)
         sf = ef - nframes

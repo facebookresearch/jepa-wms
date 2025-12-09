@@ -58,7 +58,7 @@ class Attention(nn.Module):
         self.to_qkv = nn.Linear(dim, inner_dim * 3, bias=False)
 
         self.to_out = nn.Sequential(nn.Linear(inner_dim, dim), nn.Dropout(dropout)) if project_out else nn.Identity()
-        self.bias = generate_mask_matrix(NUM_PATCHES, NUM_FRAMES).to("cuda")
+        self.register_buffer("bias", generate_mask_matrix(NUM_PATCHES, NUM_FRAMES))
 
     def forward(self, x):
         (
@@ -119,7 +119,7 @@ class ViTPredictor(nn.Module):
         pool="cls",
         dim_head=64,
         dropout=0.0,
-        emb_dropout=0.0
+        emb_dropout=0.0,
     ):
         super().__init__()
         assert pool in {"cls", "mean"}, "pool type must be either cls (cls token) or mean (mean pooling)"

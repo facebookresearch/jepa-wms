@@ -152,11 +152,15 @@ def launch_app_with_parsed_args(
         ".vscode",
         ".git",
         "core",
+        ".venv",
+        "local",
     ]
     ignore_paths = [
         "./evals/ava/alphaction/data",
         "./demos",
         "./traces",
+        "./configs/local",
+        "./configs/basile/cwtemp",
     ]
     copy_code_folder(code_folder, ignore_patterns, ignore_paths)
     os.chdir(code_folder)
