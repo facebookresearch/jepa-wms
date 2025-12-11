@@ -55,9 +55,9 @@ def _build_dataset_paths():
             "PointMaze": f"{dataset_root}/point_maze",
             "Wall": f"{dataset_root}/wall_single",
             "METAWORLD": f"{dataset_root}/Metaworld/train_paths.csv",
-            "Robocasa": f"{dataset_root}/robocasa/v0.1",
+            "Robocasa": f"{dataset_root}/robocasa/",
             "DROID": f"{dataset_root}/DROID/droid_paths.csv",
-            "Franka_hf": f"{dataset_root}/robotics-world-models/data",
+            "Franka_hf": f"{dataset_root}/franka_custom",
             # Video datasets
             "K400": f"{dataset_root}/kinetics400/k400_train_paths.csv",
             "K400_val": f"{dataset_root}/kinetics400/k400_val_paths.csv",

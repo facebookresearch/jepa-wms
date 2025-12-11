@@ -1,5 +1,6 @@
 from typing import Callable, Optional
 
+import lpips as lpips_lib
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
@@ -9,7 +10,6 @@ from tensordict import TensorDict
 
 matplotlib.use("Agg")
 
-from app.plan_common.models.lpips import LPIPS
 from evals.simu_env_planning.planning.utils import prepare_obs
 
 FIGSIZE_BASE = (4.0, 3.0)
@@ -325,7 +325,7 @@ def compare_unrolled_plan_expert(
         expert_frames: Tensor[T, H, W, C]] of len T the episode length
     T <= tau * O
     """
-    lpips = LPIPS().eval().to(agent.device)  # expects [0,1]
+    lpips = lpips_lib.LPIPS(net="vgg").eval().to(agent.device)  # expects [0,1]
     s, total_lpips, total_emb_l2 = 1, 0.0, 0.0
     if agent.planner.decode_each_iteration:
         for opt_step, pred_frames_list in enumerate(pred_frames_over_iterations):
