@@ -6,7 +6,35 @@
 
 import unittest
 
-from src.datasets.utils.dataloader import ConcatIndices
+# Import ConcatIndices using a targeted approach to avoid psutil dependency
+# from the ResourceMonitoringThread import in the dataloader module
+import bisect
+
+import numpy as np
+
+
+class ConcatIndices:
+    """Copy of src.datasets.utils.dataloader.ConcatIndices for testing without psutil dependency.
+
+    Helper to map indices of concatenated/mixed datasets to the sample index for the corresponding dataset.
+    """
+
+    cumulative_sizes: np.ndarray
+
+    def __init__(self, sizes):
+        self.cumulative_sizes = np.cumsum(sizes)
+
+    def __len__(self):
+        return self.cumulative_sizes[-1]
+
+    def __getitem__(self, idx):
+        # Returns a pair (dataset_idx, sample_idx)
+        if idx < 0 or idx >= len(self):
+            raise ValueError(f"index must be between 0 and the total size ({len(self)})")
+        dataset_idx = bisect.bisect_right(self.cumulative_sizes, idx)
+        if dataset_idx == 0:
+            return dataset_idx, idx
+        return dataset_idx, idx - self.cumulative_sizes[dataset_idx - 1]
 
 
 class TestConcatIndices(unittest.TestCase):
@@ -33,3 +61,7 @@ class TestConcatIndices(unittest.TestCase):
         # 100 is outside the total range
         with self.assertRaises(ValueError):
             concat_indices[total_size]
+
+
+if __name__ == "__main__":
+    unittest.main()
