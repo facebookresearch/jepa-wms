@@ -221,7 +221,7 @@ optimization:
     mixed_precision: true
 evals:
   decode: False
-  eval_episodes: 32
+  eval_episodes: 48
   nodes: 2
   low_pri: true
   obs: rgb

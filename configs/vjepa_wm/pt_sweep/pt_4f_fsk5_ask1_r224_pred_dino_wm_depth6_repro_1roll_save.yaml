@@ -78,7 +78,7 @@ loss:
   l2_loss_weight: 1.0
   smooth_l1_loss_weight: 0.0
 meta:
-  plan_only_eval_mode: false
+  plan_only_eval_mode: true
   light_eval_only_mode: false
   quick_debug: false
   freeze_encoder: true
@@ -226,6 +226,7 @@ evals:
   low_pri: true
   obs: rgb_state
   alpha: 0.1
+  dump_eval_configs: true
   eval_cfg_paths:
     - configs/online_plan_evals/pt/ng/pt_L2_ng_sourcedset_H6_nas6_ctxt2.yaml
     - configs/online_plan_evals/pt/pt_L2_cem_sourcedset_H6_nas6_ctxt2.yaml

@@ -62,31 +62,31 @@ data:
     dataset_fpcs: [4]
     # comment out all except liftcup_v0 for counterfactuals
     mpk_manifest_patterns: [
-      '**/evaluation_tasks/mpk/pick/liftcup_v0/run_0001/episode.h5',
-      '**/evaluation_tasks/mpk/pick/pickandplaceredcube_v0/run_0001/episode.h5',
-      '**/evaluation_tasks/mpk/pick/pickcube_v0/run_0001/episode.h5',
-      '**/evaluation_tasks/mpk/pick/pickpen_v0/run_0001/episode.h5',
-      '**/evaluation_tasks/mpk/pick/pickupcup_v0/run_0001/episode.h5',
-      '**/evaluation_tasks/mpk/pick/reachcup_v0/run_0001/episode.h5',
-      '**/evaluation_tasks/mpk/pick/reachliftcup_v0/run_0001/episode.h5',
-      '**/evaluation_tasks/mpk/pick/reachliftcup_v1/run_0001/episode.h5',
+      '**/pick/liftcup_v0/run_0001/episode.h5',
+      '**/pick/pickandplaceredcube_v0/run_0001/episode.h5',
+      '**/pick/pickcube_v0/run_0001/episode.h5',
+      '**/pick/pickpen_v0/run_0001/episode.h5',
+      '**/pick/pickupcup_v0/run_0001/episode.h5',
+      '**/pick/reachcup_v0/run_0001/episode.h5',
+      '**/pick/reachliftcup_v0/run_0001/episode.h5',
+      '**/pick/reachliftcup_v1/run_0001/episode.h5',
 
-      # '**/evaluation_tasks/mpk/push/boxsmallpush_v0/run_0001/episode.h5',
-      '**/evaluation_tasks/mpk/push/brownboxpush_v0/run_0001/episode.h5',
-      # '**/evaluation_tasks/mpk/push/grasp_variations/run_0001/episode.h5',
-      # '**/evaluation_tasks/mpk/push/grasp_variations/run_0002/episode.h5',
-      # '**/evaluation_tasks/mpk/push/grasp_variations/run_0003/episode.h5',
-      # '**/evaluation_tasks/mpk/push/grasp_variations/run_0004/episode.h5',
-      # '**/evaluation_tasks/mpk/push/grasp_variations/run_0005/episode.h5',
-      # '**/evaluation_tasks/mpk/push/grasp_variations/run_0006/episode.h5',
+      # '**/push/boxsmallpush_v0/run_0001/episode.h5',
+      '**/push/brownboxpush_v0/run_0001/episode.h5',
+      # '**/push/grasp_variations/run_0001/episode.h5',
+      # '**/push/grasp_variations/run_0002/episode.h5',
+      # '**/push/grasp_variations/run_0003/episode.h5',
+      # '**/push/grasp_variations/run_0004/episode.h5',
+      # '**/push/grasp_variations/run_0005/episode.h5',
+      # '**/push/grasp_variations/run_0006/episode.h5',
 
-      '**/evaluation_tasks/mpk/push/push_various_objects/blue_bowl/episode.h5',
-      '**/evaluation_tasks/mpk/push/push_various_objects/blue_box/episode.h5',
-      '**/evaluation_tasks/mpk/push/push_various_objects/cap/episode.h5',
-      '**/evaluation_tasks/mpk/push/push_various_objects/pengiun_plush/episode.h5',
+      '**/push/push_various_objects/blue_bowl/episode.h5',
+      '**/push/push_various_objects/blue_box/episode.h5',
+      '**/push/push_various_objects/cap/episode.h5',
+      '**/push/push_various_objects/pengiun_plush/episode.h5',
 
-      '**/evaluation_tasks/mpk/folding/foldjacketsleeve_v0/run_0001/episode.h5',
-      '**/evaluation_tasks/mpk/folding/foldjacketsleeve_v1/run_0001/episode.h5'
+      '**/folding/foldjacketsleeve_v0/run_0001/episode.h5',
+      '**/folding/foldjacketsleeve_v1/run_0001/episode.h5'
     ]
 data_aug:
   transform_name: vjepa
@@ -246,14 +246,13 @@ optimization:
 evals:
   separate: true
   decode: true
-  eval_episodes: 32 # 64 for DROID, 32 for rcasa
-  nodes: 2 # 1 for DROID, 2 for rcasa
+  eval_episodes: 64 # 64 for DROID, 32 for rcasa
+  nodes: 1 # 1 for DROID, 2 for rcasa
   low_pri: true
   obs: rgb
-  num_act_stepped: 3 # just for rebuttal comparing imagined plan and GT
   alpha: 0.
   override_cfgs_data: true # always True
-  override_datasets: false # False to eval droid on rcasa
+  override_datasets: true # False to eval droid on rcasa
   wrapper_kwargs:
     ctxt_window: 2
     proprio_mode: predict_proprio # predict_proprio | compute_new_pose
@@ -264,37 +263,38 @@ evals:
   # - configs/online_plan_evals/rcasa_custom/gd/reach_L1_gd_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2.yaml
   # - configs/online_plan_evals/rcasa_custom/gd/reach_L2_gd_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2.yaml
 
-  - configs/online_plan_evals/rcasa_custom/reach_L1_cem_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2.yaml
-  - configs/online_plan_evals/rcasa_custom/reach_L2_cem_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2.yaml
-  - configs/online_plan_evals/rcasa_custom/place_L1_cem_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2.yaml
-  - configs/online_plan_evals/rcasa_custom/place_L2_cem_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2.yaml
+  # - configs/online_plan_evals/rcasa_custom/reach_L1_cem_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2.yaml
+  # - configs/online_plan_evals/rcasa_custom/reach_L2_cem_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2.yaml
+  # - configs/online_plan_evals/rcasa_custom/place_L1_cem_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2.yaml
+  # - configs/online_plan_evals/rcasa_custom/place_L2_cem_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2.yaml
 
-  - configs/online_plan_evals/rcasa_custom/ng/reach_L1_ng_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2.yaml
-  - configs/online_plan_evals/rcasa_custom/ng/reach_L2_ng_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2.yaml
-  - configs/online_plan_evals/rcasa_custom/ng/place_L1_ng_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2.yaml
-  - configs/online_plan_evals/rcasa_custom/ng/place_L2_ng_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2.yaml
+  # - configs/online_plan_evals/rcasa_custom/ng/reach_L1_ng_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2.yaml
+  # - configs/online_plan_evals/rcasa_custom/ng/reach_L2_ng_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2.yaml
+  # - configs/online_plan_evals/rcasa_custom/ng/place_L1_ng_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2.yaml
+  # - configs/online_plan_evals/rcasa_custom/ng/place_L2_ng_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2.yaml
   # DROID
-    # - configs/online_plan_evals/droid/ng/droid_L2_ng_sourcedset_H1_nas1_maxnorm01_ctxt2_gH1.yaml
-    # - configs/online_plan_evals/droid/ng/droid_L2_ng_sourcedset_H3_nas3_maxnorm01_ctxt2_gH3.yaml
-    # - configs/online_plan_evals/droid/ng/droid_L2_ng_sourcedset_H6_nas6_maxnorm01_ctxt2_gH6.yaml
+    - configs/online_plan_evals/droid/ng/droid_L2_ng_sourcedset_H1_nas1_maxnorm01_ctxt2_gH1.yaml
+    - configs/online_plan_evals/droid/ng/droid_L2_ng_sourcedset_H3_nas3_maxnorm01_ctxt2_gH3.yaml
+    - configs/online_plan_evals/droid/ng/droid_L2_ng_sourcedset_H6_nas6_maxnorm01_ctxt2_gH6.yaml
 
-    # - configs/online_plan_evals/droid/droid_L2_cem_sourcedset_H1_nas1_maxnorm01_ctxt2_gH1.yaml
-    # - configs/online_plan_evals/droid/droid_L2_cem_sourcedset_H3_nas3_maxnorm01_ctxt2_gH3.yaml
-    # - configs/online_plan_evals/droid/droid_L2_cem_sourcedset_H6_nas6_maxnorm01_ctxt2_gH6.yaml
+    - configs/online_plan_evals/droid/droid_L2_cem_sourcedset_H1_nas1_maxnorm01_ctxt2_gH1.yaml
+    - configs/online_plan_evals/droid/droid_L2_cem_sourcedset_H3_nas3_maxnorm01_ctxt2_gH3.yaml
+    - configs/online_plan_evals/droid/droid_L2_cem_sourcedset_H6_nas6_maxnorm01_ctxt2_gH6.yaml
 
-    # - configs/online_plan_evals/droid/ng/droid_L1_ng_sourcedset_H1_nas1_maxnorm01_ctxt2_gH1.yaml
-    # - configs/online_plan_evals/droid/ng/droid_L1_ng_sourcedset_H3_nas3_maxnorm01_ctxt2_gH3.yaml
-    # - configs/online_plan_evals/droid/ng/droid_L1_ng_sourcedset_H6_nas6_maxnorm01_ctxt2_gH6.yaml
+    - configs/online_plan_evals/droid/ng/droid_L1_ng_sourcedset_H1_nas1_maxnorm01_ctxt2_gH1.yaml
+    - configs/online_plan_evals/droid/ng/droid_L1_ng_sourcedset_H3_nas3_maxnorm01_ctxt2_gH3.yaml
+    - configs/online_plan_evals/droid/ng/droid_L1_ng_sourcedset_H6_nas6_maxnorm01_ctxt2_gH6.yaml
 
-    # - configs/online_plan_evals/droid/droid_L1_cem_sourcedset_H1_nas1_maxnorm01_ctxt2_gH1.yaml
-    # - configs/online_plan_evals/droid/droid_L1_cem_sourcedset_H3_nas3_maxnorm01_ctxt2_gH3.yaml
-    # - configs/online_plan_evals/droid/droid_L1_cem_sourcedset_H6_nas6_maxnorm01_ctxt2_gH6.yaml
+    - configs/online_plan_evals/droid/droid_L1_cem_sourcedset_H1_nas1_maxnorm01_ctxt2_gH1.yaml
+    - configs/online_plan_evals/droid/droid_L1_cem_sourcedset_H3_nas3_maxnorm01_ctxt2_gH3.yaml
+    - configs/online_plan_evals/droid/droid_L1_cem_sourcedset_H6_nas6_maxnorm01_ctxt2_gH6.yaml
 unroll_decode_evals:
+  # comment out all mpk_manifest_patterns except liftcup_v0 for counterfactuals
   wrapper_kwargs:
     ctxt_window: 2
     proprio_mode: predict_proprio # predict_proprio | compute_new_pose
   specific_video: false
-  specific_video_path: app/vjepa2_ac/offline_eval/franka_example_traj.npz
+  specific_video_path:
   play_in_reverse: false
   save_decoding_only: true
   repeat_hardcode_act: 1

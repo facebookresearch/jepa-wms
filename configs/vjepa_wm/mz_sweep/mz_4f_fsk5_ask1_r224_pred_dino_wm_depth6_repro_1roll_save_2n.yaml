@@ -220,6 +220,7 @@ optimization:
     final_lr: 5.e-4
     mixed_precision: true
 evals:
+  dump_eval_configs: false
   decode: false
   eval_episodes: 96
   nodes: 1

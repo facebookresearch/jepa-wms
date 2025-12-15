@@ -61,31 +61,31 @@ data:
     fps: 4
     dataset_fpcs: [4]
     mpk_manifest_patterns: [
-      '**/evaluation_tasks/mpk/pick/liftcup_v0/run_0001/episode.h5',
-      '**/evaluation_tasks/mpk/pick/pickandplaceredcube_v0/run_0001/episode.h5',
-      '**/evaluation_tasks/mpk/pick/pickcube_v0/run_0001/episode.h5',
-      '**/evaluation_tasks/mpk/pick/pickpen_v0/run_0001/episode.h5',
-      '**/evaluation_tasks/mpk/pick/pickupcup_v0/run_0001/episode.h5',
-      '**/evaluation_tasks/mpk/pick/reachcup_v0/run_0001/episode.h5',
-      '**/evaluation_tasks/mpk/pick/reachliftcup_v0/run_0001/episode.h5',
-      '**/evaluation_tasks/mpk/pick/reachliftcup_v1/run_0001/episode.h5',
+      '**/pick/liftcup_v0/run_0001/episode.h5',
+      '**/pick/pickandplaceredcube_v0/run_0001/episode.h5',
+      '**/pick/pickcube_v0/run_0001/episode.h5',
+      '**/pick/pickpen_v0/run_0001/episode.h5',
+      '**/pick/pickupcup_v0/run_0001/episode.h5',
+      '**/pick/reachcup_v0/run_0001/episode.h5',
+      '**/pick/reachliftcup_v0/run_0001/episode.h5',
+      '**/pick/reachliftcup_v1/run_0001/episode.h5',
 
-      # '**/evaluation_tasks/mpk/push/boxsmallpush_v0/run_0001/episode.h5',
-      '**/evaluation_tasks/mpk/push/brownboxpush_v0/run_0001/episode.h5',
-      # '**/evaluation_tasks/mpk/push/grasp_variations/run_0001/episode.h5',
-      # '**/evaluation_tasks/mpk/push/grasp_variations/run_0002/episode.h5',
-      # '**/evaluation_tasks/mpk/push/grasp_variations/run_0003/episode.h5',
-      # '**/evaluation_tasks/mpk/push/grasp_variations/run_0004/episode.h5',
-      # '**/evaluation_tasks/mpk/push/grasp_variations/run_0005/episode.h5',
-      # '**/evaluation_tasks/mpk/push/grasp_variations/run_0006/episode.h5',
+      # '**/push/boxsmallpush_v0/run_0001/episode.h5',
+      '**/push/brownboxpush_v0/run_0001/episode.h5',
+      # '**/push/grasp_variations/run_0001/episode.h5',
+      # '**/push/grasp_variations/run_0002/episode.h5',
+      # '**/push/grasp_variations/run_0003/episode.h5',
+      # '**/push/grasp_variations/run_0004/episode.h5',
+      # '**/push/grasp_variations/run_0005/episode.h5',
+      # '**/push/grasp_variations/run_0006/episode.h5',
 
-      '**/evaluation_tasks/mpk/push/push_various_objects/blue_bowl/episode.h5',
-      '**/evaluation_tasks/mpk/push/push_various_objects/blue_box/episode.h5',
-      '**/evaluation_tasks/mpk/push/push_various_objects/cap/episode.h5',
-      '**/evaluation_tasks/mpk/push/push_various_objects/pengiun_plush/episode.h5',
+      '**/push/push_various_objects/blue_bowl/episode.h5',
+      '**/push/push_various_objects/blue_box/episode.h5',
+      '**/push/push_various_objects/cap/episode.h5',
+      '**/push/push_various_objects/pengiun_plush/episode.h5',
 
-      '**/evaluation_tasks/mpk/folding/foldjacketsleeve_v0/run_0001/episode.h5',
-      '**/evaluation_tasks/mpk/folding/foldjacketsleeve_v1/run_0001/episode.h5'
+      '**/folding/foldjacketsleeve_v0/run_0001/episode.h5',
+      '**/folding/foldjacketsleeve_v1/run_0001/episode.h5'
     ]
 data_aug:
   transform_name: vjepa

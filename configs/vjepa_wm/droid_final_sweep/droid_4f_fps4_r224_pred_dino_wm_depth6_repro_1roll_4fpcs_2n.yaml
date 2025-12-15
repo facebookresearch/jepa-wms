@@ -18,7 +18,7 @@ data:
     num_frames_val: 5
     val_dataset_batch_size: 4
     val_dataset_drop_last: false
-    val_dataset_fpcs: [5]
+    val_dataset_fpcs: [8]
     val_dataset_camera_views: ["exterior_image_2_left"]
     val_viz_rank0_loader: true
     val_datasets_1:
@@ -28,7 +28,7 @@ data:
       drop_last: False
       fps: 4
       fpcs:
-        - 5
+        - 8
       camera_views:
         - exterior_image_2_left
   # DataLoader configuration
@@ -60,33 +60,32 @@ data:
     rcasa_to_droid_action_format: false
     fps: 4
     dataset_fpcs: [4]
-    # comment out all except liftcup_v0 for counterfactuals
     mpk_manifest_patterns: [
-      '**/evaluation_tasks/mpk/pick/liftcup_v0/run_0001/episode.h5',
-      '**/evaluation_tasks/mpk/pick/pickandplaceredcube_v0/run_0001/episode.h5',
-      '**/evaluation_tasks/mpk/pick/pickcube_v0/run_0001/episode.h5',
-      '**/evaluation_tasks/mpk/pick/pickpen_v0/run_0001/episode.h5',
-      '**/evaluation_tasks/mpk/pick/pickupcup_v0/run_0001/episode.h5',
-      '**/evaluation_tasks/mpk/pick/reachcup_v0/run_0001/episode.h5',
-      '**/evaluation_tasks/mpk/pick/reachliftcup_v0/run_0001/episode.h5',
-      '**/evaluation_tasks/mpk/pick/reachliftcup_v1/run_0001/episode.h5',
+      '**/pick/liftcup_v0/run_0001/episode.h5',
+      '**/pick/pickandplaceredcube_v0/run_0001/episode.h5',
+      '**/pick/pickcube_v0/run_0001/episode.h5',
+      '**/pick/pickpen_v0/run_0001/episode.h5',
+      '**/pick/pickupcup_v0/run_0001/episode.h5',
+      '**/pick/reachcup_v0/run_0001/episode.h5',
+      '**/pick/reachliftcup_v0/run_0001/episode.h5',
+      '**/pick/reachliftcup_v1/run_0001/episode.h5',
 
-      # '**/evaluation_tasks/mpk/push/boxsmallpush_v0/run_0001/episode.h5',
-      '**/evaluation_tasks/mpk/push/brownboxpush_v0/run_0001/episode.h5',
-      # '**/evaluation_tasks/mpk/push/grasp_variations/run_0001/episode.h5',
-      # '**/evaluation_tasks/mpk/push/grasp_variations/run_0002/episode.h5',
-      # '**/evaluation_tasks/mpk/push/grasp_variations/run_0003/episode.h5',
-      # '**/evaluation_tasks/mpk/push/grasp_variations/run_0004/episode.h5',
-      # '**/evaluation_tasks/mpk/push/grasp_variations/run_0005/episode.h5',
-      # '**/evaluation_tasks/mpk/push/grasp_variations/run_0006/episode.h5',
+      # '**/push/boxsmallpush_v0/run_0001/episode.h5',
+      '**/push/brownboxpush_v0/run_0001/episode.h5',
+      # '**/push/grasp_variations/run_0001/episode.h5',
+      # '**/push/grasp_variations/run_0002/episode.h5',
+      # '**/push/grasp_variations/run_0003/episode.h5',
+      # '**/push/grasp_variations/run_0004/episode.h5',
+      # '**/push/grasp_variations/run_0005/episode.h5',
+      # '**/push/grasp_variations/run_0006/episode.h5',
 
-      '**/evaluation_tasks/mpk/push/push_various_objects/blue_bowl/episode.h5',
-      '**/evaluation_tasks/mpk/push/push_various_objects/blue_box/episode.h5',
-      '**/evaluation_tasks/mpk/push/push_various_objects/cap/episode.h5',
-      '**/evaluation_tasks/mpk/push/push_various_objects/pengiun_plush/episode.h5',
+      '**/push/push_various_objects/blue_bowl/episode.h5',
+      '**/push/push_various_objects/blue_box/episode.h5',
+      '**/push/push_various_objects/cap/episode.h5',
+      '**/push/push_various_objects/pengiun_plush/episode.h5',
 
-      '**/evaluation_tasks/mpk/folding/foldjacketsleeve_v0/run_0001/episode.h5',
-      '**/evaluation_tasks/mpk/folding/foldjacketsleeve_v1/run_0001/episode.h5'
+      '**/folding/foldjacketsleeve_v0/run_0001/episode.h5',
+      '**/folding/foldjacketsleeve_v1/run_0001/episode.h5'
     ]
 data_aug:
   transform_name: vjepa
@@ -277,25 +276,30 @@ evals:
     # - configs/online_plan_evals/droid/gd/droid_L1_gd_sourcedset_H3_nas3_maxnorm01_ctxt2_gH3.yaml
     # - configs/online_plan_evals/droid/gd/droid_L2_gd_sourcedset_H3_nas3_maxnorm01_ctxt2_gH3.yaml
 
-    # - configs/online_plan_evals/droid/ng/droid_L2_ng_sourcedset_H1_nas1_maxnorm01_ctxt2_gH1.yaml
+    - configs/online_plan_evals/droid/ng/droid_L2_ng_sourcedset_H1_nas1_maxnorm01_ctxt2_gH1.yaml
     - configs/online_plan_evals/droid/ng/droid_L2_ng_sourcedset_H3_nas3_maxnorm01_ctxt2_gH3.yaml
-    # - configs/online_plan_evals/droid/ng/droid_L2_ng_sourcedset_H6_nas6_maxnorm01_ctxt2_gH6.yaml
+    - configs/online_plan_evals/droid/ng/droid_L2_ng_sourcedset_H6_nas6_maxnorm01_ctxt2_gH6.yaml
 
-    # - configs/online_plan_evals/droid/droid_L2_cem_sourcedset_H1_nas1_maxnorm01_ctxt2_gH1.yaml
+    - configs/online_plan_evals/droid/droid_L2_cem_sourcedset_H1_nas1_maxnorm01_ctxt2_gH1.yaml
     - configs/online_plan_evals/droid/droid_L2_cem_sourcedset_H3_nas3_maxnorm01_ctxt2_gH3.yaml
-    # - configs/online_plan_evals/droid/droid_L2_cem_sourcedset_H6_nas6_maxnorm01_ctxt2_gH6.yaml
+    - configs/online_plan_evals/droid/droid_L2_cem_sourcedset_H6_nas6_maxnorm01_ctxt2_gH6.yaml
 
-    # - configs/online_plan_evals/droid/ng/droid_L1_ng_sourcedset_H1_nas1_maxnorm01_ctxt2_gH1.yaml
+    - configs/online_plan_evals/droid/ng/droid_L1_ng_sourcedset_H1_nas1_maxnorm01_ctxt2_gH1.yaml
     - configs/online_plan_evals/droid/ng/droid_L1_ng_sourcedset_H3_nas3_maxnorm01_ctxt2_gH3.yaml
-    # - configs/online_plan_evals/droid/ng/droid_L1_ng_sourcedset_H6_nas6_maxnorm01_ctxt2_gH6.yaml
+    - configs/online_plan_evals/droid/ng/droid_L1_ng_sourcedset_H6_nas6_maxnorm01_ctxt2_gH6.yaml
 
-    # - configs/online_plan_evals/droid/droid_L1_cem_sourcedset_H1_nas1_maxnorm01_ctxt2_gH1.yaml
+    - configs/online_plan_evals/droid/droid_L1_cem_sourcedset_H1_nas1_maxnorm01_ctxt2_gH1.yaml
     - configs/online_plan_evals/droid/droid_L1_cem_sourcedset_H3_nas3_maxnorm01_ctxt2_gH3.yaml
-    # - configs/online_plan_evals/droid/droid_L1_cem_sourcedset_H6_nas6_maxnorm01_ctxt2_gH6.yaml
+    - configs/online_plan_evals/droid/droid_L1_cem_sourcedset_H6_nas6_maxnorm01_ctxt2_gH6.yaml
 unroll_decode_evals:
-  ctxt_window: 2
+  # comment out all mpk_manifest_patterns except liftcup_v0 for counterfactuals
   specific_video: false
   play_in_reverse: false
+  specific_video_path:
+  repeat_hardcode_act: 5
   save_decoding_only: true
+  dump_eval_configs: true
   obs: rgb_state
-  repeat_hardcode_act: 1
+  wrapper_kwargs:
+    ctxt_window: 2
+    proprio_mode: predict_proprio # predict_proprio | compute_new_pose

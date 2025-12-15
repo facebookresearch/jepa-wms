@@ -258,7 +258,3 @@ evals:
     # - configs/online_plan_evals/mw/ng/reach-wall_L2_ng_sourcexp_H15_nas15_ctxt2_maxstp75.yaml
     # - configs/online_plan_evals/mw/reach-wall_L2_cem_sourcexp_H15_nas15_ctxt2_maxstp75_itr30.yaml
     # - configs/online_plan_evals/mw/reach-wall_L2_cem_sourcexp_H15_nas15_ctxt2_maxstp75.yaml
-unroll_decode_evals:
-  ctxt_window: 2
-  specific_video: true
-  play_in_reverse: false

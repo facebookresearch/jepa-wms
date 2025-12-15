@@ -62,31 +62,31 @@ data:
     dataset_fpcs: [4]
     # comment out all except liftcup_v0 for counterfactuals
     mpk_manifest_patterns: [
-      '**/evaluation_tasks/mpk/pick/liftcup_v0/run_0001/episode.h5',
-      '**/evaluation_tasks/mpk/pick/pickandplaceredcube_v0/run_0001/episode.h5',
-      '**/evaluation_tasks/mpk/pick/pickcube_v0/run_0001/episode.h5',
-      '**/evaluation_tasks/mpk/pick/pickpen_v0/run_0001/episode.h5',
-      '**/evaluation_tasks/mpk/pick/pickupcup_v0/run_0001/episode.h5',
-      '**/evaluation_tasks/mpk/pick/reachcup_v0/run_0001/episode.h5',
-      '**/evaluation_tasks/mpk/pick/reachliftcup_v0/run_0001/episode.h5',
-      '**/evaluation_tasks/mpk/pick/reachliftcup_v1/run_0001/episode.h5',
+      '**/pick/liftcup_v0/run_0001/episode.h5',
+      '**/pick/pickandplaceredcube_v0/run_0001/episode.h5',
+      '**/pick/pickcube_v0/run_0001/episode.h5',
+      '**/pick/pickpen_v0/run_0001/episode.h5',
+      '**/pick/pickupcup_v0/run_0001/episode.h5',
+      '**/pick/reachcup_v0/run_0001/episode.h5',
+      '**/pick/reachliftcup_v0/run_0001/episode.h5',
+      '**/pick/reachliftcup_v1/run_0001/episode.h5',
 
-      # '**/evaluation_tasks/mpk/push/boxsmallpush_v0/run_0001/episode.h5',
-      '**/evaluation_tasks/mpk/push/brownboxpush_v0/run_0001/episode.h5',
-      # '**/evaluation_tasks/mpk/push/grasp_variations/run_0001/episode.h5',
-      # '**/evaluation_tasks/mpk/push/grasp_variations/run_0002/episode.h5',
-      # '**/evaluation_tasks/mpk/push/grasp_variations/run_0003/episode.h5',
-      # '**/evaluation_tasks/mpk/push/grasp_variations/run_0004/episode.h5',
-      # '**/evaluation_tasks/mpk/push/grasp_variations/run_0005/episode.h5',
-      # '**/evaluation_tasks/mpk/push/grasp_variations/run_0006/episode.h5',
+      # '**/push/boxsmallpush_v0/run_0001/episode.h5',
+      '**/push/brownboxpush_v0/run_0001/episode.h5',
+      # '**/push/grasp_variations/run_0001/episode.h5',
+      # '**/push/grasp_variations/run_0002/episode.h5',
+      # '**/push/grasp_variations/run_0003/episode.h5',
+      # '**/push/grasp_variations/run_0004/episode.h5',
+      # '**/push/grasp_variations/run_0005/episode.h5',
+      # '**/push/grasp_variations/run_0006/episode.h5',
 
-      '**/evaluation_tasks/mpk/push/push_various_objects/blue_bowl/episode.h5',
-      '**/evaluation_tasks/mpk/push/push_various_objects/blue_box/episode.h5',
-      '**/evaluation_tasks/mpk/push/push_various_objects/cap/episode.h5',
-      '**/evaluation_tasks/mpk/push/push_various_objects/pengiun_plush/episode.h5',
+      '**/push/push_various_objects/blue_bowl/episode.h5',
+      '**/push/push_various_objects/blue_box/episode.h5',
+      '**/push/push_various_objects/cap/episode.h5',
+      '**/push/push_various_objects/pengiun_plush/episode.h5',
 
-      '**/evaluation_tasks/mpk/folding/foldjacketsleeve_v0/run_0001/episode.h5',
-      '**/evaluation_tasks/mpk/folding/foldjacketsleeve_v1/run_0001/episode.h5'
+      '**/folding/foldjacketsleeve_v0/run_0001/episode.h5',
+      '**/folding/foldjacketsleeve_v1/run_0001/episode.h5'
     ]
 data_aug:
   transform_name: vjepa
@@ -305,13 +305,3 @@ evals:
     # # - configs/online_plan_evals/droid/droid_L1_cem_sourcedset_H1_nas1_maxnorm01_ctxt2_gH1.yaml
     # - configs/online_plan_evals/droid/droid_L1_cem_sourcedset_H3_nas3_maxnorm01_ctxt2_gH3.yaml
     # # - configs/online_plan_evals/droid/droid_L1_cem_sourcedset_H6_nas6_maxnorm01_ctxt2_gH6.yaml
-unroll_decode_evals:
-  wrapper_kwargs:
-    ctxt_window: 2
-    proprio_mode: predict_proprio # predict_proprio | compute_new_pose
-  specific_video: false
-  specific_video_path: app/vjepa2_ac/offline_eval/franka_example_traj.npz
-  play_in_reverse: false
-  save_decoding_only: true
-  repeat_hardcode_act: 1
-  obs: rgb

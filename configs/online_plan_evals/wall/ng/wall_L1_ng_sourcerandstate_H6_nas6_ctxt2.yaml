@@ -3,6 +3,7 @@ tasks_per_node: 8
 cpus_per_task: 16
 mem_per_gpu: 210G
 copy_code: false
+folder:
 tag: gc_zeroshot/wall_L1_ng_sourcerandstate_H6_nas6_ctxt2
 eval_name: simu_env_planning
 meta:

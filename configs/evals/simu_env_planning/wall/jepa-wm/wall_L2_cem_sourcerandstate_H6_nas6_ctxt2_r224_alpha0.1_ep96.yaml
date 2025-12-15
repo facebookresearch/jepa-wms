@@ -1,0 +1,219 @@
+nodes: 1
+tasks_per_node: 8
+cpus_per_task: 16
+mem_per_gpu: 210G
+copy_code: false
+folder:
+  ${CHECKPOINT_ROOT}/wall_sweep/wall_4f_fsk5_ask1_r224_vjtranoaug_predAdaLN_ftprop_depth6_repro_2roll_save_2n
+tag:
+  online_gc_zeroshot/wall_L2_cem_sourcerandstate_H6_nas6_ctxt2_r224_alpha0.1_ep96/epoch-50-plan-only
+eval_name: simu_env_planning
+meta:
+  quick_debug: false
+  seed: 1
+  eval_episodes: 96
+distributed:
+  distribute_multitask_eval: true
+  local_rng_samplers: true
+  seed_shift: horizon_1000
+logging:
+  exp_name: gc_zeroshot_dist
+  save_csv: true
+  tqdm_silent: false
+  optional_plots: true
+model_kwargs:
+  module_name: app.vjepa_wm.modelcustom.simu_env_planning.vit_enc_preds
+  checkpoint: jepa-latest.pth.tar
+  pretrain_kwargs:
+    data: {}
+    ctxt_window: 2
+    data_aug: {}
+    grid_size: 16
+    tubelet_size_enc: 1
+    use_activation_checkpointing: false
+    action_conditioning: token
+    proprio_encoding: feature
+    num_frames_pred: 4
+    visual_encoder:
+      enc_type: dino
+      enc_version: dinov2_vits14
+      pretrain_enc_path:
+      pretrain_enc_ckpt_key: target_encoder
+      embed_dim: 384
+      enc_use_rope:
+      enc_name:
+      use_sdpa_enc:
+      num_frames_enc:
+      uniform_power: true
+    action_encoder:
+      action_tokens: 1
+      action_emb_dim: 0
+      act_mlp: false
+      action_encoder_inpred: true
+    proprio_encoder:
+      proprio_tokens: 0
+      proprio_emb_dim: 16
+      prop_mlp: false
+      proprio_encoder_inpred: false
+    predictor:
+      tubelet_size: 1
+      pred_num_heads: 16
+      pred_depth: 6
+      pred_embed_dim: 384
+      pred_use_extrinsics: false
+      pred_proj_on_enc: false
+      pred_type: AdaLN
+      act_pred_projector: false
+      use_SiLU: false
+      use_rope: true
+    wm_encoding:
+      batchify_video: true
+      dup_image: false
+      normalize_reps: false
+    rollout_cfg:
+      rollout_steps: 2
+      train_rollout_prefixes: random
+      rollout_stop_gradient: true
+      ctxt_window_train_rollout: 3
+      do_parallel_rollout: false
+      do_sequential_rollout: true
+      prepend_gt: false
+      sampling_scheduler:
+        type: linear
+        start: 0.0
+        end: 0.0
+    attn:
+      local_window_time: 3
+      local_window_h: -1
+      local_window_w: -1
+    heads_cfg:
+      architectures:
+        image_head:
+          kind: vit
+          config:
+            patch_size: 8
+            in_chans: 3
+            img_size:
+            - 224
+            - 224
+            embed_dim: 384
+            decoder_embed_dim: 384
+            depth: 12
+            num_heads: 16
+            mlp_ratio: 4.0
+            num_views: 1
+            use_activation_checkpointing: false
+        state_head:
+          kind: vit
+          config:
+            state_dim: 2
+            embed_dim: 384
+            decoder_embed_dim: 384
+            depth: 6
+            num_heads: 16
+            mlp_ratio: 4.0
+            num_views: 1
+            use_activation_checkpointing: false
+            proprio_dim: 4
+      pretrain_dec_path:
+        state_head:
+          ${CHECKPOINT_ROOT}/wall/step2_wall_state_head_dinovits_r224/jepa-latest.pth.tar
+        image_head:
+          ${CHECKPOINT_ROOT}/wall/step2_wall_vitsdec_dinovitsenc_224_beta0.95_2n/jepa-latest.pth.tar
+      new_path_heads:
+        state_head: true
+        image_head: true
+  data:
+    dataset_type: custom
+    datasets:
+    - Wall
+    datasets_weights:
+    seed: 234
+    img_size: 224
+    validation:
+      val_datasets: []
+      val_datasets_1:
+      num_frames_val: 8
+      val_dataset_batch_size: 4
+      val_dataset_drop_last: false
+      val_dataset_fpcs:
+      - 8
+      val_dataset_camera_views:
+      val_viz_rank0_loader: false
+    loader:
+      batch_size: 8
+      num_workers: 16
+      pin_mem: true
+      persistent_workers: true
+    custom:
+      split_ratio: 0.9
+      frameskip: 5
+      action_skip: 1
+      state_skip: 1
+      normalize_action: true
+      traj_subset: true
+      filter_first_episodes: 100
+      filter_tasks:
+      num_hist: 3
+      num_pred: 1
+      with_reward: false
+      custom_teleop_dset:
+    droid:
+      camera_frame: false
+      camera_views:
+      - 2
+      droid_to_rcasa_action_format: 1
+      rcasa_to_droid_action_format: false
+      fps: 4
+      dataset_fpcs:
+      - 8
+      mpk_manifest_patterns: []
+  data_aug:
+    transform_name: vjepa
+    auto_augment: false
+    random_horizontal_flip: false
+    motion_shift: false
+    random_resize_aspect_ratio:
+    - 1.0
+    - 1.0
+    random_resize_scale:
+    - 1.777
+    - 1.777
+    reprob: 0.0
+    normalize:
+    - - 0.485
+      - 0.456
+      - 0.406
+    - - 0.229
+      - 0.224
+      - 0.225
+task_specification:
+  task: wall-base
+  obs: rgb_state
+  obs_concat_channels: false
+  goal_source: random_state
+  succ_def: simu
+  done_at_succ: false
+  goal_H: 6
+  num_frames: 1
+  num_proprios: 1
+  img_size: 224
+  env:
+    with_target: true
+    with_velocity: true
+    freeze_rand_vec: false
+planner:
+  planner_name: cem
+  iterations: 30
+  num_samples: 300
+  num_elites: 10
+  horizon: 6
+  var_scale: 1.0
+  num_act_stepped: 6
+  repeat_actskip: false
+  decode_each_iteration: false
+  distribute_planner: false
+  planning_objective:
+    objective_type: repr_dist
+    sum_all_diffs: false
+    alpha: 0.1

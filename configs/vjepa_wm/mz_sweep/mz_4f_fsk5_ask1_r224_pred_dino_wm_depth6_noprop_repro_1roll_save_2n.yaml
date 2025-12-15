@@ -220,17 +220,18 @@ optimization:
     final_lr: 5.e-4
     mixed_precision: true
 evals:
+  dump_eval_configs: false
   decode: false
-  eval_episodes: 24
+  eval_episodes: 96
   nodes: 1
   low_pri: false
   obs: rgb
   alpha: 0.
   eval_cfg_paths:
     # rand state
-    - configs/online_plan_evals/mz/gd/mz_L1_gd_sourcerandstate_H6_nas6_ctxt2.yaml
-    - configs/online_plan_evals/mz/gd/mz_L2_gd_sourcerandstate_H6_nas6_ctxt2.yaml
-    # - configs/online_plan_evals/mz/ng/mz_L2_ng_sourcerandstate_H6_nas6_ctxt2.yaml
-    # - configs/online_plan_evals/mz/mz_L2_cem_sourcerandstate_H6_nas6_ctxt2.yaml
-    # - configs/online_plan_evals/mz/ng/mz_L1_ng_sourcerandstate_H6_nas6_ctxt2.yaml
-    # - configs/online_plan_evals/mz/mz_L1_cem_sourcerandstate_H6_nas6_ctxt2.yaml
+    # - configs/online_plan_evals/mz/gd/mz_L1_gd_sourcerandstate_H6_nas6_ctxt2.yaml
+    # - configs/online_plan_evals/mz/gd/mz_L2_gd_sourcerandstate_H6_nas6_ctxt2.yaml
+    - configs/online_plan_evals/mz/ng/mz_L2_ng_sourcerandstate_H6_nas6_ctxt2.yaml
+    - configs/online_plan_evals/mz/mz_L2_cem_sourcerandstate_H6_nas6_ctxt2.yaml
+    - configs/online_plan_evals/mz/ng/mz_L1_ng_sourcerandstate_H6_nas6_ctxt2.yaml
+    - configs/online_plan_evals/mz/mz_L1_cem_sourcerandstate_H6_nas6_ctxt2.yaml

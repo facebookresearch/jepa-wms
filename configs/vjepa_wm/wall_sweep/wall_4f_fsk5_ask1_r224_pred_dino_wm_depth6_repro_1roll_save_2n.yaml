@@ -78,7 +78,7 @@ loss:
   l2_loss_weight: 1.0
   smooth_l1_loss_weight: 0.0
 meta:
-  plan_only_eval_mode: false
+  plan_only_eval_mode: true
   light_eval_only_mode: false
   quick_debug: false
   freeze_encoder: true

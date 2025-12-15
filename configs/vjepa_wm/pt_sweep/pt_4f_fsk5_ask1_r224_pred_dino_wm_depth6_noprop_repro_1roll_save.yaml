@@ -222,7 +222,7 @@ optimization:
 evals:
   separate: false
   decode: true
-  eval_episodes: 24
+  eval_episodes: 96
   nodes: 1
   low_pri: true
   eval_cfg_paths:
