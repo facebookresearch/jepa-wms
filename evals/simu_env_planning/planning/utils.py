@@ -33,17 +33,6 @@ def make_td(obs, info):
     )
 
 
-def prepare_obs(obs_type, td):
-    if obs_type == "rgb_state":
-        return td
-    elif obs_type == "state":
-        return td["proprio"]
-    elif obs_type == "rgb":
-        return td["visual"]
-    else:
-        raise ValueError(f"Unknown observation type: {obs_type}")
-
-
 ###### Video, GIF and pdf saving utils ##########
 def make_video(images, fps, output_path, obs_concat_channels=True):
     make_video_mp4(images, fps, output_path + ".mp4", obs_concat_channels=obs_concat_channels)

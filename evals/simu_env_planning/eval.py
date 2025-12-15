@@ -26,6 +26,7 @@ from evals.simu_env_planning.planning.common.parser import parse_cfg
 from evals.simu_env_planning.planning.gc_agent import GC_Agent
 from evals.simu_env_planning.planning.plan_evaluator import PlanEvaluator
 from evals.simu_env_planning.planning.utils import aggregate_results, compute_task_distribution, set_seed
+from evals.utils import make_datasets
 from src.datasets.utils.utils import get_dataset_paths
 
 # -- FOR DISTRIBUTED TRAINING ENSURE ONLY 1 DEVICE VISIBLE PER PROCESS
@@ -113,7 +114,8 @@ def main(args_eval, resume_preempt=False):
         wrapper_kwargs=wrapper_kwargs,
         cfgs_data=cfgs_data,
         device=device,
-        dset=dset,
+        action_dim=dset.action_dim,
+        proprio_dim=dset.proprio_dim,
         preprocessor=preprocessor,
     )
     log.info("Loaded encoder and predictor")
@@ -317,7 +319,8 @@ def init_module(
     device,
     cfgs_data=None,
     wrapper_kwargs=None,
-    dset=None,
+    action_dim=None,
+    proprio_dim=None,
     preprocessor=None,
 ):
     """
@@ -328,96 +331,10 @@ def init_module(
         checkpoint=checkpoint,
         model_kwargs=model_kwargs,
         device=device,
-        dset=dset,
+        action_dim=action_dim,
+        proprio_dim=proprio_dim,
         preprocessor=preprocessor,
         cfgs_data=cfgs_data,
         wrapper_kwargs=wrapper_kwargs,
     )
     return model
-
-
-def make_datasets(cfgs_data, cfgs_data_aug, world_size=1, rank=0):
-    img_size = cfgs_data["img_size"]
-    transform = make_transforms(
-        img_size=img_size,
-        normalize=cfgs_data_aug["normalize"],
-        random_horizontal_flip=False,
-        random_resize_aspect_ratio=(1.0, 1.0),
-        random_resize_scale=(1.0, 1.0),
-        reprob=0.0,
-        auto_augment=False,
-        motion_shift=False,
-    )
-    inverse_transform = make_inverse_transforms(
-        img_size=img_size,
-        **cfgs_data_aug,
-    )
-    log.info(f"{inverse_transform.std=}, {inverse_transform.mean=}")
-
-    # Extract nested structures (matching train.py structure)
-    cfgs_validation = cfgs_data.get("validation", {})
-    cfgs_loader = cfgs_data.get("loader", {})
-    cfgs_custom = cfgs_data.get("custom", {})
-    cfgs_droid = cfgs_data.get("droid", {})
-
-    datasets = cfgs_data.get("datasets", [])
-    dataset_paths = get_dataset_paths(datasets)
-    val_datasets = cfgs_validation.get("val_datasets", [])
-    val_dataset_paths = get_dataset_paths(val_datasets) if val_datasets else None
-
-    # Prepare data kwargs from config, flattening nested structures and filtering out non-init_data fields
-    excluded_keys = [
-        "datasets",
-        "val_datasets",
-        "img_size",
-        # subfields of cfgs_data
-        "validation",
-        "loader",
-        "custom",
-        "droid",
-    ]
-    data_kwargs = {k: v for k, v in cfgs_data.items() if k not in excluded_keys}
-
-    data_kwargs.update(cfgs_validation)
-    data_kwargs.update(cfgs_loader)
-    data_kwargs.update(cfgs_custom)
-    data_kwargs.update(cfgs_droid)
-
-    data_kwargs.update(
-        {
-            "data_paths": dataset_paths,
-            "val_data_paths": val_dataset_paths,
-            "transform": transform,
-            "world_size": world_size,
-            "rank": rank,
-            "num_workers": 0,
-            "filter_first_episodes": 20,
-            # robocasa
-            "output_rcasa_state": True,
-            "output_rcasa_info": True,
-        }
-    )
-
-    (
-        dataset,
-        val_dataset,
-        traj_dataset,
-        val_traj_dataset,
-        unsupervised_loader,
-        val_unsupervised_loader,
-        unsupervised_sampler,
-        viz_val_data_loader,
-    ) = init_data(**data_kwargs)
-
-    dset = val_traj_dataset
-    data_preprocessor = Preprocessor(
-        action_mean=dset.action_mean,
-        action_std=dset.action_std,
-        state_mean=dset.state_mean,
-        state_std=dset.state_std,
-        proprio_mean=dset.proprio_mean,
-        proprio_std=dset.proprio_std,
-        transform=transform,
-        inverse_transform=inverse_transform,
-    )
-    return dset, data_preprocessor

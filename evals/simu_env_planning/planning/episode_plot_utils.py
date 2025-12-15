@@ -10,7 +10,7 @@ from tensordict import TensorDict
 
 matplotlib.use("Agg")
 
-from evals.simu_env_planning.planning.utils import prepare_obs
+from evals.utils import prepare_obs
 
 FIGSIZE_BASE = (4.0, 3.0)
 from src.utils.logging import get_logger

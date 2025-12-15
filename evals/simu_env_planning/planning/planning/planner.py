@@ -78,6 +78,15 @@ class NevergradPlanner(Planner):
         self.optimizer_map = {
             "NgIohTuned": ng.optimizers.NgIohTuned,
             "NGOpt": ng.optimizers.NGOpt,
+            # CMA-ES variants - numerically stable, good for continuous optimization
+            "CMA": ng.optimizers.CMA,
+            "ParametrizedCMA": ng.optimizers.ParametrizedCMA,
+            "DiagonalCMA": ng.optimizers.DiagonalCMA,
+            # Other stable alternatives
+            "PSO": ng.optimizers.PSO,
+            "DE": ng.optimizers.DE,
+            "OnePlusOne": ng.optimizers.OnePlusOne,
+            "TwoPointsDE": ng.optimizers.TwoPointsDE,
         }
 
     def build_optimizer(self, optimizer_name, **kwargs):
@@ -107,6 +116,24 @@ class NevergradPlanner(Planner):
         )
         logger.info(f"Optimizer: {optimizer}")
         logger.info(f"Optimizer info: {optimizer._info()}")
+
+        # Check if NGOpt selected MetaModel - it causes numerical instability
+        # due to polynomial regression overflow when loss variance is low.
+        # In this case, replace with DiagonalCMA which is what NGOpt typically
+        # selects in other configurations and is more numerically stable.
+        if hasattr(optimizer, "optim") and optimizer.optim.name == "MetaModel":
+            logger.warning(
+                "NGOpt selected MetaModel optimizer which can cause numerical instability. "
+                "Switching to DiagonalCMA for better numerical stability."
+            )
+            optimizer = self.build_optimizer(
+                "DiagonalCMA",
+                parametrization=parametrization,
+                budget=self.iterations * self.num_samples,
+                num_workers=self.num_samples,
+            )
+            logger.info(f"Replacement optimizer: {optimizer}")
+
         if hasattr(optimizer, "optim"):
             if optimizer.optim.name in ["MetaModel", "CMApara"]:
                 if hasattr(optimizer.optim, "_optim"):
@@ -132,6 +159,7 @@ class NevergradPlanner(Planner):
         prev_elite_losses_std = []
         pred_frames_over_iterations = []
         predicted_best_encs_over_iterations = []
+
         for itr in range(self.iterations):
             candidates = [optimizer.ask() for _ in range(self.num_samples)]
             candidate_values = torch.tensor([c.value for c in candidates], device=z_init.device, dtype=torch.float32)
@@ -156,6 +184,7 @@ class NevergradPlanner(Planner):
             for i, c in enumerate(candidates):
                 optimizer.tell(c, loss[i].item())
             costs.append(loss.min().item())
+
             best_solution = optimizer.provide_recommendation().value
             actions = torch.tensor(best_solution, device=z_init.device, dtype=torch.float32).unsqueeze(1)
             predicted_best_encs = self.unroll(z_init, act_suffix=actions)

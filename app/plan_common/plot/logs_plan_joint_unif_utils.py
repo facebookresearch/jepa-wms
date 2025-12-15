@@ -6,6 +6,7 @@ import time
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
+from io import StringIO
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -13,6 +14,10 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from matplotlib.ticker import FormatStrFormatter
+
+# Import local configuration from macros.py (gitignored)
+# Run `python setup_macros.py` to generate it from your environment variables
+from macros import CHECKPOINT_ROOT, JEPA_WM_HOME
 
 # ALIASES
 from app.vjepa_wm.local.aliases import (
@@ -39,237 +44,6 @@ metrics_map = {
     "ep_total_emb_l2": "Total_Emb_L2",
 }
 
-# eval_setup_aliases = {
-#     "wall": {
-#         # rand state
-#         "L1_noprop_cem_sourcerandstate_H6_nas6_ctxt2": r"CEM rand $L_1$",
-#         "L2_noprop_cem_sourcerandstate_H6_nas6_ctxt2": r"CEM rand $L_2$",
-#         # "L1_noprop_ng_sourcerandstate_H6_nas6_ctxt2": r"NG rand $L_1$",
-#         # "L2_noprop_ng_sourcerandstate_H6_nas6_ctxt2": r"NG rand $L_2$",
-#         #
-#         "L1_cem_sourcerandstate_H6_nas6_ctxt2": r"CEM rand $L_1$",
-#         "L2_cem_sourcerandstate_H6_nas6_ctxt2": r"CEM rand $L_2$",
-#         "L1_ng_sourcerandstate_H6_nas6_ctxt2": r"NG rand $L_1$",
-#         "L2_ng_sourcerandstate_H6_nas6_ctxt2": r"NG rand $L_2$",
-#         "L1_gd_sourcerandstate_H6_nas6_ctxt2": r"GD rand $L_1$",
-#         "L2_gd_sourcerandstate_H6_nas6_ctxt2": r"GD rand $L_2$",
-#         # cut at alpha
-#         "L2_cem_sourcerandstate_H6_nas6_ctxt2_r224_alpha0.0": r"CEM rand $L_2$ alpha0.0",
-#         "L2_cem_sourcerandstate_H6_nas6_ctxt2_r256_alpha0.0": r"CEM rand $L_2$ alpha0.0",
-#         "L2_cem_sourcerandstate_H6_nas6_ctxt2_r224_alpha0.1": r"CEM rand $L_2$ alpha0.1",
-#         "L2_cem_sourcerandstate_H6_nas6_ctxt2_r256_alpha0.1": r"CEM rand $L_2$ alpha0.1",
-#     },
-#     "pt": {
-#         # source dataset
-#         "L1_noprop_cem_sourcedset_H6_nas6_ctxt2": r"CEM $L_1$",
-#         "L2_noprop_cem_sourcedset_H6_nas6_ctxt2": r"CEM $L_2$",
-#         # "L1_noprop_ng_sourcedset_H6_nas6_ctxt2": r"NG $L_1$",
-#         # "L2_noprop_ng_sourcedset_H6_nas6_ctxt2": r"NG $L_2$",
-#         #
-#         "L1_cem_sourcedset_H6_nas6_ctxt2": r"CEM $L_1$",
-#         "L2_cem_sourcedset_H6_nas6_ctxt2": r"CEM $L_2$",
-#         "L1_ng_sourcedset_H6_nas6_ctxt2": r"NG $L_1$",
-#         "L2_ng_sourcedset_H6_nas6_ctxt2": r"NG $L_2$",
-#         "L1_gd_sourcedset_H6_nas6_ctxt2": r"GD $L_1$",
-#         "L2_gd_sourcedset_H6_nas6_ctxt2": r"GD $L_2$",
-#         # cut at alpha
-#         "L2_cem_sourcedset_H6_nas6_ctxt2_r224_alpha0.0": r"CEM $L_2$ alpha0.0",
-#         "L2_cem_sourcedset_H6_nas6_ctxt2_r256_alpha0.0": r"CEM $L_2$ alpha0.0",
-#         "L2_cem_sourcedset_H6_nas6_ctxt2_r224_alpha0.1": r"CEM $L_2$ alpha0.1",
-#         "L2_cem_sourcedset_H6_nas6_ctxt2_r256_alpha0.1": r"CEM $L_2$ alpha0.1",
-#     },
-#     "mz": {
-#         # rand state
-#         "L1_noprop_cem_sourcerandstate_H6_nas6_ctxt2": r"CEM rand $L_1$",
-#         "L2_noprop_cem_sourcerandstate_H6_nas6_ctxt2": r"CEM rand $L_2$",
-#         # "L1_noprop_ng_sourcerandstate_H6_nas6_ctxt2": r"NG rand $L_1$",
-#         # "L2_noprop_ng_sourcerandstate_H6_nas6_ctxt2": r"NG rand $L_2$",
-#         #
-#         "L1_cem_sourcerandstate_H6_nas6_ctxt2": r"CEM rand $L_1$",
-#         "L2_cem_sourcerandstate_H6_nas6_ctxt2": r"CEM rand $L_2$",
-#         "L1_ng_sourcerandstate_H6_nas6_ctxt2": r"NG rand $L_1$",
-#         "L2_ng_sourcerandstate_H6_nas6_ctxt2": r"NG rand $L_2$",
-#         "L1_gd_sourcerandstate_H6_nas6_ctxt2": r"GD rand $L_1$",
-#         "L2_gd_sourcerandstate_H6_nas6_ctxt2": r"GD rand $L_2$",
-#         # cut at alpha
-#         "L2_cem_sourcerandstate_H6_nas6_ctxt2_r224_alpha0.0": r"CEM rand $L_2$ alpha0.0",
-#         "L2_cem_sourcerandstate_H6_nas6_ctxt2_r256_alpha0.0": r"CEM rand $L_2$ alpha0.0",
-#         "L2_cem_sourcerandstate_H6_nas6_ctxt2_r224_alpha0.1": r"CEM rand $L_2$ alpha0.1",
-#         "L2_cem_sourcerandstate_H6_nas6_ctxt2_r256_alpha0.1": r"CEM rand $L_2$ alpha0.1",
-#     },
-#     "droid": {
-#         # H6
-#         "L1_cem_sourcedset_H6_nas6_ctxt2": r"CEM H6 $L_1$",
-#         "L2_cem_sourcedset_H6_nas6_ctxt2": r"CEM H6 $L_2$",
-#         "L2_cem_sourcedset_H6_nas6_maxnorm01_ctxt2": r"CEM H6 $L_2$ max0.1",
-#         "L1_cem_sourcedset_H6_nas6_maxnorm01_ctxt2": r"CEM H6 $L_1$ max0.1",
-#         # "L2_cem_sourcedset_H6_nas6_maxnorm01_momentum015_ctxt2": r"CEM H6 $L_2$ max0.1 mom0.15",
-#         "L1_ng_sourcedset_H6_nas6_ctxt2": r"NG H6 $L_1$",
-#         "L2_ng_sourcedset_H6_nas6_ctxt2": r"NG H6 $L_2$",
-#         "L2_ng_sourcedset_H6_nas6_maxnorm01_ctxt2": r"NG H6 $L_2$ max0.1",
-#         "L1_ng_sourcedset_H6_nas6_maxnorm01_ctxt2": r"NG H6 $L_1$ max0.1",
-#         # H3
-#         "L1_cem_sourcedset_H3_nas3_ctxt2": r"CEM H3 $L_1$",
-#         "L2_cem_sourcedset_H3_nas3_ctxt2": r"CEM H3 $L_2$",
-#         "L2_cem_sourcedset_H3_nas3_maxnorm01_ctxt2": r"CEM H3 $L_2$ max0.1",
-#         "L1_cem_sourcedset_H3_nas3_maxnorm01_ctxt2": r"CEM H3 $L_1$ max0.1",
-#         # "L2_cem_sourcedset_H3_nas3_maxnorm01_momentum015_ctxt2": r"CEM H3 $L_2$ max0.1 mom0.15",
-#         "L1_ng_sourcedset_H3_nas3_ctxt2": r"NG H3 $L_1$",
-#         "L2_ng_sourcedset_H3_nas3_ctxt2": r"NG H3 $L_2$",
-#         "L2_ng_sourcedset_H3_nas3_maxnorm01_ctxt2": r"NG H3 $L_2$ max0.1",
-#         "L1_ng_sourcedset_H3_nas3_maxnorm01_ctxt2": r"NG H3 $L_1$ max0.1",
-#         # "L2_ng_sourcedset_H3_nas3_maxnorm01_momentum015_ctxt2": r"NG H3 $L_2$ max0.1 mom0.15",
-#         "L1_gd_sourcedset_H3_nas3_maxnorm01_ctxt2": r"GD H3 $L_1$ max0.1",
-#         "L2_gd_sourcedset_H3_nas3_maxnorm01_ctxt2": r"GD H3 $L_2$ max0.1",
-#         # H1
-#         "L1_cem_sourcedset_H1_nas1_ctxt2": r"CEM H1 $L_1$",
-#         "L2_cem_sourcedset_H1_nas1_ctxt2": r"CEM H1 $L_2$",
-#         "L2_cem_sourcedset_H1_nas1_maxnorm01_ctxt2": r"CEM H1 $L_2$ max0.1",
-#         "L1_cem_sourcedset_H1_nas1_maxnorm01_ctxt2": r"CEM H1 $L_1$ max0.1",
-#         # "L2_cem_sourcedset_H1_nas1_maxnorm01_momentum015_ctxt2": r"CEM H1 $L_2$ max0.1 mom0.15",
-#         "L1_ng_sourcedset_H1_nas1_ctxt2": r"NG H1 $L_1$",
-#         "L2_ng_sourcedset_H1_nas1_ctxt2": r"NG H1 $L_2$",
-#         "L2_ng_sourcedset_H1_nas1_maxnorm01_ctxt2": r"NG H1 $L_2$ max0.1",
-#         "L1_ng_sourcedset_H1_nas1_maxnorm01_ctxt2": r"NG H1 $L_1$ max0.1",
-#         # "L2_ng_sourcedset_H1_nas1_maxnorm01_momentum015_ctxt2": r"NG H1 $L_2$ max0.1 mom0.15",
-#         # ctxt8
-#             # H6
-#             "L2_cem_sourcedset_H6_nas6_maxnorm01_ctxt8": r"CEM H6 $L_2$ max0.1",
-#             "L1_cem_sourcedset_H6_nas6_maxnorm01_ctxt8": r"CEM H6 $L_1$ max0.1",
-#             # H3
-#             "L2_cem_sourcedset_H3_nas3_maxnorm01_ctxt8": r"CEM H3 $L_2$ max0.1",
-#             "L1_cem_sourcedset_H3_nas3_maxnorm01_ctxt8": r"CEM H3 $L_1$ max0.1",
-#             # H1
-#             "L2_cem_sourcedset_H1_nas1_maxnorm01_ctxt8": r"CEM H1 $L_2$ max0.1",
-#             "L1_cem_sourcedset_H1_nas1_maxnorm01_ctxt8": r"CEM H1 $L_1$ max0.1",
-#         # cut at alpha
-#         "L2_cem_sourcedset_H6_nas6_ctxt2_r224_alpha0.0": r"CEM H6 $L_2$",
-#         "L2_cem_sourcedset_H6_nas6_ctxt2_r256_alpha0.0": r"CEM H6 $L_2$",
-#         "L2_cem_sourcedset_H6_nas6_ctxt2_r224_alpha0.1": r"CEM H6 $L_2$",
-#         "L2_cem_sourcedset_H6_nas6_ctxt2_r256_alpha0.1": r"CEM H6 $L_2$",
-#         "L2_cem_sourcedset_H3_nas3_ctxt2_r224_alpha0.0": r"CEM H3 $L_2$",
-#         "L2_cem_sourcedset_H3_nas3_ctxt2_r256_alpha0.0": r"CEM H3 $L_2$",
-#         "L2_cem_sourcedset_H3_nas3_ctxt2_r224_alpha0.1": r"CEM H3 $L_2$",
-#         "L2_cem_sourcedset_H3_nas3_ctxt2_r256_alpha0.1": r"CEM H3 $L_2$",
-#         # cut at ep
-#         # H3
-#         "L2_cem_sourcedset_H3_nas3_maxnorm01_ctxt2_gH3_r256_alpha0.0_ep64": r"CEM H3 $L_2$ max0.1 ep64",
-#         "L1_cem_sourcedset_H3_nas3_maxnorm01_ctxt2_gH3_r256_alpha0.0_ep64": r"CEM H3 $L_1$ max0.1 ep64",
-#         "L2_ng_sourcedset_H3_nas3_maxnorm01_ctxt2_gH3_r256_alpha0.0_ep64": r"NG H3 $L_2$ max0.1 ep64",
-#         "L1_ng_sourcedset_H3_nas3_maxnorm01_ctxt2_gH3_r256_alpha0.0_ep64": r"NG H3 $L_1$ max0.1 ep64",
-#         "L1_gd_sourcedset_H3_nas3_maxnorm01_ctxt2_gH3_r256_alpha0.0_ep64": r"GD H3 $L_1$ max0.1 ep64",
-#         "L2_gd_sourcedset_H3_nas3_maxnorm01_ctxt2_gH3_r256_alpha0.0_ep64": r"GD H3 $L_2$ max0.1 ep64",
-#         #
-#         "L2_cem_sourcedset_H3_nas3_maxnorm01_ctxt2_gH3_r224_alpha0.0_ep64": r"CEM H3 $L_2$ max0.1 ep64",
-#         "L1_cem_sourcedset_H3_nas3_maxnorm01_ctxt2_gH3_r224_alpha0.0_ep64": r"CEM H3 $L_1$ max0.1 ep64",
-#         "L2_ng_sourcedset_H3_nas3_maxnorm01_ctxt2_gH3_r224_alpha0.0_ep64": r"NG H3 $L_2$ max0.1 ep64",
-#         "L1_ng_sourcedset_H3_nas3_maxnorm01_ctxt2_gH3_r224_alpha0.0_ep64": r"NG H3 $L_1$ max0.1 ep64",
-#         "L1_gd_sourcedset_H3_nas3_maxnorm01_ctxt2_gH3_r224_alpha0.0_ep64": r"GD H3 $L_1$ max0.1 ep64",
-#         "L2_gd_sourcedset_H3_nas3_maxnorm01_ctxt2_gH3_r224_alpha0.0_ep64": r"GD H3 $L_2$ max0.1 ep64",
-#     },
-#     "mw-reach": {
-#         # source expert
-#         "L1_noprop_cem_sourcexp_H6_nas3_ctxt2": r"CEM $L_1$",
-#         "L2_noprop_cem_sourcexp_H6_nas3_ctxt2": r"CEM $L_2$",
-#         "L1_noprop_ng_sourcexp_H6_nas3_ctxt2": r"NG $L_1$",
-#         "L2_noprop_ng_sourcexp_H6_nas3_ctxt2": r"NG $L_2$",
-#         #
-#         "L1_cem_sourcexp_H6_nas3_ctxt2": r"CEM $L_1$",
-#         "L2_cem_sourcexp_H6_nas3_ctxt2": r"CEM $L_2$",
-#         "L1_ng_sourcexp_H6_nas3_ctxt2": r"NG $L_1$",
-#         "L2_ng_sourcexp_H6_nas3_ctxt2": r"NG $L_2$",
-#         "L1_gd_sourcexp_H6_nas3_ctxt2": r"GD $L_1$",
-#         "L2_gd_sourcexp_H6_nas3_ctxt2": r"GD $L_2$",
-#         # cut at alpha
-#         "L2_cem_sourcexp_H6_nas3_ctxt1_r224_alpha0.0": r"CEM $L_2$ alpha0.0",
-#         "L2_cem_sourcexp_H6_nas3_ctxt1_r256_alpha0.0": r"CEM $L_2$ alpha0.0",
-#         "L2_cem_sourcexp_H6_nas3_ctxt1_r224_alpha0.1": r"CEM $L_2$ alpha0.1",
-#         "L2_cem_sourcexp_H6_nas3_ctxt1_r256_alpha0.1": r"CEM $L_2$ alpha0.1",
-#     },
-#     "mw-reach-wall": {
-#         # source expert
-#         "L1_noprop_cem_sourcexp_H6_nas3_ctxt2": r"CEM $L_1$",
-#         "L2_noprop_cem_sourcexp_H6_nas3_ctxt2": r"CEM $L_2$",
-#         "L1_noprop_ng_sourcexp_H6_nas3_ctxt2": r"NG $L_1$",
-#         "L2_noprop_ng_sourcexp_H6_nas3_ctxt2": r"NG $L_2$",
-#         #
-#         "L1_cem_sourcexp_H6_nas3_ctxt2": r"CEM $L_1$",
-#         "L2_cem_sourcexp_H6_nas3_ctxt2": r"CEM $L_2$",
-#         "L1_ng_sourcexp_H6_nas3_ctxt2": r"NG $L_1$",
-#         "L2_ng_sourcexp_H6_nas3_ctxt2": r"NG $L_2$",
-#         "L1_gd_sourcexp_H6_nas3_ctxt2": r"GD $L_1$",
-#         "L2_gd_sourcexp_H6_nas3_ctxt2": r"GD $L_2$",
-#         # cut at alpha
-#         "L2_cem_sourcexp_H6_nas3_ctxt1_r224_alpha0.0": r"CEM $L_2$ alpha0.0",
-#         "L2_cem_sourcexp_H6_nas3_ctxt1_r256_alpha0.0": r"CEM $L_2$ alpha0.0",
-#         "L2_cem_sourcexp_H6_nas3_ctxt1_r224_alpha0.1": r"CEM $L_2$ alpha0.1",
-#         "L2_cem_sourcexp_H6_nas3_ctxt1_r256_alpha0.1": r"CEM $L_2$ alpha0.1",
-#     },
-#     "rcasa-reach": {
-#         "L2_cem_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2": r"CEM $L_2$",
-#         "L1_cem_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2": r"CEM $L_1$",
-#         "L2_ng_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2": r"NG $L_2$",
-#         "L1_ng_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2": r"NG $L_1$",
-#         "L2_gd_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2": r"GD $L_2$",
-#         "L1_gd_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2": r"GD $L_1$",
-#         # alpha 0
-#         "L2_cem_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r224_alpha0.0": r"CEM $L_2$ alpha0.0",
-#         "L1_cem_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r224_alpha0.0": r"CEM $L_1$ alpha0.0",
-#         "L2_ng_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r224_alpha0.0": r"NG $L_2$ alpha0.0",
-#         "L1_ng_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r224_alpha0.0": r"NG $L_1$ alpha0.0",
-#         # alpha 0.1
-#         "L2_cem_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r224_alpha0.1": r"CEM $L_2$ alpha0.1",
-#         "L1_cem_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r224_alpha0.1": r"CEM $L_1$ alpha0.1",
-#         "L2_ng_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r224_alpha0.1": r"NG $L_2$ alpha0.1",
-#         "L1_ng_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r224_alpha0.1": r"NG $L_1$ alpha0.1",
-#         # cut at ep
-#             "L2_cem_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r256_alpha0.0_ep32": r"CEM $L_2$ ep32",
-#             "L1_cem_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r256_alpha0.0_ep32": r"CEM $L_1$ ep32",
-#             "L2_ng_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r256_alpha0.0_ep32": r"NG $L_2$ ep32",
-#             "L1_ng_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r256_alpha0.0_ep32": r"NG $L_1$ ep32",
-#             "L1_gd_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r256_alpha0.0_ep32": r"GD $L_1$ ep32",
-#             "L2_gd_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r256_alpha0.0_ep32": r"GD $L_2$ ep32",
-#             #
-#             "L2_cem_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r224_alpha0.0_ep32": r"CEM $L_2$ ep32",
-#             "L1_cem_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r224_alpha0.0_ep32": r"CEM $L_1$ ep32",
-#             "L2_ng_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r224_alpha0.0_ep32": r"NG $L_2$ ep32",
-#             "L1_ng_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r224_alpha0.0_ep32": r"NG $L_1$ ep32",
-#             "L1_gd_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r224_alpha0.0_ep32": r"GD $L_1$ ep32",
-#             "L2_gd_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r224_alpha0.0_ep32": r"GD $L_2$ ep32",
-#     },
-#     "rcasa-place": {
-#         "L2_cem_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2": r"CEM $L_2$",
-#         "L1_cem_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2": r"CEM $L_1$",
-#         "L2_ng_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2": r"NG $L_2$",
-#         "L1_ng_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2": r"NG $L_1$",
-#         "L2_gd_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2": r"GD $L_2$",
-#         "L1_gd_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2": r"GD $L_1$",
-#         # alpha 0
-#         "L2_cem_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r224_alpha0.0": r"CEM $L_2$ alpha0.0",
-#         "L1_cem_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r224_alpha0.0": r"CEM $L_1$ alpha0.0",
-#         "L2_ng_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r224_alpha0.0": r"NG $L_2$ alpha0.0",
-#         "L1_ng_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r224_alpha0.0": r"NG $L_1$ alpha0.0",
-#         # alpha 0.1
-#         "L2_cem_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r224_alpha0.1": r"CEM $L_2$ alpha0.1",
-#         "L1_cem_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r224_alpha0.1": r"CEM $L_1$ alpha0.1",
-#         "L2_ng_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r224_alpha0.1": r"NG $L_2$ alpha0.1",
-#         "L1_ng_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r224_alpha0.1": r"NG $L_1$ alpha0.1",
-#         # cut at ep
-#             "L2_cem_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r256_alpha0.0_ep32": r"CEM $L_2$ ep32",
-#             "L1_cem_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r256_alpha0.0_ep32": r"CEM $L_1$ ep32",
-#             "L2_ng_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r256_alpha0.0_ep32": r"NG $L_2$ ep32",
-#             "L1_ng_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r256_alpha0.0_ep32": r"NG $L_1$ ep32",
-#             "L1_gd_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r256_alpha0.0_ep32": r"GD $L_1$ ep32",
-#             "L2_gd_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r256_alpha0.0_ep32": r"GD $L_2$ ep32",
-#             #
-#             "L2_cem_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r224_alpha0.0_ep32": r"CEM $L_2$ ep32",
-#             "L1_cem_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r224_alpha0.0_ep32": r"CEM $L_1$ ep32",
-#             "L2_ng_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r224_alpha0.0_ep32": r"NG $L_2$ ep32",
-#             "L1_ng_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r224_alpha0.0_ep32": r"NG $L_1$ ep32",
-#             "L1_gd_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r224_alpha0.0_ep32": r"GD $L_1$ ep32",
-#             "L2_gd_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r224_alpha0.0_ep32": r"GD $L_2$ ep32",
-#     },
-# }
 task_cut_eval_setup_mapping = {
     "droid": "ctxt",
     # "droid": "ep",
@@ -336,9 +110,6 @@ def clean_task_name(task_name, folder_path=None):
                 return "mw-reach"
             elif task_name == "reach-wall":
                 return "mw-reach-wall"
-        # elif 'rcasa' in folder_path.lower() or 'robocasa' in folder_path.lower():
-        #     # RoboCasa environment tasks
-        #     return f'rcasa-{task_name}'
 
     # Fall back to original mappings if no environment context match
     return task_name_mappings.get(task_name, task_name)
@@ -793,20 +564,24 @@ def plot_task_eval_data(
 
 def main():
     # ==============================================
-    base_dir ='app/plan_common/local/droid_fractions_comp/droid_batchify_sweep'
+    # Paths are constructed using environment variables from macros.py
+    jepa_dir = os.path.join(JEPA_WM_HOME, "jepa-wms")
+    local_plan_common_dir = os.path.join(jepa_dir, "app/plan_common/local")
+
+    base_dir = os.path.join(local_plan_common_dir, 'droid_fractions_comp/droid_batchify_sweep')
     os.makedirs(base_dir, exist_ok=True)
     model_training_folders = [
-        ("/checkpoint/amaia/video/basileterv/experiment/vjepav2/vjepa_wm/droid_fractions/droid_8fpcs_fps4_lrcams_frac0.02_r256_predAdaLN0_vj2vitl_batchif_depth24_noprop_muon_1roll",
+        (os.path.join(CHECKPOINT_ROOT, "droid_fractions/droid_8fpcs_fps4_lrcams_frac0.02_r256_predAdaLN0_vj2vitl_batchif_depth24_noprop_muon_1roll"),
         "2%"),
-        ("/checkpoint/amaia/video/basileterv/experiment/vjepav2/vjepa_wm/droid_fractions/droid_8fpcs_fps4_lrcams_frac0.1_r256_predAdaLN0_vj2vitl_batchif_depth24_noprop_muon_1roll",
+        (os.path.join(CHECKPOINT_ROOT, "droid_fractions/droid_8fpcs_fps4_lrcams_frac0.1_r256_predAdaLN0_vj2vitl_batchif_depth24_noprop_muon_1roll"),
         "frac10%"),
-        ("/checkpoint/amaia/video/basileterv/experiment/vjepav2/vjepa_wm/droid_fractions/droid_8fpcs_fps4_lrcams_frac0.25_r256_predAdaLN0_vj2vitl_batchif_depth24_noprop_muon_1roll",
+        (os.path.join(CHECKPOINT_ROOT, "droid_fractions/droid_8fpcs_fps4_lrcams_frac0.25_r256_predAdaLN0_vj2vitl_batchif_depth24_noprop_muon_1roll"),
         "frac25%"),
-        ("/checkpoint/amaia/video/basileterv/experiment/vjepav2/vjepa_wm/droid_fractions/droid_8fpcs_fps4_lrcams_frac0.5_r256_predAdaLN0_vj2vitl_batchif_depth24_noprop_muon_1roll",
+        (os.path.join(CHECKPOINT_ROOT, "droid_fractions/droid_8fpcs_fps4_lrcams_frac0.5_r256_predAdaLN0_vj2vitl_batchif_depth24_noprop_muon_1roll"),
         "frac50%"),
-        ("/checkpoint/amaia/video/basileterv/experiment/vjepav2/vjepa_wm/droid_fractions/droid_8fpcs_fps4_lrcams_frac0.75_r256_predAdaLN0_vj2vitl_batchif_depth24_noprop_muon_1roll",
+        (os.path.join(CHECKPOINT_ROOT, "droid_fractions/droid_8fpcs_fps4_lrcams_frac0.75_r256_predAdaLN0_vj2vitl_batchif_depth24_noprop_muon_1roll"),
         "frac75%"),
-        ("/checkpoint/amaia/video/basileterv/experiment/vjepav2/vjepa_wm/droid_fractions/droid_8fpcs_fps4_lrcams_frac1_r256_predAdaLN0_vj2vitl_batchif_depth24_noprop_muon_1roll",
+        (os.path.join(CHECKPOINT_ROOT, "droid_fractions/droid_8fpcs_fps4_lrcams_frac1_r256_predAdaLN0_vj2vitl_batchif_depth24_noprop_muon_1roll"),
         "frac100%"),
     ]
     task_subset = ["droid-base", "droid"]

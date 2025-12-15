@@ -32,3 +32,6 @@ configs/local
 scripts/*/local/
 configs/*/cwtemp/
 */dump_online_evals/*
+
+# Local configuration (user-specific paths)
+macros.py

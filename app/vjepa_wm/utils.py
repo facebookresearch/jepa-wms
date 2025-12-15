@@ -89,41 +89,63 @@ def build_unroll_decode_eval_args(
     cfgs_model,
     cfgs_data,
     cfgs_data_aug,
+    cfgs_unroll_decode_evals,
     tag,
     eval_nodes=1,
     eval_tasks_per_node=1,
-    specific_video=None,
-    specific_video_path=None,
-    play_in_reverse=None,
-    obs="rgb",
-    save_decoding_only=False,
-    repeat_hardcode_act=1,
-    wrapper_kwargs=None,
 ):
     """
     Builds evaluation arguments for unroll decode evaluations.
+
+    This evaluation allows hardcoding custom actions to generate counterfactual decodings,
+    e.g., comparing "open gripper + move up" vs "close gripper + move up" predictions.
+
     Args:
         app_name (str): Name of the application.
         folder (str): Folder for logging outputs.
-        eval_cfg_paths (list): List of evaluation configuration paths.
+        checkpoint (str): Checkpoint filename to load.
         cfgs_model (dict): Model configuration.
         cfgs_data (dict): Data configuration.
         cfgs_data_aug (dict): Data augmentation configuration.
+        cfgs_unroll_decode_evals (dict): Unroll decode eval configuration containing:
+            - specific_video (bool): Use a specific video file instead of dataset samples
+            - specific_video_path (str): Path to specific video file (npz format)
+            - play_in_reverse (bool): Reverse the video sequence
+            - obs (str): Observation type - "rgb" or "rgb_state"
+            - save_decoding_only (bool): Only save decoded predictions
+            - repeat_hardcode_act (int): Number of times to repeat hardcoded actions
+            - wrapper_kwargs (dict): Model wrapper configuration (same as evals.wrapper_kwargs)
+                - ctxt_window (int): Context window size for the model wrapper
+                - proprio_mode (str): Proprioception mode (e.g., "compute_new_pose")
         tag (str): Tag for the evaluation.
-        num_samples (int): Number of samples for unrolling.
-        horizon (int): Horizon length for unrolling.
         eval_nodes (int): Number of nodes for evaluation.
         eval_tasks_per_node (int): Number of tasks per node.
+
     Returns:
-        tuple: (eval_nodes, eval_tasks_per_node, args_eval)
+        list: List containing a single eval config dict.
     """
-    pref_tag = f"decode_enc"
+    # Extract config values with defaults
+    specific_video = cfgs_unroll_decode_evals.get("specific_video", False)
+    specific_video_path = cfgs_unroll_decode_evals.get("specific_video_path", None)
+    play_in_reverse = cfgs_unroll_decode_evals.get("play_in_reverse", False)
+    obs = cfgs_unroll_decode_evals.get("obs", "rgb")
+    save_decoding_only = cfgs_unroll_decode_evals.get("save_decoding_only", False)
+    repeat_hardcode_act = cfgs_unroll_decode_evals.get("repeat_hardcode_act", 5)
+    wrapper_kwargs = cfgs_unroll_decode_evals.get("wrapper_kwargs", {"ctxt_window": 2})
+
+    pref_tag = "decode_enc"
     unroll_decode_cfg = {
         "eval_name": "unroll_decode",
         "nodes": eval_nodes,
         "tasks_per_node": eval_tasks_per_node,
         "folder": folder,
         "tag": f"{pref_tag}/{tag}",
+        "specific_video": specific_video,
+        "specific_video_path": specific_video_path,
+        "play_in_reverse": play_in_reverse,
+        "obs": obs,
+        "save_decoding_only": save_decoding_only,
+        "repeat_hardcode_act": repeat_hardcode_act,
         "model_kwargs": {
             "module_name": f"app.{app_name}.modelcustom.simu_env_planning.vit_enc_preds",
             "checkpoint": checkpoint,
@@ -133,17 +155,8 @@ def build_unroll_decode_eval_args(
             "wrapper_kwargs": wrapper_kwargs,
         },
     }
-    unroll_decode_cfg["obs"] = obs
-    unroll_decode_cfg["save_decoding_only"] = save_decoding_only
-    unroll_decode_cfg["repeat_hardcode_act"] = repeat_hardcode_act
-    if specific_video is not None:
-        unroll_decode_cfg["specific_video"] = specific_video
-    if specific_video_path is not None:
-        unroll_decode_cfg["specific_video_path"] = specific_video_path
-    if play_in_reverse is not None:
-        unroll_decode_cfg["play_in_reverse"] = play_in_reverse
 
-    return eval_nodes, eval_tasks_per_node, [unroll_decode_cfg]
+    return [unroll_decode_cfg]
 
 
 def build_plan_eval_args(
@@ -165,6 +178,7 @@ def build_plan_eval_args(
     max_episode_steps=None,
     num_act_stepped=None,
     horizon=None,
+    goal_H=None,
     override_cfgs_data=True,
     override_datasets=True,
     wrapper_kwargs={},
@@ -261,6 +275,9 @@ def build_plan_eval_args(
         if horizon is not None:
             planning_cfg["planner"]["horizon"] = horizon
             pref_tag = update_tag_pattern(pref_tag, "H", horizon)
+        if goal_H is not None:
+            planning_cfg["task_specification"]["goal_H"] = goal_H
+            pref_tag = update_tag_pattern(pref_tag, "gH", goal_H)
         if eval_episodes is not None:
             planning_cfg["meta"]["eval_episodes"] = eval_episodes
             pref_tag = update_tag_pattern(pref_tag, "ep", eval_episodes)
@@ -272,68 +289,92 @@ def build_plan_eval_args(
     return eval_nodes, eval_tasks_per_node, args_eval, _cpus
 
 
-def load_checkpoint(
-    r_path,
-    predictor,
-    action_encoder,
-    proprio_encoder,
-    heads,
-    opt,
-    scaler,
+def fetch_checkpoint(source, device="cpu"):
+    """Fetch checkpoint data from either a URL or local file path.
+
+    Args:
+        source (str or Path): Either a URL (starting with 'http://' or 'https://') or a local file path.
+        device (str or torch.device): Device to map tensors to. Default is 'cpu'.
+
+    Returns:
+        dict: Checkpoint data containing model state dicts and metadata.
+
+    Raises:
+        Exception: If checkpoint cannot be loaded from the source.
+    """
+    from torch.hub import load_state_dict_from_url
+
+    if isinstance(source, str) and source.startswith(("http://", "https://")):
+        logger.info(f"Downloading checkpoint from URL: {source}")
+        checkpoint = load_state_dict_from_url(source, map_location=torch.device(device), progress=True)
+    else:
+        logger.info(f"Loading checkpoint from local path: {source}")
+        try:
+            checkpoint = torch.load(source, map_location=torch.device(device))
+        except Exception as e:
+            logger.info(f"Encountered exception when loading checkpoint: {e}")
+            raise
+
+    return checkpoint
+
+
+def load_checkpoint_state_dict(
+    checkpoint,
+    predictor=None,
+    action_encoder=None,
+    proprio_encoder=None,
+    opt=None,
+    scaler=None,
     load_act_enc=True,
     load_prop_enc=True,
-    load_heads=True,
     load_opt_scale_epoch=True,
-    load_stats=True,
-    train_predictor=True,
-    train_heads=False,
 ):
-    try:
-        checkpoint = torch.load(r_path, map_location=torch.device("cpu"))
-    except Exception as e:
-        logger.info(f"Encountered exception when loading checkpoint {e}")
+    """Load state dicts from checkpoint data onto model modules.
 
-    epoch = 0
-    try:
-        epoch = checkpoint.get("epoch", -1)
-        # -- loading predictor
-        if predictor is not None and checkpoint.get("predictor") is not None:
-            pretrained_dict = clean_state_dict(checkpoint["predictor"])
+    This function only loads weights from the checkpoint dict itself (predictor, action_encoder,
+    proprio_encoder, optimizer, scaler). For loading heads from separate files, use load_heads_checkpoint().
 
-            # Handle naming convention differences for backward compatibility
-            key_mapping = {
-                "state_encoder.weight": "proprio_encoder.weight",
-                "state_encoder.bias": "proprio_encoder.bias",
-            }
-            pretrained_dict = {key_mapping.get(k, k): v for k, v in pretrained_dict.items()}
+    Args:
+        checkpoint (dict): Checkpoint data containing state dicts (from fetch_checkpoint).
+        predictor: Predictor module to load weights into.
+        action_encoder: Action encoder module to load weights into.
+        proprio_encoder: Proprio encoder module to load weights into.
+        opt: Optimizer to load state into.
+        scaler: GradScaler to load state into.
+        load_act_enc (bool): Whether to load action encoder weights.
+        load_prop_enc (bool): Whether to load proprio encoder weights.
+        load_opt_scale_epoch (bool): Whether to load optimizer and scaler state.
 
-            msg = predictor.load_state_dict(pretrained_dict, strict=False)
-            logger.info(f"loaded pretrained predictor from epoch {epoch} with msg: {msg}")
+    Returns:
+        tuple: (predictor, action_encoder, proprio_encoder, opt, scaler, epoch)
+    """
+    epoch = checkpoint.get("epoch", -1)
 
-        # -- loading action encoder
-        if load_act_enc and action_encoder and checkpoint.get("action_encoder") is not None:
-            pretrained_dict = clean_state_dict(checkpoint["action_encoder"])
-            msg = action_encoder.load_state_dict(pretrained_dict, strict=False)
-            logger.info(f"loaded pretrained action encoder from epoch {epoch} with msg: {msg}")
+    # -- loading predictor
+    if predictor is not None and checkpoint.get("predictor") is not None:
+        pretrained_dict = clean_state_dict(checkpoint["predictor"])
 
-        # -- loading proprio encoder
-        if load_prop_enc and proprio_encoder and checkpoint.get("proprio_encoder") is not None:
-            pretrained_dict = clean_state_dict(checkpoint["proprio_encoder"])
-            msg = proprio_encoder.load_state_dict(pretrained_dict, strict=False)
-            logger.info(f"loaded pretrained proprio encoder from epoch {epoch} with msg: {msg}")
+        # Handle naming convention differences for backward compatibility
+        key_mapping = {
+            "state_encoder.weight": "proprio_encoder.weight",
+            "state_encoder.bias": "proprio_encoder.bias",
+        }
+        pretrained_dict = {key_mapping.get(k, k): v for k, v in pretrained_dict.items()}
+        msg = predictor.load_state_dict(pretrained_dict, strict=False)
+        logger.info(f"loaded pretrained predictor from epoch {epoch} with msg: {msg}")
 
-        # -- loading heads
-        if load_heads:
-            for name, head in heads.items():
-                head_path = r_path.removesuffix(".pth.tar") + "_" + name + ".pth.tar"
-                head_epoch = head.load_checkpoint(head_path)
-                logger.info(f"loaded pretrained head named {name} from epoch {head_epoch}")
-            if train_heads:
-                epoch = head_epoch
-    except Exception as e:
-        logger.info(f"Encountered exception when loading checkpoint {e}")
-        exit(1)
-        epoch = 0
+    # -- loading action encoder
+    if load_act_enc and action_encoder and checkpoint.get("action_encoder") is not None:
+        pretrained_dict = clean_state_dict(checkpoint["action_encoder"])
+        msg = action_encoder.load_state_dict(pretrained_dict, strict=False)
+        logger.info(f"loaded pretrained action encoder from epoch {epoch} with msg: {msg}")
+
+    # -- loading proprio encoder
+    if load_prop_enc and proprio_encoder and checkpoint.get("proprio_encoder") is not None:
+        pretrained_dict = clean_state_dict(checkpoint["proprio_encoder"])
+        msg = proprio_encoder.load_state_dict(pretrained_dict, strict=False)
+        logger.info(f"loaded pretrained proprio encoder from epoch {epoch} with msg: {msg}")
+
     # -- loading optimizer
     if load_opt_scale_epoch and opt is not None:
         try:
@@ -353,6 +394,110 @@ def load_checkpoint(
                 logger.info(f"loaded scaler from epoch {epoch}")
             except KeyError:
                 logger.warning("Scaler state not found in checkpoint, skipping scaler load.")
+
+    return (
+        predictor,
+        action_encoder,
+        proprio_encoder,
+        opt,
+        scaler,
+        epoch,
+    )
+
+
+def load_heads_checkpoint(heads, heads_base_path):
+    """Load head checkpoints from separate files.
+
+    Head checkpoints are stored in files named: {heads_base_path}_<head_name>.pth.tar
+
+    Args:
+        heads (dict): Dictionary of head modules to load weights into.
+        heads_base_path (str or Path): Base path for head checkpoint files.
+            Head files are expected at: {heads_base_path}_<head_name>.pth.tar
+            (e.g., if heads_base_path="/path/to/checkpoint.pth.tar" and head name is "image_head",
+            will load from "/path/to/checkpoint_image_head.pth.tar")
+
+    Returns:
+        tuple: (heads, head_epoch) where head_epoch is the epoch from the last loaded head.
+    """
+    if not heads:
+        return heads, 0
+
+    head_epoch = 0
+    for name, head in heads.items():
+        head_path = str(heads_base_path).removesuffix(".pth.tar") + "_" + name + ".pth.tar"
+        head_epoch = head.load_checkpoint(head_path)
+        logger.info(f"loaded pretrained head named {name} from epoch {head_epoch}")
+
+    return heads, head_epoch
+
+
+def load_checkpoint(
+    r_path,
+    predictor,
+    action_encoder,
+    proprio_encoder,
+    heads,
+    opt,
+    scaler,
+    load_act_enc=True,
+    load_prop_enc=True,
+    load_heads=True,
+    load_opt_scale_epoch=True,
+    load_stats=True,
+    train_predictor=True,
+    train_heads=False,
+):
+    """Load checkpoint from local file path and apply to model modules.
+
+    Convenience wrapper that combines fetch_checkpoint(), load_checkpoint_state_dict(),
+    and optionally load_heads_checkpoint().
+
+    Args:
+        r_path (str or Path): Local file path to checkpoint.
+        predictor: Predictor module to load weights into.
+        action_encoder: Action encoder module to load weights into.
+        proprio_encoder: Proprio encoder module to load weights into.
+        heads (dict): Dictionary of head modules to load weights into.
+        opt: Optimizer to load state into.
+        scaler: GradScaler to load state into.
+        load_act_enc (bool): Whether to load action encoder weights.
+        load_prop_enc (bool): Whether to load proprio encoder weights.
+        load_heads (bool): Whether to load head weights from separate files.
+        load_opt_scale_epoch (bool): Whether to load optimizer and scaler state.
+        load_stats (bool): Unused, kept for backward compatibility.
+        train_predictor (bool): If True, return predictor epoch; used for epoch tracking.
+        train_heads (bool): If True, return head epoch instead of predictor epoch.
+
+    Returns:
+        tuple: (predictor, action_encoder, proprio_encoder, heads, opt, scaler, epoch)
+    """
+    checkpoint = fetch_checkpoint(r_path, device="cpu")
+
+    (
+        predictor,
+        action_encoder,
+        proprio_encoder,
+        opt,
+        scaler,
+        epoch,
+    ) = load_checkpoint_state_dict(
+        checkpoint=checkpoint,
+        predictor=predictor,
+        action_encoder=action_encoder,
+        proprio_encoder=proprio_encoder,
+        opt=opt,
+        scaler=scaler,
+        load_act_enc=load_act_enc,
+        load_prop_enc=load_prop_enc,
+        load_opt_scale_epoch=load_opt_scale_epoch,
+    )
+
+    # Load heads from separate files if requested
+    if load_heads and heads:
+        heads, head_epoch = load_heads_checkpoint(heads, heads_base_path=r_path)
+        if train_heads:
+            epoch = head_epoch
 
     logger.info(f"read-path: {r_path}")
     del checkpoint

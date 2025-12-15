@@ -17,7 +17,12 @@ from tensordict.tensordict import TensorDict
 
 from app.plan_common.models.wm_heads import WorldModelPoseReadoutHead, WorldModelViTImageHead
 from app.plan_common.datasets.droid_dset import compute_new_pose
-from app.vjepa_wm.utils import clean_state_dict, init_video_model, load_checkpoint
+from app.vjepa_wm.utils import (
+    clean_state_dict,
+    fetch_checkpoint,
+    init_video_model,
+    load_checkpoint_state_dict,
+)
 from app.vjepa_wm.video_wm import VideoWM
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
@@ -29,7 +34,8 @@ def init_module(
     checkpoint,
     model_kwargs,
     device,
-    dset,
+    action_dim,
+    proprio_dim,
     preprocessor,
     cfgs_data=None,
     wrapper_kwargs=None,
@@ -37,12 +43,17 @@ def init_module(
 ):
     """Initialize EncPredWM model with pretrained weights and decoders.
     Args:
-        folder (str or Path): Directory containing checkpoint file.
-        checkpoint (str): Checkpoint filename.
+        folder (str or Path): Directory containing checkpoint file (only used for local paths).
+        checkpoint (str): Checkpoint source - can be either:
+            - A filename to load from folder (e.g., "jepa-latest.pth.tar")
+            - A full URL to download from (e.g., "https://dl.fbaipublicfiles.com/jepa-wms/...")
         model_kwargs (dict): Model configuration with encoder, predictor, heads, and data configs.
         device (torch.device): Device to load model on.
-        dset: Dataset with action_dim and proprio_dim attributes.
+        action_dim (int): Action dimension from the dataset.
+        proprio_dim (int): Proprioception dimension from the dataset.
         preprocessor: Preprocessor with transform, inverse_transform, normalize methods.
+        cfgs_data (dict): Data configuration with img_size, custom settings, etc.
+        wrapper_kwargs (dict): Additional kwargs for EncPredWM wrapper.
         **kwargs: Additional arguments (unused).
     Returns:
         EncPredWM: Wrapped VideoWM model ready for encoding and prediction.
@@ -71,11 +82,11 @@ def init_module(
 
     # Compute model dimensions
     if use_action:
-        model_action_dim = dset.action_dim * tubelet_size_enc * frameskip // action_skip
+        model_action_dim = action_dim * tubelet_size_enc * frameskip // action_skip
     else:
         model_action_dim = None
     if use_proprio:
-        model_proprio_dim = dset.proprio_dim * tubelet_size_enc // state_skip
+        model_proprio_dim = proprio_dim * tubelet_size_enc // state_skip
     else:
         model_proprio_dim = None
 
@@ -135,31 +146,30 @@ def init_module(
             )
             heads["state_head"] = state_decoder
 
-    load_path = Path(folder) / checkpoint
-    load_heads = heads and not pretrain_dec_path
+    is_url = isinstance(checkpoint, str) and checkpoint.startswith(("http://", "https://"))
+    if is_url:
+        checkpoint_source = checkpoint
+    else:
+        checkpoint_source = Path(folder) / checkpoint
+
+    checkpoint_data = fetch_checkpoint(checkpoint_source, device="cpu")
+
     (
         predictor,
         action_encoder,
         proprio_encoder,
-        heads,
         _,
         _,
         _,
-    ) = load_checkpoint(
-        r_path=load_path,
+    ) = load_checkpoint_state_dict(
+        checkpoint=checkpoint_data,
         predictor=predictor,
         action_encoder=action_encoder,
         proprio_encoder=proprio_encoder,
-        heads=heads,
-        opt=None,
-        scaler=None,
-        load_act_enc=True,
-        load_prop_enc=True,
-        load_heads=load_heads,
-        load_opt_scale_epoch=False,
-        load_stats=False,
     )
-    # Load heads from pretrain_dec_path
+    del checkpoint_data
+
+    # Load heads from pretrain_dec_path (separate head checkpoint files)
     if pretrain_dec_path:
         for name, head in heads.items():
             if new_path_heads.get(name, False):
@@ -167,12 +177,17 @@ def init_module(
                 head.load_checkpoint(head_path)
                 logger.info(f"loaded pretrained head named {name}")
             else:
-                checkpoint_data = torch.load(pretrain_dec_path[name], map_location=torch.device("cpu"))
-                epoch = checkpoint_data["epoch"]
-                pretrained_dict = clean_state_dict(checkpoint_data[name])
+                head_checkpoint = torch.load(pretrain_dec_path[name], map_location=torch.device("cpu"))
+                epoch = head_checkpoint["epoch"]
+                pretrained_dict = clean_state_dict(head_checkpoint[name])
                 msg = head.model.load_state_dict(pretrained_dict, strict=False)
                 logger.info(f"loaded pretrained head named {name} from epoch {epoch} with msg: {msg}")
-                del checkpoint_data
+                del head_checkpoint
+
+    if wrapper_kwargs is None:
+        wrapper_kwargs = {}
+    proprio_mode = wrapper_kwargs.get("proprio_mode", "predict_proprio")
+    proprio_loss = proprio_mode == "predict_proprio"
 
     # Prepare VideoWM kwargs from config
     wm_kwargs = {
@@ -205,6 +220,14 @@ def init_module(
         "img_size": img_size,
         # Heads
         "heads": heads,
+        # Loss config (proprio_loss derived from wrapper_kwargs.proprio_mode)
+        "cfgs_loss": {
+            "proprio_loss": proprio_loss,
+            "cos_loss_weight": 0.0,
+            "l1_loss_weight": 0.0,
+            "l2_loss_weight": 1.0,
+            "smooth_l1_loss_weight": 0.0,
+        },
     }
     model = VideoWM(**wm_kwargs)
     model.eval()

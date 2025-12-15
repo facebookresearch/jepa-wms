@@ -1465,9 +1465,6 @@ def main(args, resume_preempt=False):
             cfgs_model,
             cfgs_data,
             cfgs_data_aug,
-            world_model=world_model,
-            dset=val_traj_dataset,
-            preprocessor=preprocessor,
         )
     else:
         logger.info("Skipping training loop due to plan_only_eval_mode being enabled.")
@@ -1502,6 +1499,48 @@ def launch_planning_evals(
     dset=None,
     preprocessor=None,
 ):
+    """
+    Launch planning evaluations for the current training checkpoint.
+
+    This function generates complete eval configs by merging training model/data settings
+    with eval config templates, then either submits distributed eval jobs via sbatch
+    or runs them locally (if separate=False).
+
+    The eval config generation flow:
+    1. Load eval config templates from cfgs_plan_evals["eval_cfg_paths"]
+       (typically located in configs/online_plan_evals/)
+    2. Call build_plan_eval_args() to merge training configs (model, data, data_aug)
+       with these templates
+    3. Either dump configs for debugging or submit/run eval jobs
+
+    Config options in cfgs_plan_evals:
+    - dump_eval_configs (bool): If True, dump generated configs to disk and exit early
+      without launching evals. The dump directory is automatically derived from
+      eval_cfg_paths (e.g., "configs/online_plan_evals/mz/..." -> "configs/dump_online_evals/mz/").
+      Output filenames are derived from the template basenames.
+    - separate (bool): If True (default), submit eval jobs via sbatch. If False, run
+      evals on rank 0 of the current training job.
+
+    To generate eval configs without running training (e.g., for an already-trained model):
+    1. Set meta.plan_only_eval_mode: true in your training config
+    2. Set evals.dump_eval_configs: true in your training config
+    3. Run: python -m app.main --fname <your_config.yaml> --debug
+    4. Configs will be saved to configs/dump_online_evals/<env>/ (derived from eval_cfg_paths)
+
+    Args:
+        rank: Process rank in distributed training
+        epoch: Current training epoch
+        folder: Output folder path for the training run
+        checkpoint: Checkpoint filename to evaluate
+        cfgs_plan_evals: Evaluation configuration dict from training config
+        cfgs_model: Model configuration from training config
+        cfgs_data: Data configuration from training config
+        cfgs_data_aug: Data augmentation configuration from training config
+        tag_suffix: Suffix to append to evaluation tags
+        world_model: Optional loaded world model (for non-separate eval mode)
+        dset: Optional validation dataset (for non-separate eval mode)
+        preprocessor: Optional data preprocessor (for non-separate eval mode)
+    """
     eval_cfg_paths = cfgs_plan_evals.get("eval_cfg_paths", None)
     eval_nodes = cfgs_plan_evals.get("nodes", None)
     eval_episodes = cfgs_plan_evals.get("eval_episodes", None)
@@ -1518,6 +1557,7 @@ def launch_planning_evals(
     horizon = cfgs_plan_evals.get("horizon", None)
     evals_decode = cfgs_plan_evals.get("decode", None)
     sum_all_diffs = cfgs_plan_evals.get("sum_all_diffs", None)
+    goal_H = cfgs_plan_evals.get("goal_H", None)
     if eval_cfg_paths is not None:
         eval_nodes, eval_tasks_per_node, args_eval, eval_cpus_per_task = build_plan_eval_args(
             app_name="vjepa_wm",
@@ -1539,34 +1579,40 @@ def launch_planning_evals(
             max_episode_steps=max_episode_steps,
             num_act_stepped=num_act_stepped,
             horizon=horizon,
+            goal_H=goal_H,
             wrapper_kwargs=cfgs_plan_evals.get("wrapper_kwargs", {}),
         )
 
-        # # # #####################
-        # # Uncomment for debug: save online eval cfgs
-        # if rank == 0:
-        #     dir = "configs/dump_online_evals/vjepa_wm"
-        #     yaml_paths = [
-        #         os.path.join(dir, "dset_ng_L2.yaml"),
-        #         os.path.join(dir, "dset_cem_L2.yaml"),
-        #         os.path.join(dir, "dset_ng_L1.yaml"),
-        #         os.path.join(dir, "dset_cem_L1.yaml"),
-        #         # # # # rand state
-        #         os.path.join(dir, "rand_ng_L2.yaml"),
-        #         os.path.join(dir, "rand_cem_L2.yaml"),
-        #         os.path.join(dir, "rand_ng_L1.yaml"),
-        #         os.path.join(dir, "rand_cem_L1.yaml"),
-        #         # itr
-        #         os.path.join(dir, "itr_ng_L2.yaml"),
-        #         os.path.join(dir, "itr_cem_L2.yaml"),
-        #         os.path.join(dir, "itr_ng_L1.yaml"),
-        #         os.path.join(dir, "itr_cem_L1.yaml"),
-        #     ]
-        #     os.makedirs(dir, exist_ok=True)
-        #     for i, args in enumerate(args_eval):
-        #         dump_yaml(args_eval[i], yaml_paths[i])
-        #     breakpoint()
-        # # #     # #####################
+        # Dump eval configs if in dump_eval_configs mode (useful for generating configs without training)
+        dump_eval_configs = cfgs_plan_evals.get("dump_eval_configs", False)
+        if dump_eval_configs:
+            if rank == 0:
+                # Deduce dump directory from eval_cfg_paths
+                # e.g., "configs/online_plan_evals/mz/ng/..." -> "configs/dump_online_evals/mz/"
+                first_template = eval_cfg_paths[0] if eval_cfg_paths else None
+                if first_template and "online_plan_evals" in first_template:
+                    # Extract environment name from path (e.g., "mz", "pt", "wall", "droid")
+                    parts = first_template.split("online_plan_evals/")
+                    if len(parts) > 1:
+                        env_part = parts[1].split("/")[0]  # Get first directory after online_plan_evals/
+                        dump_dir = f"configs/dump_online_evals/{env_part}"
+                    else:
+                        dump_dir = "configs/dump_online_evals"
+                else:
+                    dump_dir = "configs/dump_online_evals"
+                os.makedirs(dump_dir, exist_ok=True)
+                for i, cfg in enumerate(args_eval):
+                    # Derive output filename from the template path (e.g., "mz_L2_ng_sourcerandstate_H6.yaml")
+                    template_path = eval_cfg_paths[i] if i < len(eval_cfg_paths) else None
+                    if template_path:
+                        output_name = os.path.basename(template_path)
+                    else:
+                        output_name = f"eval_config_{i}.yaml"
+                    output_path = os.path.join(dump_dir, output_name)
+                    dump_yaml(cfg, output_path)
+                logger.info(f"Dumped {len(args_eval)} eval configs to {dump_dir}")
+            # All ranks exit early after dumping configs (skip launching evals)
+            return
 
         for i, cfg in enumerate(args_eval):
             args_eval[i] = convert_to_dict_recursive(args_eval[i])
@@ -1607,8 +1653,7 @@ def launch_planning_evals(
                     preprocessor=preprocessor,
                     ctxt_window=cfg["model_kwargs"]["wrapper_kwargs"]["ctxt_window"],
                 )
-                with torch.no_grad():
-                    gc_main_dist(cfg, model=model, dset=dset, preprocessor=preprocessor, rank=rank)
+                gc_main_dist(cfg, model=model, dset=dset, preprocessor=preprocessor, rank=rank)
 
 
 def launch_unroll_decode_eval(
@@ -1620,47 +1665,67 @@ def launch_unroll_decode_eval(
     cfgs_model,
     cfgs_data,
     cfgs_data_aug,
-    world_model=None,
-    dset=None,
-    preprocessor=None,
 ):
     """
-    Launch unroll decode evaluations.
+    Launch unroll decode evaluations for counterfactual decoding of unrolled predictions.
+
+    This evaluation hardcodes custom actions (e.g., open/close gripper + move up) to generate
+    counterfactual decodings, allowing visual comparison of different action scenarios.
+
+    Config options in cfgs_unroll_decode_evals:
+    - dump_eval_configs (bool): If True, dump generated configs to disk and exit early
+      without launching evals (useful for generating configs without training)
+    - specific_video (bool): If True, use a specific video file instead of dataset samples
+    - specific_video_path (str): Path to specific video file (npz format)
+    - play_in_reverse (bool): If True, reverse the video sequence
+    - obs (str): Observation type - "rgb" or "rgb_state"
+    - save_decoding_only (bool): If True, only save decoded predictions (not ground truth comparison)
+    - repeat_hardcode_act (int): Number of times to repeat the hardcoded action sequence
+    - wrapper_kwargs (dict): Model wrapper configuration (same as evals.wrapper_kwargs)
+        - ctxt_window (int): Context window size for the model wrapper
+        - proprio_mode (str): Proprioception mode (e.g., "compute_new_pose")
+
+    Args:
+        rank: Process rank in distributed training
+        epoch: Current training epoch
+        folder: Output folder path for the training run
+        checkpoint: Checkpoint filename to evaluate
+        cfgs_unroll_decode_evals: Unroll decode evaluation configuration dict
+        cfgs_model: Model configuration from training config
+        cfgs_data: Data configuration from training config
+        cfgs_data_aug: Data augmentation configuration from training config
     """
-    do_unroll_decode_eval = cfgs_unroll_decode_evals.get("do_unroll_decode_eval", True)
-    specific_video = cfgs_unroll_decode_evals.get("specific_video", None)
-    specific_video_path = cfgs_unroll_decode_evals.get("specific_video_path", None)
-    play_in_reverse = cfgs_unroll_decode_evals.get("play_in_reverse", False)
-    obs = cfgs_unroll_decode_evals.get("obs", "rgb")
-    save_decoding_only = cfgs_unroll_decode_evals.get("save_decoding_only", False)
-    repeat_hardcode_act = cfgs_unroll_decode_evals.get("repeat_hardcode_act", 5)
+    # Build evaluation arguments
+    args_eval = build_unroll_decode_eval_args(
+        app_name="vjepa_wm",
+        folder=folder,
+        checkpoint=checkpoint,
+        cfgs_model=cfgs_model,
+        cfgs_data=cfgs_data,
+        cfgs_data_aug=cfgs_data_aug,
+        cfgs_unroll_decode_evals=cfgs_unroll_decode_evals,
+        tag=f"epoch-{epoch}",
+    )
 
-    if do_unroll_decode_eval:
-        eval_nodes, eval_tasks_per_node, args_eval = build_unroll_decode_eval_args(
-            app_name="vjepa_wm",
-            folder=folder,
-            checkpoint=checkpoint,
-            cfgs_model=cfgs_model,
-            cfgs_data=cfgs_data,
-            cfgs_data_aug=cfgs_data_aug,
-            tag=f"epoch-{epoch}",
-            specific_video=specific_video,
-            specific_video_path=specific_video_path,
-            play_in_reverse=play_in_reverse,
-            obs=obs,
-            save_decoding_only=save_decoding_only,
-            repeat_hardcode_act=repeat_hardcode_act,
-            wrapper_kwargs=cfgs_unroll_decode_evals.get("wrapper_kwargs", {}),
-        )
+    # Dump eval configs if in dump_eval_configs mode (useful for generating configs without training)
+    dump_eval_configs = cfgs_unroll_decode_evals.get("dump_eval_configs", False)
+    if dump_eval_configs:
+        if rank == 0:
+            dump_dir = "configs/dump_online_evals/vjepa_wm/unroll_decode"
+            os.makedirs(dump_dir, exist_ok=True)
+            for i, cfg in enumerate(args_eval):
+                yaml_path = os.path.join(dump_dir, f"unroll_decode_{i}.yaml")
+                dump_yaml(cfg, yaml_path)
+            logger.info(f"Dumped {len(args_eval)} unroll_decode eval configs to {dump_dir}")
+        # All ranks exit early after dumping configs (skip launching evals)
+        return
 
-        # # # #####################
-        # # # # Uncomment for debug: save online eval cfgs
-        dump_dir = "configs/dump_online_evals/vjepa_wm/unroll_decode"
-        os.makedirs(dump_dir, exist_ok=True)
-        yaml_paths = []
-        for i, cfg in enumerate(args_eval):
-            yaml_path = os.path.join(dump_dir, f"{i}.yaml")
-            yaml_paths.append(yaml_path)
-            dump_yaml(cfg, yaml_path)
-        logger.info(f"Dumped {len(yaml_paths)} unroll_decode eval configs to {dump_dir}")
-        # # # #####################
+    for i, cfg in enumerate(args_eval):
+        args_eval[i] = convert_to_dict_recursive(args_eval[i])
+
+    # Run eval directly on rank 0
+    from evals.unroll_decode.eval import main as unroll_decode_main
+
+    if rank == 0:
+        for cfg in args_eval:
+            unroll_decode_main(cfg)
