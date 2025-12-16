@@ -725,14 +725,9 @@ class VideoWM(nn.Module):
 
         # Detect optimizer type and call appropriate logger
         optimizer_name = type(self.optimizer).__name__
-        if "Muon" in optimizer_name:
-            from src.utils.logging import muon_logger
+        from src.utils.logging import adamw_logger
 
-            optim_stats = muon_logger(self.optimizer)
-        else:
-            from src.utils.logging import adamw_logger
-
-            optim_stats = adamw_logger(self.optimizer)
+        optim_stats = adamw_logger(self.optimizer)
 
         return grad_stats, optim_stats
 

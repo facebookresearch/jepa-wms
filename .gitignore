@@ -3,20 +3,11 @@
 .*.swp
 mpk_dataset_cache/
 
-run_vjepa_aws.py
 run.py
 main_distributed_video.py
 main_video.py
 
-app/vjepa/configs/temp_aws
-app/main_dev.py
-app/main_distributed_dev.py
-evals/ava/alphaction/data
-
 run_train_grid.py
-run_evals.py
-run_evals_v2.py
-run_pretrain.py
 
 *.egg-info/
 *.ipynb_checkpoints/
@@ -24,8 +15,6 @@ run_pretrain.py
 traces/
 third_party/*
 
-evals/simu_env_planning/docker2/
-evals/simu_env_planning/docker/
 app/*/local/
 evals/*/local/
 configs/local
@@ -33,5 +22,4 @@ scripts/*/local/
 configs/*/cwtemp/
 */dump_online_evals/*
 
-# Local configuration (user-specific paths)
 macros.py

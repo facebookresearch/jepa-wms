@@ -24,6 +24,7 @@ dependencies = [
     "pandas",
     "h5py",
     "einops",
+    "datasets",  # HuggingFace datasets for loading parquet/arrow data
     # Image and video processing
     "opencv-python",
     "pillow",
@@ -33,6 +34,8 @@ dependencies = [
     "moviepy",
     "mediapy",
     "lpips>=0.1.4",
+    # see https://github.com/meta-pytorch/torchcodec?tab=readme-ov-file#installing-cpu-only-torchcodec
+    "torchcodec<=0.5",
     # Scientific computing
     "scipy",
     "scikit-image",
@@ -105,6 +108,3 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-
-[tool.uv.tool-dependencies]
-dust = "conda-forge::dust"

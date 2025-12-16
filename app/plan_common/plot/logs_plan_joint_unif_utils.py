@@ -568,58 +568,47 @@ def main():
     jepa_dir = os.path.join(JEPA_WM_HOME, "jepa-wms")
     local_plan_common_dir = os.path.join(jepa_dir, "app/plan_common/local")
 
-    base_dir = os.path.join(local_plan_common_dir, 'droid_fractions_comp/droid_batchify_sweep')
+    base_dir = os.path.join(local_plan_common_dir, 'paper-app')
+    base_dir = os.path.join(base_dir, 'mw_sweep')
     os.makedirs(base_dir, exist_ok=True)
-    model_training_folders = [
-        (os.path.join(CHECKPOINT_ROOT, "droid_fractions/droid_8fpcs_fps4_lrcams_frac0.02_r256_predAdaLN0_vj2vitl_batchif_depth24_noprop_muon_1roll"),
-        "2%"),
-        (os.path.join(CHECKPOINT_ROOT, "droid_fractions/droid_8fpcs_fps4_lrcams_frac0.1_r256_predAdaLN0_vj2vitl_batchif_depth24_noprop_muon_1roll"),
-        "frac10%"),
-        (os.path.join(CHECKPOINT_ROOT, "droid_fractions/droid_8fpcs_fps4_lrcams_frac0.25_r256_predAdaLN0_vj2vitl_batchif_depth24_noprop_muon_1roll"),
-        "frac25%"),
-        (os.path.join(CHECKPOINT_ROOT, "droid_fractions/droid_8fpcs_fps4_lrcams_frac0.5_r256_predAdaLN0_vj2vitl_batchif_depth24_noprop_muon_1roll"),
-        "frac50%"),
-        (os.path.join(CHECKPOINT_ROOT, "droid_fractions/droid_8fpcs_fps4_lrcams_frac0.75_r256_predAdaLN0_vj2vitl_batchif_depth24_noprop_muon_1roll"),
-        "frac75%"),
-        (os.path.join(CHECKPOINT_ROOT, "droid_fractions/droid_8fpcs_fps4_lrcams_frac1_r256_predAdaLN0_vj2vitl_batchif_depth24_noprop_muon_1roll"),
-        "frac100%"),
-    ]
-    task_subset = ["droid-base", "droid"]
-    exclude_eval_folders = [
-        "droid_L2_cem_sourcedset_H6_nas6_ctxt2_gH6_r256_alpha0.0_ep32_decode",
-        "droid_L2_cem_sourcedset_H1_nas1_ctxt2_gH6_r256_alpha0.0_ep16_decode",
-        "droid_L2_cem_sourcedset_H1_nas1_ctxt2_gH3_r256_alpha0.0_ep16_decode",
-        "droid_L2_cem_sourcedset_H1_nas1_maxnorm01_ctxt2_gH3_r256_alpha0.0_ep16_decode",
-        "droid_L2_cem_sourcedset_H1_nas1_maxnorm01_momentum015_ctxt2_gH3_r256_alpha0.0_ep16_decode",
-        "droid_L2_cem_sourcedset_H3_nas3_ctxt2_gH6_r256_alpha0.0_ep16_decode",
-        "droid_L2_cem_sourcedset_H3_nas3_maxnorm01_momentum015_ctxt2_gH6_r256_alpha0.0_ep16_decode",
 
-        "droid_L2_ng_sourcedset_H1_nas1_ctxt2_gH3_r256_alpha0.0_ep16_decode",
-        "droid_L2_ng_sourcedset_H1_nas1_maxnorm01_momentum015_ctxt2_gH3_r256_alpha0.0_ep16_decode",
-        "droid_L2_ng_sourcedset_H3_nas3_maxnorm01_ctxt2_gH6_r256_alpha0.0_ep16_decode",
-        "droid_L2_ng_sourcedset_H3_nas3_maxnorm01_momentum015_ctxt2_gH6_r256_alpha0.0_ep16_decode",
+    model_training_folders = [
+        # Central run
+        (os.path.join(CHECKPOINT_ROOT, 'mw_sweep/mw_4f_fsk5_ask1_r224_pred_dino_wm_depth6_noprop_repro_1roll_save'),
+        'WM'),
+        (os.path.join(CHECKPOINT_ROOT, 'mw_sweep/mw_4f_fsk5_ask1_r224_pred_dino_wm_depth6_noprop_repro_1roll_save_hist7'),
+        r'$\text{WM}_W$'),
+        (os.path.join(CHECKPOINT_ROOT, 'mw_sweep/mw_4f_fsk5_ask1_r224_pred_dino_wm_depth6_repro_1roll_save'),
+        'WM-prop'),
+        (os.path.join(CHECKPOINT_ROOT, 'mw_sweep/mw_4f_fsk5_ask1_r224_pred_dino_wm_depth6_noprop_repro_2roll_save'),
+        'WM-2-step'),
+        (os.path.join(CHECKPOINT_ROOT, 'mw_sweep/mw_4f_fsk5_ask1_r224_pred_dino_wm_depth6_noprop_repro_3roll_save'),
+        'WM-3-step'),
+        (os.path.join(CHECKPOINT_ROOT, 'mw_sweep/mw_4f_fsk5_ask1_r224_pred_dino_wm_depth6_noprop_repro_6roll_hist7_bs4_save'),
+        r'$\text{WM}_W$-6-step'),
+        (os.path.join(CHECKPOINT_ROOT, 'mw_sweep/mw_4f_fsk5_ask1_r224_pred_dino_wm_dinovitb_depth6_noprop_repro_1roll_save'),
+        'WM-B'),
+        (os.path.join(CHECKPOINT_ROOT, 'mw_sweep/mw_4f_fsk5_ask1_r224_pred_dino_wm_dinovitl_depth6_noprop_repro_1roll_save'),
+        'WM-L'),
     ]
-    exclude_folders = []
-    hist1_folders = []
+
     task_eval_data = collect_task_eval_data(
-        model_training_folders, task_subset,
-        eval_setup_aliases=eval_setup_aliases,
-        # eval_setup_aliases=eval_setup_aliases_full_plan_step,
-        exclude_eval_folders=exclude_eval_folders,
+    model_training_folders,
+    task_subset,
+    eval_setup_aliases=eval_setup_aliases,
     )
 
     plot_task_eval_data(
-        task_eval_data, y_values=['Act_err_xyz'], smooth=True, alpha=0.2,
-        show_original=True, base_dir=base_dir, put_title=True,
-        eval_setup_aliases=eval_setup_aliases,
-        truncate_epoch=100, y_min=0., y_max=1., xtick_step=20,
-        y_log_scale=3, x_log_scale=False
+    task_eval_data, y_values=['SR'], smooth=True, alpha=0.2,
+    show_original=True, base_dir=base_dir, put_title=True, eval_setup_aliases=eval_setup_aliases,
+    truncate_epoch=50, y_min=0, y_max=90,
+    average_seeds=True,
     )
     # ==============================================
 
     # ALL DATASETS
     task_subset = [
-        # "droid-base", "droid",
+        "droid",
         "reach-pick-place",
         "reach-pick", "pick-place", "rcasa-reach", "pick", "rcasa-place",
         "pt", "wall", "mz",

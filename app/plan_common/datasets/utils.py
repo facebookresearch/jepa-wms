@@ -21,7 +21,7 @@ from decord import VideoReader, cpu
 from src.datasets.data_manager import init_data as init_data_src
 
 from .droid_dset import DROIDVideoDataset
-from .metaworld_dset import load_metaworld_slice_train_val
+from .metaworld_hf_dset import load_metaworld_hf_slice_train_val
 from .point_maze_dset import load_point_maze_slice_train_val
 from .pusht_dset import load_pusht_slice_train_val
 from .robocasa_dset import load_robocasa_slice_train_val
@@ -56,6 +56,7 @@ def init_data(
     num_hist=3,
     num_pred=1,
     process_actions="concat",
+    use_hf_format=False,
     # Droid-specific parameters
     camera_views=0,
     camera_frame=False,
@@ -128,10 +129,10 @@ def init_data(
             datasets = {"train": dataset, "valid": val_dataset}
             traj_dsets = {"train": dataset, "valid": val_dataset}
         elif all("metaworld" in p.lower() for p in data_paths) or all("tdmpc2" in p for p in data_paths):
-            datasets, traj_dsets = load_metaworld_slice_train_val(
+            datasets, traj_dsets = load_metaworld_hf_slice_train_val(
                 transform,
                 n_rollout=None,
-                data_paths=data_paths,
+                data_path=data_paths[0],
                 normalize_action=normalize_action,
                 split_ratio=split_ratio,
                 num_hist=num_hist,
@@ -140,7 +141,6 @@ def init_data(
                 frameskip=frameskip,
                 action_skip=action_skip,
                 traj_subset=traj_subset,
-                filter_first_episodes=filter_first_episodes,
                 filter_tasks=filter_tasks,
                 with_reward=with_reward,
                 random_seed=seed,

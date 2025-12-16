@@ -45,7 +45,6 @@ from app.vjepa_wm.utils import (
     build_unroll_decode_eval_args,
     clean_state_dict,
     init_opt,
-    init_opt_muon,
     init_video_model,
     load_checkpoint,
 )
@@ -117,6 +116,16 @@ def main(args, resume_preempt=False):
     # -- EVALS
     cfgs_plan_evals = args.get("evals", None)
     cfgs_unroll_decode_evals = args.get("unroll_decode_evals", None)
+
+    # When not in plan_only_eval_mode, disable dump_eval_configs to avoid stopping training
+    if not plan_only_eval_mode and cfgs_plan_evals is not None:
+        if cfgs_plan_evals.get("dump_eval_configs", False):
+            logger.warning(
+                "evals.dump_eval_configs is True but plan_only_eval_mode is False. "
+                "Setting dump_eval_configs to False to continue training. "
+                "Set evals.dump_eval_configs to False explicitly to suppress this warning."
+            )
+            cfgs_plan_evals["dump_eval_configs"] = False
 
     # -- MODEL (extract only fields needed outside init_video_model)
     cfgs_model = args.get("model")
@@ -550,24 +559,14 @@ def main(args, resume_preempt=False):
 
     # -- init optimizer and scheduler
     if train_predictor and predictor is not None:
-        if cfgs_opt["transition_model"].get("use_muon", False):
-            optimizer, scaler, scheduler, wd_scheduler = init_opt_muon(
-                predictor=predictor,
-                action_encoder=action_encoder,
-                proprio_encoder=proprio_encoder,
-                encoder=encoder,
-                freeze_encoder=freeze_encoder,
-                **cfgs_opt["transition_model"],
-            )
-        else:
-            optimizer, scaler, scheduler, wd_scheduler = init_opt(
-                predictor=predictor,
-                action_encoder=action_encoder,
-                proprio_encoder=proprio_encoder,
-                encoder=encoder,
-                freeze_encoder=freeze_encoder,
-                **cfgs_opt["transition_model"],
-            )
+        optimizer, scaler, scheduler, wd_scheduler = init_opt(
+            predictor=predictor,
+            action_encoder=action_encoder,
+            proprio_encoder=proprio_encoder,
+            encoder=encoder,
+            freeze_encoder=freeze_encoder,
+            **cfgs_opt["transition_model"],
+        )
         clip_grad = cfgs_opt["transition_model"]["clip_grad"]
         use_radamw = cfgs_opt["transition_model"]["use_radamw"]
         if sampling_scheduler_type == "linear":

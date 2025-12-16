@@ -55,6 +55,7 @@ def _build_dataset_paths():
             "PointMaze": f"{dataset_root}/point_maze",
             "Wall": f"{dataset_root}/wall_single",
             "METAWORLD": f"{dataset_root}/Metaworld/train_paths.csv",
+            "METAWORLD_HF": f"{dataset_root}/Metaworld/metaworld_hf_video",
             "Robocasa": f"{dataset_root}/robocasa/",
             "DROID": f"{dataset_root}/DROID/droid_paths.csv",
             "Franka_hf": f"{dataset_root}/franka_custom",

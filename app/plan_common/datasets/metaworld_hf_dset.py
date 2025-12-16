@@ -2,98 +2,112 @@ import os
 from pathlib import Path
 from typing import Callable, List, Optional
 
-import h5py
 import numpy as np
-import pandas as pd
 import torch
+from datasets import load_dataset
 from einops import rearrange
 
 from .traj_dset import TrajDataset, get_train_val_sliced
 
 
-class MetaworldDataset(TrajDataset):
+def decode_video_frames(video_bytes):
+    """Decode MP4 bytes to numpy frames using imageio."""
+    import io
+    import imageio
+    reader = imageio.get_reader(io.BytesIO(video_bytes), format='mp4')
+    frames = [frame for frame in reader]
+    reader.close()
+    return np.stack(frames)
+
+
+def decode_video_from_decoder(video_decoder):
+    """Extract frames from a torchcodec VideoDecoder object.
+
+    When torchcodec is installed, HuggingFace datasets auto-decodes
+    video columns and returns VideoDecoder objects instead of bytes.
+    """
+    frames = []
+    for i in range(len(video_decoder)):
+        # VideoDecoder[i] returns tensor in (C, H, W) format
+        frame = video_decoder[i]
+        # Convert to (H, W, C) numpy array
+        frame_np = frame.data.permute(1, 2, 0).numpy()
+        frames.append(frame_np)
+    return np.stack(frames)
+
+
+class MetaworldHFDataset(TrajDataset):
+    """Metaworld dataset loaded from HuggingFace parquet format with MP4 videos.
+
+    Expected HF format (after conversion with first frame discarded):
+    - video: 100 frames (indices 1-100 from original H5)
+    - states: 100 states (indices 1-100 from original H5)
+    - actions: 99 actions (indices 1-99 from original H5)
+    - rewards: 99 rewards (indices 1-99 from original H5)
+
+    After loading, we discard the last state to align with actions:
+    - Final: 99 states, 99 actions, 99 rewards, 99 frames
+    """
+
     def __init__(
         self,
-        # data_path: str = "data/metaworld",
-        data_paths: List[str],
+        data_path: str,
         n_rollout: Optional[int] = None,
         transform: Optional[Callable] = None,
         normalize_action: bool = False,
         action_scale=1.0,
-        filter_first_episodes=100,
-        filter_tasks=None,
-        with_reward=True,
+        filter_tasks: Optional[List[str]] = None,
+        with_reward: bool = True,
     ):
-        # self.data_path = Path(data_path)
-        self.data_paths = [Path(data_path) for data_path in data_paths]
+        self.data_path = Path(data_path)
         self.transform = transform
         self.normalize_action = normalize_action
         self.with_reward = with_reward
-        samples = []
-        for data_path in self.data_paths:
-            samples.extend(list(pd.read_csv(data_path, header=None, delimiter=" ").values[:, 0]))
-        # samples = list(pd.read_csv(data_path, header=None, delimiter=' ').values[:, 0])
+
+        # Load HuggingFace dataset from parquet files
+        print(f"Loading HuggingFace dataset from {data_path}...")
+        ds = load_dataset("parquet", data_dir=str(data_path), split="train")
+
+        # Filter by task if specified
         if filter_tasks is not None:
-            filtered_paths = []
             print(f"Filtering for tasks {filter_tasks}...")
-            for ep_path in samples:
-                ep_dir = Path(ep_path).parent.name
-                ep_task = ep_dir.split("mw-")[1].split("_")[0]
-                if ep_task in filter_tasks:
-                    filtered_paths.append(ep_path)
-            samples = filtered_paths
-        if filter_first_episodes is not None:
-            filtered_paths = []
-            print(f"Filtering for first {filter_first_episodes} episodes of each task...")
-            for ep_path in samples:
-                ep_nb = ep_path.split("/")[-1]
-                ep_nb = float(ep_nb.removeprefix("ep").removesuffix(".h5"))
-                if ep_nb < filter_first_episodes:
-                    filtered_paths.append(ep_path)
-            samples = filtered_paths
-        if n_rollout:
-            n = n_rollout
-        else:
-            n = len(samples)
+            ds = ds.filter(lambda x: x["task"] in filter_tasks)
 
-        self.samples = samples[:n]
-        print(f"Loaded {n} rollouts")
+        # Limit number of rollouts
+        if n_rollout is not None:
+            ds = ds.select(range(min(n_rollout, len(ds))))
 
+        self.dataset = ds
+        print(f"Loaded {len(ds)} rollouts")
+
+        # Pre-load states, actions, rewards (lightweight, no video decoding yet)
         states = []
         actions = []
         proprio_states = []
         seq_lengths = []
         rewards = []
 
-        for path in self.samples:
-            trajectory = h5py.File(path)
-            state = np.array(trajectory["state"])
-            action = np.array(trajectory["action"])
-            proprio_state = np.array(trajectory["state"])[:, :4]
+        for i in range(len(ds)):
+            row = ds[i]
+            state = np.array(row["states"])  # 100 states
+            action = np.array(row["actions"])  # 99 actions
+            proprio_state = state[:, :4]
+
+            # Discard last state to align with actions (99 states, 99 actions)
+            states.append(torch.tensor(state[:-1], dtype=torch.float32))
+            actions.append(torch.tensor(action, dtype=torch.float32))
+            proprio_states.append(torch.tensor(proprio_state[:-1], dtype=torch.float32))
+            seq_lengths.append(len(action))
+
             if self.with_reward:
-                reward = np.array(trajectory["reward"])
-            if "data/Metaworld/h5folder/" in path:
-                # discard first state and action because not same env seed as rest of the traj
-                # discard last state resulting from last action explicitly, although it was discarded
-                # implicitly by get_seq_length in __getitem__
-                states.append(torch.tensor(state)[1:-1])
-                actions.append(torch.tensor(action)[1:])
-                proprio_states.append(torch.tensor(proprio_state)[1:-1])
-                if self.with_reward:
-                    rewards.append(torch.tensor(reward)[1:])
-                seq_lengths.append(len(action) - 1)
-            else:
-                states.append(torch.tensor(state))
-                actions.append(torch.tensor(action))
-                proprio_states.append(torch.tensor(proprio_state))
-                if self.with_reward:
-                    rewards.append(torch.tensor(reward))
-                seq_lengths.append(len(action))
+                reward = np.array(row["rewards"])  # 99 rewards
+                rewards.append(torch.tensor(reward, dtype=torch.float32).unsqueeze(-1))
 
         self.states = torch.stack(states)
         self.actions = torch.stack(actions)
         self.proprios = torch.stack(proprio_states)
         self.seq_lengths = torch.tensor(seq_lengths)
+
         if self.with_reward:
             self.rewards = torch.stack(rewards)
         else:
@@ -133,31 +147,40 @@ class MetaworldDataset(TrajDataset):
         return self.seq_lengths[idx]
 
     def get_frames(self, idx, frames):
-        """
-        Metaworld env.reset() function is not sufficient to take into account the new rand_vec
-        that is randomly reinitialized. We need to step a first action in the env to make the new goal and init position
-        happen. Hence we remove the first observation and action of the dataset here with a shift of 1.
-        """
-        path = self.samples[idx]
-        trajectory = h5py.File(path)
-        # frame_data = torch.tensor(trajectory['obs'][frames], dtype=torch.float32)
-        if "data/Metaworld/h5folder/" in path:
-            frame_data = torch.tensor(trajectory["obs"][np.array(frames) + 1], dtype=torch.float32)
+        """Load and decode video frames on demand."""
+        row = self.dataset[idx]
+
+        # Handle video decoding based on format
+        video = row["video"]
+        if isinstance(video, dict) and "bytes" in video:
+            # Standard HF format: decode from bytes using imageio
+            all_frames = decode_video_frames(video["bytes"])
         else:
-            frame_data = torch.tensor(trajectory["obs"][frames], dtype=torch.float32)
+            # torchcodec auto-decoded: video is a VideoDecoder object
+            all_frames = decode_video_from_decoder(video)
+
+        # No offset needed - video already starts at correct frame
+        # Just index directly (frames 0-98 correspond to states 0-98)
+        frame_data = torch.tensor(all_frames[frames], dtype=torch.float32)
+
         proprio = self.proprios[idx, frames]
         act = self.actions[idx, frames]
         state = self.states[idx, frames]
+
         frame_data = frame_data / 255.0
         frame_data = rearrange(frame_data, "T H W C -> T C H W")
+
         if self.transform:
             frame_data = self.transform(frame_data)
+
         obs = {"visual": frame_data, "proprio": proprio}
+
         if self.with_reward:
             reward = self.rewards[idx, frames]
         else:
             reward = None
-        return obs, act, state, reward, {}  # env_info
+
+        return obs, act, state, reward, {}
 
     def __getitem__(self, idx, **kwargs):
         return self.get_frames(idx, range(self.get_seq_length(idx)))
@@ -166,10 +189,10 @@ class MetaworldDataset(TrajDataset):
         return len(self.seq_lengths)
 
 
-def load_metaworld_slice_train_val(
+def load_metaworld_hf_slice_train_val(
     transform,
     n_rollout=50,
-    data_paths=["/data/datasets/metaworld"],
+    data_path: str = "/checkpoint/amaia/video/basileterv/data/Metaworld/metaworld_hf_video",
     normalize_action=False,
     split_ratio=0.8,
     num_hist=0,
@@ -178,18 +201,16 @@ def load_metaworld_slice_train_val(
     frameskip=1,
     action_skip=1,
     traj_subset=True,
-    filter_first_episodes=None,
     filter_tasks=None,
     random_seed=42,
     with_reward=False,
     process_actions="concat",
 ):
-    dset = MetaworldDataset(
+    dset = MetaworldHFDataset(
         n_rollout=n_rollout,
         transform=transform,
-        data_paths=data_paths,
+        data_path=data_path,
         normalize_action=normalize_action,
-        filter_first_episodes=filter_first_episodes,
         filter_tasks=filter_tasks,
         with_reward=with_reward,
     )
