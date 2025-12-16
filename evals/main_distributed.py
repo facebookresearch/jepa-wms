@@ -161,7 +161,7 @@ def launch_evals_with_parsed_args(
             "./demos",
             "./traces",
             "./configs/local",
-            "./configs/basile/cwtemp",
+            "./configs/*/cwtemp",
         ]
         copy_code_folder(code_folder, ignore_patterns, ignore_paths)
         os.chdir(code_folder)

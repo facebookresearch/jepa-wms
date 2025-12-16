@@ -130,7 +130,7 @@ def generate_configs(preset: dict, out_dir: Path) -> int:
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--env", type=str, required=True, choices=list(ENV_PRESETS.keys()))
-    parser.add_argument("--out-dir", type=Path, default=Path("configs/basile/cwtemp"))
+    parser.add_argument("--out-dir", type=Path, default=Path("configs/cwtemp"))
     parser.add_argument("--config", type=Path, default=None, help="Override default config file")
     parser.add_argument("--planner", type=str, choices=["ng", "cem"], help="Filter to a single planner")
     parser.add_argument("--objective", type=str, choices=["L1", "L2"], help="Filter to a single objective")

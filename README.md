@@ -114,7 +114,7 @@ cd jepa-wms
 uv pip install -e .
 
 # 4. Verify installation
-python -c "import torchcodec; print('✓ torchcodec works!')"
+python -c "import torchcodec; print('✓ torchcodec works')"
 ```
 
 ### ⚙️ Configuration
@@ -130,7 +130,7 @@ export PRETRAINED_CKPT_ROOT=/path/to/your/pretrained_encoders  # Optional
 
 Then run:
 ```bash
-source ~/.bashrc && cd $JEPA_WM_HOME/jepa-wms && python setup_macros.py
+source ~/.bashrc && cd $JEPA_WM_HOME/jepa-wms && python setup_macros.py && conda activate jepa-wms
 ```
 
 <details>
@@ -261,7 +261,7 @@ $DATASET_ROOT/
 │           │       ├── episode.h5
 │           │       └── trajectory.hdf5
 │           └── push_various_objects/
-├── droid/                 # DROID dataset
+├── DROID/                 # DROID dataset
 │   └── droid_paths.csv
 ├── kinetics400/           # Kinetics-400 dataset (optional)
 │   ├── k400_train_paths.csv

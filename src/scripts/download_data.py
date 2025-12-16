@@ -10,10 +10,12 @@
 import argparse
 import os
 import shutil
+import sys
 import zipfile
 from pathlib import Path
 
 from huggingface_hub import hf_hub_download, snapshot_download
+from huggingface_hub.utils import GatedRepoError, RepositoryNotFoundError
 
 REPO_ID = "facebook/jepa-wms"
 
@@ -54,13 +56,16 @@ DATASETS = {
 }
 
 
-def download_dataset(name: str, dataset_root: Path, force: bool = False) -> None:
+def download_dataset(name: str, dataset_root: Path, force: bool = False) -> bool:
     """Download a single dataset from HuggingFace.
 
     Args:
         name: Dataset name (one of DATASETS keys)
         dataset_root: Root directory to download to
         force: If True, re-download even if dataset exists
+
+    Returns:
+        True if download succeeded, False if it failed
     """
     config = DATASETS[name]
     pattern = config["pattern"]
@@ -69,17 +74,43 @@ def download_dataset(name: str, dataset_root: Path, force: bool = False) -> None
     target_dir = dataset_root / config.get("rename_to", config.get("extract_to", pattern.split("/")[0]))
     if target_dir.exists() and not force:
         print(f"  ✓ {name} already exists at {target_dir}, skipping (use --force to re-download)")
-        return
+        return True
 
     print(f"  Downloading {name}...")
 
     # Download from HuggingFace
-    snapshot_download(
-        REPO_ID,
-        allow_patterns=pattern,
-        repo_type="dataset",
-        local_dir=str(dataset_root),
-    )
+    try:
+        snapshot_download(
+            REPO_ID,
+            allow_patterns=pattern,
+            repo_type="dataset",
+            local_dir=str(dataset_root),
+            local_dir_use_symlinks=False,
+        )
+    except GatedRepoError:
+        print(f"\n  ✗ ERROR: The repository '{REPO_ID}' is gated and requires access approval.")
+        print("    Please visit https://huggingface.co/datasets/facebook/jepa-wms to request access,")
+        print("    then authenticate with: huggingface-cli login")
+        return False
+    except RepositoryNotFoundError:
+        print(f"\n  ✗ ERROR: Repository '{REPO_ID}' not found.")
+        print("    This could mean:")
+        print("    1. The repository is private/gated and you are not authenticated")
+        print("    2. The repository ID is incorrect")
+        print("    To authenticate, run: huggingface-cli login")
+        print("    For gated repos, first request access at: https://huggingface.co/datasets/facebook/jepa-wms")
+        return False
+    except Exception as e:
+        # Check if it's a 404 error in the exception message (fallback case)
+        error_str = str(e).lower()
+        if "404" in error_str or "repository not found" in error_str:
+            print(f"\n  ✗ ERROR: Could not access repository '{REPO_ID}'.")
+            print("    This usually means you need to authenticate with HuggingFace.")
+            print("    Run: huggingface-cli login")
+            print("    If the repository is gated, first request access at:")
+            print("    https://huggingface.co/datasets/facebook/jepa-wms")
+            return False
+        raise
 
     # Post-processing
     post_process = config.get("post_process")
@@ -116,6 +147,7 @@ def download_dataset(name: str, dataset_root: Path, force: bool = False) -> None
             src.rename(dst)
 
     print(f"  ✓ {name} ready")
+    return True
 
 
 def main():
@@ -175,10 +207,19 @@ Examples:
     print(f"Downloading to: {dataset_root}")
     print(f"Datasets: {', '.join(datasets_to_download)}\n")
 
+    failed = []
     for name in datasets_to_download:
-        download_dataset(name, dataset_root, force=args.force)
+        success = download_dataset(name, dataset_root, force=args.force)
+        if not success:
+            failed.append(name)
 
-    print("\n✓ All downloads complete!")
+    if failed:
+        print(f"\n✗ Download failed for: {', '.join(failed)}")
+        print("\nTo authenticate with HuggingFace, run:")
+        print("  huggingface-cli login")
+        sys.exit(1)
+    else:
+        print("\n✓ All downloads complete!")
 
 
 if __name__ == "__main__":
