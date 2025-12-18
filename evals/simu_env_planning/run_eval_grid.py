@@ -174,6 +174,12 @@ def main():
         nargs="+",
         help="Filter to specific variants (e.g., --variant H1 H3 for droid, --variant reach place for robocasa)",
     )
+    parser.add_argument(
+        "--epochs",
+        type=str,
+        default=None,
+        help="Epochs to evaluate: 'start:end:step' (e.g., '0:28:2') or comma-separated list (e.g., '0,2,4,6')",
+    )
     args = parser.parse_args()
 
     os.makedirs(args.out_dir, exist_ok=True)
@@ -186,6 +192,12 @@ def main():
         preset["objectives"] = [(a, o) for a, o in preset["objectives"] if a == args.objective]
     if args.variant:
         preset["variants"] = [(a, v) for a, v in preset["variants"] if a in args.variant]
+    if args.epochs:
+        if ":" in args.epochs:
+            parts = [int(x) for x in args.epochs.split(":")]
+            preset["epochs"] = list(range(*parts))
+        else:
+            preset["epochs"] = [int(x) for x in args.epochs.split(",")]
 
     num_configs = generate_configs(preset, args.out_dir)
 

@@ -486,6 +486,9 @@ class GradientDescentPlanner(Planner):
         num_act_stepped: int = None,
         decode_each_iteration: bool = False,
         decode_unroll: Callable = None,
+        optimizer_type: str = "sgd",
+        adam_betas: tuple = (0.9, 0.999),
+        adam_eps: float = 1e-8,
         **kwargs,
     ):
         """
@@ -502,6 +505,9 @@ class GradientDescentPlanner(Planner):
             num_act_stepped: Number of actions to execute (default: all)
             decode_each_iteration: Whether to decode predictions at each iteration
             decode_unroll: Function to decode latent predictions to frames
+            optimizer_type: Type of optimizer to use ("sgd" or "adam")
+            adam_betas: Betas for Adam optimizer (default: (0.9, 0.999))
+            adam_eps: Epsilon for Adam optimizer (default: 1e-8)
         """
         super().__init__(unroll)
         self.action_dim = action_dim
@@ -514,6 +520,9 @@ class GradientDescentPlanner(Planner):
         self.num_act_stepped = num_act_stepped
         self.decode_each_iteration = decode_each_iteration
         self.decode_unroll = decode_unroll
+        self.optimizer_type = optimizer_type.lower()
+        self.adam_betas = adam_betas
+        self.adam_eps = adam_eps
         self.device = torch.device("cuda")
 
     def init_actions(self, batch_size: int, device: torch.device) -> torch.Tensor:
@@ -558,8 +567,11 @@ class GradientDescentPlanner(Planner):
         actions = self.init_actions(1, self.device)[:, :plan_length, :]
         actions.requires_grad = True
 
-        # Setup optimizer
-        optimizer = torch.optim.SGD([actions], lr=self.lr)
+        # Setup optimizer based on optimizer_type
+        if self.optimizer_type == "adam":
+            optimizer = torch.optim.Adam([actions], lr=self.lr, betas=self.adam_betas, eps=self.adam_eps)
+        else:
+            optimizer = torch.optim.SGD([actions], lr=self.lr)
 
         losses = []
         predicted_best_encs_over_iterations = []
