@@ -130,6 +130,13 @@ eval_setup_aliases = {
         # H5
         "L1_cem_sourcedset_H5_nas5_ctxt2": r"CEM $L_1$ H=5",
         "L2_cem_sourcedset_H5_nas5_ctxt2": r"CEM $L_2$ H=5",
+        "L1_ng_sourcedset_H5_nas5_ctxt2": r"NG $L_1$ H=5",
+        "L2_ng_sourcedset_H5_nas5_ctxt2": r"NG $L_2$ H=5",
+            # ctxt 3
+            "L1_cem_sourcedset_H5_nas5_ctxt3": r"CEM $L_1$ H=5 ctx3",
+            "L2_cem_sourcedset_H5_nas5_ctxt3": r"CEM $L_2$ H=5 ctx3",
+            "L1_ng_sourcedset_H5_nas5_ctxt3": r"NG $L_1$ H=5 ctx3",
+            "L2_ng_sourcedset_H5_nas5_ctxt3": r"NG $L_2$ H=5 ctx3",
         # cut at alpha
         "L2_cem_sourcedset_H6_nas6_ctxt2_r224_alpha0.0": r"CEM $L_2$ alpha0.0",
         "L2_cem_sourcedset_H6_nas6_ctxt2_r256_alpha0.0": r"CEM $L_2$ alpha0.0",

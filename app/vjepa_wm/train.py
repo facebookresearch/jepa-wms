@@ -129,6 +129,7 @@ def main(args, resume_preempt=False):
 
     # -- MODEL (extract only fields needed outside init_video_model)
     cfgs_model = args.get("model")
+    dino_wm_format = cfgs_model.get("dino_wm_format", False)
 
     # Extract heads config
     cfgs_heads = cfgs_model.get("heads_cfg", {})
@@ -621,6 +622,7 @@ def main(args, resume_preempt=False):
             load_heads=load_heads,
             train_heads=train_heads,
             train_predictor=train_predictor,
+            dino_wm_format=dino_wm_format,
         )
         # Only resume the schedulers if we resume a pretraining or a finetuning
         # Not if we start a finetuning: we reset them

@@ -152,7 +152,8 @@ def init_module(
     else:
         checkpoint_source = Path(folder) / checkpoint
 
-    checkpoint_data = fetch_checkpoint(checkpoint_source, device="cpu")
+    dino_wm_format = model_kwargs.get("dino_wm_format", False)
+    checkpoint_data = fetch_checkpoint(checkpoint_source, device="cpu", dino_wm_format=dino_wm_format)
 
     (
         predictor,
@@ -166,6 +167,7 @@ def init_module(
         predictor=predictor,
         action_encoder=action_encoder,
         proprio_encoder=proprio_encoder,
+        dino_wm_format=dino_wm_format,
     )
     del checkpoint_data
 

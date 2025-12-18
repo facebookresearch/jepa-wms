@@ -284,12 +284,14 @@ def build_plan_eval_args(
     return eval_nodes, eval_tasks_per_node, args_eval, _cpus
 
 
-def fetch_checkpoint(source, device="cpu"):
+def fetch_checkpoint(source, device="cpu", dino_wm_format=False):
     """Fetch checkpoint data from either a URL or local file path.
 
     Args:
         source (str or Path): Either a URL (starting with 'http://' or 'https://') or a local file path.
         device (str or torch.device): Device to map tensors to. Default is 'cpu'.
+        dino_wm_format (bool): If True, load checkpoint in dino-wm format (contains model objects
+            instead of state_dicts). Requires weights_only=False for torch.load.
 
     Returns:
         dict: Checkpoint data containing model state dicts and metadata.
@@ -305,7 +307,12 @@ def fetch_checkpoint(source, device="cpu"):
     else:
         logger.info(f"Loading checkpoint from local path: {source}")
         try:
-            checkpoint = torch.load(source, map_location=torch.device(device))
+            if dino_wm_format:
+                # dino-wm checkpoints contain pickled model objects, not just state_dicts
+                # This requires weights_only=False and the models module for unpickling
+                checkpoint = torch.load(source, map_location=torch.device(device), weights_only=False)
+            else:
+                checkpoint = torch.load(source, map_location=torch.device(device))
         except Exception as e:
             logger.info(f"Encountered exception when loading checkpoint: {e}")
             raise
@@ -323,6 +330,7 @@ def load_checkpoint_state_dict(
     load_act_enc=True,
     load_prop_enc=True,
     load_opt_scale_epoch=True,
+    dino_wm_format=False,
 ):
     """Load state dicts from checkpoint data onto model modules.
 
@@ -339,11 +347,24 @@ def load_checkpoint_state_dict(
         load_act_enc (bool): Whether to load action encoder weights.
         load_prop_enc (bool): Whether to load proprio encoder weights.
         load_opt_scale_epoch (bool): Whether to load optimizer and scaler state.
+        dino_wm_format (bool): If True, checkpoint contains model objects instead of state_dicts.
+            Extract state_dict() from each model object before loading.
 
     Returns:
         tuple: (predictor, action_encoder, proprio_encoder, opt, scaler, epoch)
     """
     epoch = checkpoint.get("epoch", -1)
+
+    # For dino-wm format, extract state_dicts from model objects
+    if dino_wm_format:
+        # Convert model objects to state_dicts
+        if checkpoint.get("predictor") is not None:
+            checkpoint["predictor"] = checkpoint["predictor"].state_dict()
+        if checkpoint.get("action_encoder") is not None:
+            checkpoint["action_encoder"] = checkpoint["action_encoder"].state_dict()
+        if checkpoint.get("proprio_encoder") is not None:
+            checkpoint["proprio_encoder"] = checkpoint["proprio_encoder"].state_dict()
+        # Don't load optimizer/scaler from dino-wm format as they may be incompatible
 
     # -- loading predictor
     if predictor is not None and checkpoint.get("predictor") is not None:
@@ -370,8 +391,8 @@ def load_checkpoint_state_dict(
         msg = proprio_encoder.load_state_dict(pretrained_dict, strict=False)
         logger.info(f"loaded pretrained proprio encoder from epoch {epoch} with msg: {msg}")
 
-    # -- loading optimizer
-    if load_opt_scale_epoch and opt is not None:
+    # -- loading optimizer (skip for dino_wm_format as optimizer state may be incompatible)
+    if load_opt_scale_epoch and opt is not None and not dino_wm_format:
         try:
             opt.load_state_dict(checkpoint["opt"])
             logger.info(f"loaded optimizers from epoch {epoch}")
@@ -442,6 +463,7 @@ def load_checkpoint(
     load_stats=True,
     train_predictor=True,
     train_heads=False,
+    dino_wm_format=False,
 ):
     """Load checkpoint from local file path and apply to model modules.
 
@@ -463,11 +485,13 @@ def load_checkpoint(
         load_stats (bool): Unused, kept for backward compatibility.
         train_predictor (bool): If True, return predictor epoch; used for epoch tracking.
         train_heads (bool): If True, return head epoch instead of predictor epoch.
+        dino_wm_format (bool): If True, checkpoint contains model objects instead of state_dicts
+            (from dino-wm codebase). Extract state_dict() from each model object before loading.
 
     Returns:
         tuple: (predictor, action_encoder, proprio_encoder, heads, opt, scaler, epoch)
     """
-    checkpoint = fetch_checkpoint(r_path, device="cpu")
+    checkpoint = fetch_checkpoint(r_path, device="cpu", dino_wm_format=dino_wm_format)
 
     (
         predictor,
@@ -486,6 +510,7 @@ def load_checkpoint(
         load_act_enc=load_act_enc,
         load_prop_enc=load_prop_enc,
         load_opt_scale_epoch=load_opt_scale_epoch,
+        dino_wm_format=dino_wm_format,
     )
 
     # Load heads from separate files if requested
