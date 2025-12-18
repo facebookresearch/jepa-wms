@@ -1,13 +1,10 @@
-import argparse
 import glob
 import os
 import re
 import time
-from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
 from io import StringIO
-from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -15,15 +12,15 @@ import pandas as pd
 import seaborn as sns
 from matplotlib.ticker import FormatStrFormatter
 
+# ALIASES
+from app.vjepa_wm.local.aliases import (
+    eval_setup_aliases,
+    hist1_eval_setup_aliases,
+)
+
 # Import local configuration from macros.py (gitignored)
 # Run `python setup_macros.py` to generate it from your environment variables
 from macros import CHECKPOINT_ROOT, JEPA_WM_HOME
-
-# ALIASES
-from app.vjepa_wm.local.aliases import (
-    hist1_eval_setup_aliases, eval_setup_aliases, eval_setup_aliases_full_plan_step,
-    unif_eval_setup_aliases_across_tasks,
-)
 
 # Constants and mapping dictionaries
 task_data_mapping = {
@@ -73,6 +70,7 @@ class Timer:
     def __exit__(self, *args):
         elapsed = time.time() - self.start_time
         print(f"{self.name} took {elapsed:.2f} seconds")
+
 
 def clean_task_name(task_name, folder_path=None):
     """
@@ -141,13 +139,14 @@ def exponential_moving_average(data, alpha=0.3):
     smoothed = np.zeros_like(data, dtype=float)
     smoothed[0] = data[0]
     for i in range(1, len(data)):
-        smoothed[i] = alpha * data[i] + (1 - alpha) * smoothed[i-1]
+        smoothed[i] = alpha * data[i] + (1 - alpha) * smoothed[i - 1]
     return smoothed
+
 
 @lru_cache(maxsize=128)
 def load_task_data(folder):
     """Load task data from a folder with caching for performance."""
-    task_data = {'epoch': [], 'SR': [], 'Reward': [], 'Act_err': []}
+    task_data = {"epoch": [], "SR": [], "Reward": [], "Act_err": []}
     optional_metrics = {
         "Act_err_xyz": False,
         "Act_err_orient": False,
@@ -157,24 +156,24 @@ def load_task_data(folder):
     }
 
     # Find all epoch folders and sort them
-    epoch_folders = sorted([
-        f for f in glob.glob(os.path.join(folder, "epoch-*"))
-        if os.path.basename(f).split('-')[-1].isdigit()
-    ], key=lambda x: int(os.path.basename(x).split('-')[-1]))
+    epoch_folders = sorted(
+        [f for f in glob.glob(os.path.join(folder, "epoch-*")) if os.path.basename(f).split("-")[-1].isdigit()],
+        key=lambda x: int(os.path.basename(x).split("-")[-1]),
+    )
 
     for epoch_folder in epoch_folders:
         try:
-            epoch = int(''.join(filter(str.isdigit, os.path.basename(epoch_folder))))
+            epoch = int("".join(filter(str.isdigit, os.path.basename(epoch_folder))))
             eval_file_path = os.path.join(epoch_folder, "eval.csv")
 
             if os.path.exists(eval_file_path):
                 try:
                     task_df = pd.read_csv(eval_file_path)
                     # Add required metrics
-                    task_data['epoch'].append(epoch)
-                    task_data['SR'].append(task_df["episode_success"].values[-1] * 100)
-                    task_data['Reward'].append(task_df["episode_reward"].values[-1])
-                    task_data['Act_err'].append(task_df["ep_end_dist"].values[-1])
+                    task_data["epoch"].append(epoch)
+                    task_data["SR"].append(task_df["episode_success"].values[-1] * 100)
+                    task_data["Reward"].append(task_df["episode_reward"].values[-1])
+                    task_data["Act_err"].append(task_df["ep_end_dist"].values[-1])
 
                     for src_col, dest_col in metrics_map.items():
                         if src_col in task_df.columns:
@@ -189,9 +188,9 @@ def load_task_data(folder):
 
     # Fill missing values for optional metrics
     for metric, present in optional_metrics.items():
-        if present and len(task_data[metric]) < len(task_data['epoch']):
+        if present and len(task_data[metric]) < len(task_data["epoch"]):
             # Fill with NaN for any missing epochs
-            task_data[metric].extend([np.nan] * (len(task_data['epoch']) - len(task_data[metric])))
+            task_data[metric].extend([np.nan] * (len(task_data["epoch"]) - len(task_data[metric])))
 
     return pd.DataFrame(task_data)
 
@@ -205,7 +204,7 @@ def collect_task_eval_data(
     cut_eval_setup="ctxt",
     hist1_folders=[],
     verbose=True,
-    max_workers=None
+    max_workers=None,
 ):
     """
     Collect evaluation data from model training folders with parallel processing.
@@ -230,12 +229,12 @@ def collect_task_eval_data(
 
     with Timer("Collecting task evaluation data"):
         task_eval_data = {}
-        all_metrics = set(['SR', 'Reward', 'Act_err'])  # Required metrics
+        all_metrics = set(["SR", "Reward", "Act_err"])  # Required metrics
         all_folders_to_process = []
 
         # First, collect all folders to process (main folder + seed folders if requested)
         for folder_path, label in model_training_folders:
-            folders_to_process = [(folder_path, '234', label)]
+            folders_to_process = [(folder_path, "234", label)]
 
             if collect_subfolder_seeds:
                 # Look for seed subfolders
@@ -243,7 +242,7 @@ def collect_task_eval_data(
                 for subfolder in os.listdir(folder_path):
                     if "seed" in subfolder:
                         seed_path = os.path.join(folder_path, subfolder)
-                        seed = subfolder.split('seed')[1]
+                        seed = subfolder.split("seed")[1]
                         if os.path.isdir(seed_path):
                             seed_folders.append((seed_path, seed, label))
 
@@ -253,7 +252,7 @@ def collect_task_eval_data(
 
             # Get all evaluation folders for each model folder
             for current_folder, seed, current_label in folders_to_process:
-                eval_folders_path = os.path.join(current_folder, 'simu_env_planning', 'online_gc_zeroshot')
+                eval_folders_path = os.path.join(current_folder, "simu_env_planning", "online_gc_zeroshot")
                 if os.path.exists(eval_folders_path):
                     eval_folders = [f for f in glob.glob(os.path.join(eval_folders_path, "*")) if os.path.isdir(f)]
                     for folder in eval_folders:
@@ -267,7 +266,7 @@ def collect_task_eval_data(
             if exclude_eval_folders and folder_name in exclude_eval_folders:
                 return None
 
-            parts = folder_name.split('_')
+            parts = folder_name.split("_")
             task_name = clean_task_name(parts[0], folder)
 
             # Check which model folder this eval folder belongs to
@@ -340,11 +339,11 @@ def collect_task_eval_data(
             # First collect all metrics
             for task_name, eval_setup, task_df, _, _ in results:
                 optional_columns = [
-                    'Act_err_xyz',
-                    'Act_err_orient',
-                    'Act_err_closure',
-                    'Total_LPIPS',
-                    'Total_Emb_L2',
+                    "Act_err_xyz",
+                    "Act_err_orient",
+                    "Act_err_closure",
+                    "Total_LPIPS",
+                    "Total_Emb_L2",
                 ]
                 all_metrics.update([col for col in optional_columns if col in task_df.columns])
 
@@ -357,11 +356,11 @@ def collect_task_eval_data(
                 # Add data for each metric
                 for metric in all_metrics:
                     if metric in task_df.columns:
-                        task_eval_data[key][metric].append((task_df['epoch'], task_df[metric], label, seed))
+                        task_eval_data[key][metric].append((task_df["epoch"], task_df[metric], label, seed))
                     else:
                         # Add empty data for metrics not in this DataFrame
                         task_eval_data[key][metric].append(
-                            (task_df['epoch'], pd.Series([np.nan] * len(task_df)), label, seed)
+                            (task_df["epoch"], pd.Series([np.nan] * len(task_df)), label, seed)
                         )
 
         return task_eval_data
@@ -384,7 +383,7 @@ def plot_data(
     xtick_step=4,
     y_log_scale=None,
     x_log_scale=None,
-    average_seeds=False
+    average_seeds=False,
 ):
     """Plot the data for a given task and evaluation setup."""
     with Timer(f"Plotting {task_name}/{eval_setup}/{y_value}"):
@@ -464,7 +463,7 @@ def plot_data(
         for epochs, values, label in plot_data:
             if smooth:
                 smoothed_values = exponential_moving_average(values, alpha=alpha)
-                sns.lineplot(x=epochs, y=smoothed_values, label=f'{label}')
+                sns.lineplot(x=epochs, y=smoothed_values, label=f"{label}")
                 if show_original:
                     plt.fill_between(epochs, values, smoothed_values, alpha=0.15)
             else:
@@ -477,9 +476,9 @@ def plot_data(
         if isinstance(y_log_scale, bool):
             y_log_scale = 10 if y_log_scale else None
         if y_log_scale is not None and y_log_scale > 0:
-            plt.yscale('log', base=y_log_scale)
+            plt.yscale("log", base=y_log_scale)
             ax = plt.gca()
-            ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))  # Scientific notation formatter
+            ax.yaxis.set_major_formatter(FormatStrFormatter("%.2f"))  # Scientific notation formatter
             all_values = [val for _, values, _ in plot_data for val in values if np.isfinite(val)]
             if all_values:
                 min_val = max(min(all_values), 1e-10)  # Avoid zero for log scale
@@ -493,9 +492,9 @@ def plot_data(
         if isinstance(x_log_scale, bool):
             x_log_scale = 10 if x_log_scale else None
         if x_log_scale is not None and x_log_scale > 0:
-            plt.xscale('log', base=x_log_scale)
+            plt.xscale("log", base=x_log_scale)
             ax = plt.gca()
-            ax.xaxis.set_major_formatter(FormatStrFormatter('%.2f'))  # Scientific notation formatter
+            ax.xaxis.set_major_formatter(FormatStrFormatter("%.2f"))  # Scientific notation formatter
             current_xlim = plt.xlim()
             if current_xlim[0] < 1:
                 plt.xlim(left=1)
@@ -504,19 +503,20 @@ def plot_data(
         if eval_setup_aliases is not None and isinstance(eval_setup_aliases, dict):
             eval_setup = eval_setup_aliases.get(eval_setup, eval_setup)
         if put_title:
-            plt.title(f'{task_name} {eval_setup} {y_value}')
-        plt.xlabel('Epoch')
-        plt.ylabel(f'{y_value}')
-        plt.legend(fontsize='small', framealpha=0.5)
+            plt.title(f"{task_name} {eval_setup} {y_value}")
+        plt.xlabel("Epoch")
+        plt.ylabel(f"{y_value}")
+        plt.legend(fontsize="small", framealpha=0.5)
 
         if not x_log_scale:
             plt.xticks(range(0, max_epoch + 2, xtick_step))
 
         plt.tight_layout()
-        pdf_path = os.path.join(base_dir, f'{task_name}_{eval_setup}_{y_value.lower()}_evolution.pdf')
-        plt.savefig(pdf_path, format='pdf', bbox_inches='tight')
+        pdf_path = os.path.join(base_dir, f"{task_name}_{eval_setup}_{y_value.lower()}_evolution.pdf")
+        plt.savefig(pdf_path, format="pdf", bbox_inches="tight")
         print(f"Saved plot to {pdf_path}")
         plt.close()
+
 
 def plot_task_eval_data(
     task_eval_data,
@@ -562,47 +562,80 @@ def plot_task_eval_data(
                 else:
                     print(f"Warning: Metric {key} not found for {task_name}/{eval_setup}")
 
+
 def main():
     # ==============================================
     # Paths are constructed using environment variables from macros.py
     jepa_dir = os.path.join(JEPA_WM_HOME, "jepa-wms")
     local_plan_common_dir = os.path.join(jepa_dir, "app/plan_common/local")
 
-    base_dir = os.path.join(local_plan_common_dir, 'paper-app')
-    base_dir = os.path.join(base_dir, 'mw_sweep')
+    base_dir = os.path.join(local_plan_common_dir, "paper-app")
+    base_dir = os.path.join(base_dir, "mw_sweep")
     os.makedirs(base_dir, exist_ok=True)
 
     model_training_folders = [
         # Central run
-        (os.path.join(CHECKPOINT_ROOT, 'mw_sweep/mw_4f_fsk5_ask1_r224_pred_dino_wm_depth6_noprop_repro_1roll_save'),
-        'WM'),
-        (os.path.join(CHECKPOINT_ROOT, 'mw_sweep/mw_4f_fsk5_ask1_r224_pred_dino_wm_depth6_noprop_repro_1roll_save_hist7'),
-        r'$\text{WM}_W$'),
-        (os.path.join(CHECKPOINT_ROOT, 'mw_sweep/mw_4f_fsk5_ask1_r224_pred_dino_wm_depth6_repro_1roll_save'),
-        'WM-prop'),
-        (os.path.join(CHECKPOINT_ROOT, 'mw_sweep/mw_4f_fsk5_ask1_r224_pred_dino_wm_depth6_noprop_repro_2roll_save'),
-        'WM-2-step'),
-        (os.path.join(CHECKPOINT_ROOT, 'mw_sweep/mw_4f_fsk5_ask1_r224_pred_dino_wm_depth6_noprop_repro_3roll_save'),
-        'WM-3-step'),
-        (os.path.join(CHECKPOINT_ROOT, 'mw_sweep/mw_4f_fsk5_ask1_r224_pred_dino_wm_depth6_noprop_repro_6roll_hist7_bs4_save'),
-        r'$\text{WM}_W$-6-step'),
-        (os.path.join(CHECKPOINT_ROOT, 'mw_sweep/mw_4f_fsk5_ask1_r224_pred_dino_wm_dinovitb_depth6_noprop_repro_1roll_save'),
-        'WM-B'),
-        (os.path.join(CHECKPOINT_ROOT, 'mw_sweep/mw_4f_fsk5_ask1_r224_pred_dino_wm_dinovitl_depth6_noprop_repro_1roll_save'),
-        'WM-L'),
+        (
+            os.path.join(CHECKPOINT_ROOT, "mw_sweep/mw_4f_fsk5_ask1_r224_pred_dino_wm_depth6_noprop_repro_1roll_save"),
+            "WM",
+        ),
+        (
+            os.path.join(
+                CHECKPOINT_ROOT, "mw_sweep/mw_4f_fsk5_ask1_r224_pred_dino_wm_depth6_noprop_repro_1roll_save_hist7"
+            ),
+            r"$\text{WM}_W$",
+        ),
+        (
+            os.path.join(CHECKPOINT_ROOT, "mw_sweep/mw_4f_fsk5_ask1_r224_pred_dino_wm_depth6_repro_1roll_save"),
+            "WM-prop",
+        ),
+        (
+            os.path.join(CHECKPOINT_ROOT, "mw_sweep/mw_4f_fsk5_ask1_r224_pred_dino_wm_depth6_noprop_repro_2roll_save"),
+            "WM-2-step",
+        ),
+        (
+            os.path.join(CHECKPOINT_ROOT, "mw_sweep/mw_4f_fsk5_ask1_r224_pred_dino_wm_depth6_noprop_repro_3roll_save"),
+            "WM-3-step",
+        ),
+        (
+            os.path.join(
+                CHECKPOINT_ROOT, "mw_sweep/mw_4f_fsk5_ask1_r224_pred_dino_wm_depth6_noprop_repro_6roll_hist7_bs4_save"
+            ),
+            r"$\text{WM}_W$-6-step",
+        ),
+        (
+            os.path.join(
+                CHECKPOINT_ROOT, "mw_sweep/mw_4f_fsk5_ask1_r224_pred_dino_wm_dinovitb_depth6_noprop_repro_1roll_save"
+            ),
+            "WM-B",
+        ),
+        (
+            os.path.join(
+                CHECKPOINT_ROOT, "mw_sweep/mw_4f_fsk5_ask1_r224_pred_dino_wm_dinovitl_depth6_noprop_repro_1roll_save"
+            ),
+            "WM-L",
+        ),
     ]
 
     task_eval_data = collect_task_eval_data(
-    model_training_folders,
-    task_subset,
-    eval_setup_aliases=eval_setup_aliases,
+        model_training_folders,
+        task_subset,
+        eval_setup_aliases=eval_setup_aliases,
     )
 
     plot_task_eval_data(
-    task_eval_data, y_values=['SR'], smooth=True, alpha=0.2,
-    show_original=True, base_dir=base_dir, put_title=True, eval_setup_aliases=eval_setup_aliases,
-    truncate_epoch=50, y_min=0, y_max=90,
-    average_seeds=True,
+        task_eval_data,
+        y_values=["SR"],
+        smooth=True,
+        alpha=0.2,
+        show_original=True,
+        base_dir=base_dir,
+        put_title=True,
+        eval_setup_aliases=eval_setup_aliases,
+        truncate_epoch=50,
+        y_min=0,
+        y_max=90,
+        average_seeds=True,
     )
     # ==============================================
 
@@ -610,8 +643,14 @@ def main():
     task_subset = [
         "droid",
         "reach-pick-place",
-        "reach-pick", "pick-place", "rcasa-reach", "pick", "rcasa-place",
-        "pt", "wall", "mz",
+        "reach-pick",
+        "pick-place",
+        "rcasa-reach",
+        "pick",
+        "rcasa-place",
+        "pt",
+        "wall",
+        "mz",
     ]
 
     # Collect evaluation data
@@ -634,8 +673,8 @@ def main():
         show_original=True,
         base_dir=base_dir,
         truncate_epoch=316,
-        y_min=0.,
-        y_max=1.,
+        y_min=0.0,
+        y_max=1.0,
         xtick_step=20,
         y_log_scale=3,
         x_log_scale=False,
@@ -660,6 +699,7 @@ def main():
     # )
 
     print(f"Plots saved to {base_dir}")
+
 
 if __name__ == "__main__":
     main()

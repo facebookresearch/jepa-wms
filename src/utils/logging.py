@@ -23,7 +23,6 @@ try:
     from opentelemetry.sdk.resources import Resource as OTResource
 except ModuleNotFoundError:
     print("OTel libraries not installed. If your app uses OTel logging, please install them!")
-    pass
 
 
 OTEL_EXPORTER_OTLP_ENDPOINT = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "")

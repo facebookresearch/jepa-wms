@@ -39,7 +39,6 @@ data:
     camera_views:
       - left_mp4_path
 data_aug:
-  transform_name: vjepa
   auto_augment: false
   random_horizontal_flip: false
   motion_shift: false

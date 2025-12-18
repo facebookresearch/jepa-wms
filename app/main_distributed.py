@@ -16,9 +16,9 @@ from pathlib import Path
 import submitit
 import yaml
 
-from src.utils.yaml_utils import expand_env_vars
 from app.scaffold import main as app_main
 from src.utils.logging import get_logger, git_information
+from src.utils.yaml_utils import expand_env_vars
 
 logger = get_logger(force=True)
 
@@ -50,20 +50,26 @@ parser.add_argument(
 parser.add_argument(
     "--account",
     type=str,
-    default="jepa",
-    help="Cluster account to use when submitting jobs",
+    default=None,
+    help="SLURM account to use when submitting jobs",
 )
 parser.add_argument(
     "--partition",
     type=str,
-    default="learn",
-    help="Cluster partition to use when submitting jobs",
+    default=None,
+    help="SLURM partition to use when submitting jobs",
 )
 parser.add_argument(
     "--qos",
     type=str,
     default=None,
-    help="If specified, cluster partition to use when submitting jobs",
+    help="SLURM QoS to use when submitting jobs",
+)
+parser.add_argument(
+    "--array-parallelism",
+    type=int,
+    default=64,
+    help="Maximum number of concurrent jobs in the array",
 )
 parser.add_argument("--time", type=int, default=4300, help="time in minutes to run job")
 
@@ -138,6 +144,7 @@ def launch_app_with_parsed_args(
     tasks_per_node=1,
     cpus_per_task=12,
     exclude_nodes=None,
+    array_parallelism=64,
 ):
     args_for_pretrain = update_folder_with_timestamp(args_for_pretrain)
     for ap in args_for_pretrain:
@@ -193,6 +200,7 @@ def launch_app_with_parsed_args(
         slurm_account=account,
         slurm_qos=qos,
         slurm_mem_per_gpu=mem_per_gpu,
+        slurm_array_parallelism=array_parallelism,
         timeout_min=timeout,
         nodes=nodes,
         tasks_per_node=tasks_per_node,
@@ -258,7 +266,7 @@ def launch():
     # ---------------------------------------------------------------------- #
 
     # ---------------------------------------------------------------------- #
-    # 3. Launch evals with parsed config files
+    # 3. Launch jobs with parsed config files
     # ---------------------------------------------------------------------- #
     launch_app_with_parsed_args(
         args_for_pretrain=configs,
@@ -271,6 +279,7 @@ def launch():
         nodes=nodes,
         tasks_per_node=tasks_per_node,
         exclude_nodes=args.exclude,
+        array_parallelism=args.array_parallelism,
     )
     # ---------------------------------------------------------------------- #
 

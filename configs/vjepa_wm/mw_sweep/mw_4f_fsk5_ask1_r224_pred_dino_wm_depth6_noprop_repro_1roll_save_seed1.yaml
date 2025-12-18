@@ -52,7 +52,6 @@ data:
     dataset_fpcs: [8]
     mpk_manifest_patterns: []
 data_aug:
-  transform_name: vjepa
   auto_augment: false
   random_horizontal_flip: false
   motion_shift: false
@@ -167,40 +166,12 @@ model:
     local_window_time: 3
     local_window_h: -1
     local_window_w: -1
-  # Heads config
+  # Decoder heads config (optional - for visualization only)
+  # To enable, copy heads_cfg from your trained decoder config in configs/vjepa_wm/vm2m/open_source_decs/
   heads_cfg:
-    architectures:
-      image_head:
-        kind: vit
-        config:
-          patch_size: 8
-          in_chans: 3
-          img_size: [224, 224]
-          embed_dim: 384
-          decoder_embed_dim: 1024
-          depth: 24
-          num_heads: 16
-          mlp_ratio: 4.0
-          num_views: 1
-          use_activation_checkpointing: false
-      state_head:
-        kind: vit
-        config:
-          state_dim: 39
-          embed_dim: 384
-          decoder_embed_dim: 384
-          depth: 6
-          num_heads: 16
-          mlp_ratio: 4.0
-          num_views: 1
-          use_activation_checkpointing: false
-          proprio_dim: 4
+    architectures: {}
     pretrain_dec_path:
-      state_head: ${CHECKPOINT_ROOT}/mw/step2_mw_state_head_dinovits_r224_2n/jepa-latest.pth.tar
-      image_head: ${CHECKPOINT_ROOT}/vm2m/opensource_decs/step2_lpips_vm2m_vits_vitldec_224_vjtrans05/jepa-latest.pth.tar
-    new_path_heads:
-      state_head: true
-      image_head: true
+      # image_head: ${CHECKPOINT_ROOT}/vm2m/opensource_decs/step2_lpips_vm2m_vits_vitldec_224_vjtrans05/jepa-latest.pth.tar
 optimization:
   main_optimizer: transition_model
   train_heads: false

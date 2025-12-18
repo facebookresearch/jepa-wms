@@ -5,18 +5,12 @@
 # LICENSE file in the root directory of this source tree.
 #
 
-import os
 from logging import getLogger
 from typing import Callable
 
 import decord
-import h5py
-import numpy as np
-import pandas as pd
 import torch
-import torch.nn.functional as F
 import torch.utils.data
-from decord import VideoReader, cpu
 
 from src.datasets.data_manager import init_data as init_data_src
 

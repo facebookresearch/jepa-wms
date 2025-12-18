@@ -169,7 +169,6 @@ model_kwargs:
       - 8
       mpk_manifest_patterns: []
   data_aug:
-    transform_name: vjepa
     auto_augment: false
     random_horizontal_flip: false
     motion_shift: false

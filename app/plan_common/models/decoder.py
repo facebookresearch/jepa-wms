@@ -43,7 +43,7 @@ class VisionTransformerDecoder(nn.Module):
         use_activation_checkpointing=False,
         use_rope=False,
         attn_impl="fmha",
-        **kwargs
+        **kwargs,
     ):
         super().__init__()
         self.attn_impl = attn_impl

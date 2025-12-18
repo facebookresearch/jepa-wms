@@ -1,8 +1,6 @@
 import json
 import os
 from logging import getLogger
-from pathlib import Path
-from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import h5py
 import numpy as np
@@ -11,7 +9,7 @@ from einops import rearrange
 from scipy.spatial.transform import Rotation as R
 
 from .droid_dset import poses_to_diffs
-from .traj_dset import TrajDataset, TrajSlicerDataset, get_train_val_sliced
+from .traj_dset import TrajDataset, get_train_val_sliced
 
 logger = getLogger()
 
@@ -146,7 +144,7 @@ class RoboCasaDataset(TrajDataset):
         if self.custom_teleop_dset:
             # Use the custom teleop dataset path instead
             dataset_root = os.environ.get("DATASET_ROOT")
-            custom_path = f"{dataset_root}/robocasa/jimmy_gen"
+            custom_path = f"{dataset_root}/robocasa/"
             logger.info(f"Using custom teleop dataset from {custom_path}")
 
             # Find all h5/hdf5 files in the custom path

@@ -40,7 +40,7 @@ class StateReadoutViT(nn.Module):
         use_rope=False,
         use_camera_embed=False,
         attn_impl="fmha",
-        **kwargs
+        **kwargs,
     ):
         super().__init__()
         self.attn_impl = attn_impl

@@ -182,7 +182,6 @@ model_kwargs:
       - '**/folding/foldjacketsleeve_v0/run_0001/episode.h5'
       - '**/folding/foldjacketsleeve_v1/run_0001/episode.h5'
   data_aug:
-    transform_name: vjepa
     auto_augment: false
     random_horizontal_flip: false
     motion_shift: false

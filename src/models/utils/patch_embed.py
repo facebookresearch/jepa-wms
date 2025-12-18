@@ -6,7 +6,6 @@
 #
 
 import torch.nn as nn
-from einops import rearrange
 
 
 class PatchEmbed(nn.Module):

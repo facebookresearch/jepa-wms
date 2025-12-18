@@ -12,7 +12,6 @@ import torch.nn.functional as F
 from timm.models.layers import drop_path
 from torch.nn.attention import SDPBackend, sdpa_kernel
 
-
 BLOCK_SIZE = 64
 ALL_SDPA_BACKENDS = [
     SDPBackend.MATH,

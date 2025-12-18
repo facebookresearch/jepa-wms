@@ -7,11 +7,12 @@
 
 """Simple utility functions for loading and dumping YAML files with preserved order and comments."""
 
-from src.utils.logging import get_logger
 import os
 import re
 
 from ruamel.yaml import YAML
+
+from src.utils.logging import get_logger
 
 logger = get_logger(__name__)
 

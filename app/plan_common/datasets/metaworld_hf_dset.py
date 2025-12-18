@@ -1,11 +1,11 @@
-import os
 from pathlib import Path
 from typing import Callable, List, Optional
 
 import numpy as np
 import torch
-from datasets import load_dataset
 from einops import rearrange
+
+from datasets import load_dataset
 
 from .traj_dset import TrajDataset, get_train_val_sliced
 
@@ -13,8 +13,10 @@ from .traj_dset import TrajDataset, get_train_val_sliced
 def decode_video_frames(video_bytes):
     """Decode MP4 bytes to numpy frames using imageio."""
     import io
+
     import imageio
-    reader = imageio.get_reader(io.BytesIO(video_bytes), format='mp4')
+
+    reader = imageio.get_reader(io.BytesIO(video_bytes), format="mp4")
     frames = [frame for frame in reader]
     reader.close()
     return np.stack(frames)
@@ -192,7 +194,7 @@ class MetaworldHFDataset(TrajDataset):
 def load_metaworld_hf_slice_train_val(
     transform,
     n_rollout=50,
-    data_path: str = "/checkpoint/amaia/video/basileterv/data/Metaworld/metaworld_hf_video",
+    data_path: str = "data/Metaworld/data",
     normalize_action=False,
     split_ratio=0.8,
     num_hist=0,

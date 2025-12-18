@@ -13,18 +13,35 @@ DATASET_ROOT = os.environ.get("DATASET_ROOT", None)
 CHECKPOINT_ROOT = os.environ.get("CHECKPOINT_ROOT", None)
 
 
-# Gets slurm job vars, to launch another job with the same vars
-def slurm_account_partition_and_qos(low_pri: bool) -> str:
+def slurm_account_partition_and_qos(low_pri: bool) -> tuple:
+    """
+    Get SLURM account, partition, and QoS settings from current job environment.
+
+    This function reads SLURM environment variables to inherit settings from the
+    current job when launching child jobs (e.g., evaluation jobs from training).
+
+    Any value can be None if not set by your cluster. This is normal - some clusters
+    don't use accounts, some don't use QoS, etc.
+
+    For the low-priority QoS (used for eval jobs), set the SLURM_QOS_LOW_PRIORITY
+    environment variable to your cluster's low-priority QoS name.
+
+    Args:
+        low_pri: If True, use low-priority QoS (from SLURM_QOS_LOW_PRIORITY env var)
+
+    Returns:
+        Tuple of (account, partition, qos) - any can be None
+    """
     account = os.environ.get("SLURM_JOB_ACCOUNT")
     partition = os.environ.get("SLURM_JOB_PARTITION")
     qos = os.environ.get("SLURM_JOB_QOS")
-    assert None not in (
-        account,
-        partition,
-        qos,
-    ), "This function should only be called by a job scheduled by slurm"
+
     if low_pri:
-        qos = "lowest"
+        # Use cluster-specific low-priority QoS from environment variable
+        low_pri_qos = os.environ.get("SLURM_QOS_LOW_PRIORITY")
+        if low_pri_qos is not None:
+            qos = low_pri_qos
+
     return account, partition, qos
 
 
@@ -54,8 +71,7 @@ def _build_dataset_paths():
             "PushT": f"{dataset_root}/pusht_noise",
             "PointMaze": f"{dataset_root}/point_maze",
             "Wall": f"{dataset_root}/wall_single",
-            "METAWORLD": f"{dataset_root}/Metaworld/train_paths.csv",
-            "METAWORLD_HF": f"{dataset_root}/Metaworld/metaworld_hf_video",
+            "METAWORLD_HF": f"{dataset_root}/Metaworld/data",
             "Robocasa": f"{dataset_root}/robocasa/",
             "DROID": f"{dataset_root}/DROID/droid_paths.csv",
             "Franka_hf": f"{dataset_root}/franka_custom",

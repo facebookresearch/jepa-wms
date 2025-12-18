@@ -1,5 +1,5 @@
 import torch
-from einops import rearrange, repeat
+from einops import rearrange
 
 
 class Preprocessor:

@@ -244,7 +244,6 @@ class TestDinoV3Encoder(unittest.TestCase):
         except Exception as e:
             self.skipTest(f"DinoV3 encoder test skipped due to: {str(e)}")
 
-
     def test_dinov3_encoder_patch_tokens_batchsize_1(self):
         try:
             from app.plan_common.models.dino import DinoEncoder

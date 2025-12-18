@@ -3,8 +3,6 @@ from functools import partial
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-from einops import rearrange, repeat
 
 from src.models.utils.modules import (
     MLP,
@@ -13,8 +11,8 @@ from src.models.utils.modules import (
     RoPEAttention,
     build_action_block_causal_attention_mask,
 )
-from src.utils.tensors import trunc_normal_
 from src.utils.logging import get_logger
+from src.utils.tensors import trunc_normal_
 
 logger = get_logger(__name__)
 

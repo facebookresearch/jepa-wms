@@ -3,7 +3,7 @@ import glob
 import os
 import re
 import time
-from collections import OrderedDict, defaultdict
+from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -12,15 +12,13 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 
-from src.utils.yaml_utils import expand_env_vars
-
 # ALIASES
 from app.plan_common.plot.aliases import (
-    hist1_eval_setup_aliases,
     eval_setup_aliases,
+    hist1_eval_setup_aliases,
     unif_eval_setup_aliases_across_tasks,
 )
-
+from src.utils.yaml_utils import expand_env_vars
 
 CHECKPOINT_ROOT = os.environ.get("CHECKPOINT_ROOT", "~")
 base_dir = "app/plan_common/plot/local/plan_joint_per_design_choice"

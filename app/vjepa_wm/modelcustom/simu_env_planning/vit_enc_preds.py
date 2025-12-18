@@ -15,8 +15,8 @@ import torch.nn.functional as F
 from einops import rearrange
 from tensordict.tensordict import TensorDict
 
-from app.plan_common.models.wm_heads import WorldModelPoseReadoutHead, WorldModelViTImageHead
 from app.plan_common.datasets.droid_dset import compute_new_pose
+from app.plan_common.models.wm_heads import WorldModelPoseReadoutHead, WorldModelViTImageHead
 from app.vjepa_wm.utils import (
     clean_state_dict,
     fetch_checkpoint,
@@ -172,7 +172,7 @@ def init_module(
     # Load heads from pretrain_dec_path (separate head checkpoint files)
     if pretrain_dec_path:
         for name, head in heads.items():
-            if new_path_heads.get(name, False):
+            if new_path_heads.get(name, True):
                 head_path = pretrain_dec_path[name].removesuffix(".pth.tar") + "_" + name + ".pth.tar"
                 head.load_checkpoint(head_path)
                 logger.info(f"loaded pretrained head named {name}")
@@ -369,7 +369,7 @@ class EncPredWM(nn.Module):
             visual = obs
         else:
             raise ValueError("Input must be a dictionary with key 'visual' or a tensor")
-        b, t, c, h, w = visual.shape # b t c h w
+        b, t, c, h, w = visual.shape  # b t c h w
         visual = visual.to(self.model.device, non_blocking=True, dtype=torch.float32)
         trans_visual = visual / 255.0  # instead of calling preprocessor.preprocess_obs_visual()
         # same transform as train time transform part of dataloader
@@ -386,7 +386,7 @@ class EncPredWM(nn.Module):
             # if we feed t=1 to a model expecting at least t=2, need to duplicate
             # self.tubelet_size_enc==1 for self.enc_type == "dino"
             if self.enc_type == "vjepa":
-                trans_visual = trans_visual.repeat(1, self.tubelet_size_enc, 1, 1, 1) # b 1 c h w -> b t c h w
+                trans_visual = trans_visual.repeat(1, self.tubelet_size_enc, 1, 1, 1)  # b 1 c h w -> b t c h w
         if self.enc_type == "dino":
             visual_embs = self.model.encoder(trans_visual)
             visual_embs = rearrange(

@@ -5,25 +5,21 @@
 # LICENSE file in the root directory of this source tree.
 #
 
-import fnmatch
-import hashlib
 import json
 import os
 from logging import getLogger
 from math import ceil
 from pathlib import Path
-from typing import Any, Optional, Sequence, Union
+from typing import Any, Sequence
 
 import decord
 import h5py
 import numpy as np
 import pandas as pd
 import torch
-import torch.distributed as dist
 import torch.utils.data
 from decord import VideoReader, cpu
-from einops import rearrange, repeat
-from huggingface_hub import HfApi, hf_hub_download
+from einops import repeat
 from scipy.spatial.transform import Rotation
 from tqdm import tqdm
 

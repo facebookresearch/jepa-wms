@@ -39,7 +39,6 @@ from app.plan_common.models.wm_heads import (
     WorldModelRewardReadoutHead,
     WorldModelViTImageHead,
 )
-from src.utils.yaml_utils import dump_yaml, convert_to_dict_recursive, expand_env_vars
 from app.vjepa_wm.utils import (
     build_plan_eval_args,
     build_unroll_decode_eval_args,
@@ -54,6 +53,7 @@ from src.datasets.utils.utils import get_dataset_paths
 from src.utils.cluster import slurm_account_partition_and_qos
 from src.utils.distributed import init_distributed
 from src.utils.logging import AverageMeter, CSVLogger, get_logger, gpu_timer
+from src.utils.yaml_utils import convert_to_dict_recursive, dump_yaml, expand_env_vars
 
 # --
 log_timings = True
@@ -134,7 +134,7 @@ def main(args, resume_preempt=False):
     cfgs_heads = cfgs_model.get("heads_cfg", {})
     heads_architectures = cfgs_heads.get("architectures", {})
     pretrain_dec_path = cfgs_heads.get("pretrain_dec_path", None)
-    new_path_heads = cfgs_heads.get("new_path_heads", False)
+    new_path_heads = cfgs_heads.get("new_path_heads", {})
 
     # Fields needed for training loop
     rollout_cfg = cfgs_model.get("rollout_cfg", {})
@@ -634,7 +634,7 @@ def main(args, resume_preempt=False):
     # Load pretrained heads from pretrain_dec_path
     if pretrain_dec_path is not None:
         for name, head in heads.items():
-            if new_path_heads[name]:
+            if new_path_heads.get(name, True):
                 head_path = pretrain_dec_path[name].removesuffix(".pth.tar") + "_" + name + ".pth.tar"
                 head.load_checkpoint(head_path)
                 logger.info(f"loaded pretrained head named {name}")
@@ -1557,6 +1557,7 @@ def launch_planning_evals(
     evals_decode = cfgs_plan_evals.get("decode", None)
     sum_all_diffs = cfgs_plan_evals.get("sum_all_diffs", None)
     goal_H = cfgs_plan_evals.get("goal_H", None)
+    num_elites = cfgs_plan_evals.get("num_elites", None)
     if eval_cfg_paths is not None:
         eval_nodes, eval_tasks_per_node, args_eval, eval_cpus_per_task = build_plan_eval_args(
             app_name="vjepa_wm",
@@ -1579,6 +1580,7 @@ def launch_planning_evals(
             num_act_stepped=num_act_stepped,
             horizon=horizon,
             goal_H=goal_H,
+            num_elites=num_elites,
             wrapper_kwargs=cfgs_plan_evals.get("wrapper_kwargs", {}),
         )
 

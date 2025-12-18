@@ -19,7 +19,9 @@ app/*/local/
 evals/*/local/
 configs/local
 scripts/*/local/
-configs/*/cwtemp/
+configs/cwtemp/
 */dump_online_evals/*
+
+MUJOCO_LOG.TXT
 
 macros.py

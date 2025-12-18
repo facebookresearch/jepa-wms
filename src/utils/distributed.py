@@ -8,7 +8,6 @@
 import os
 from pathlib import Path
 
-import clusterscope
 import torch
 import torch.distributed as dist
 

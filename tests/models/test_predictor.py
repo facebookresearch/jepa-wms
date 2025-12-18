@@ -3,8 +3,8 @@ import unittest
 import torch
 
 from app.plan_common.models.AdaLN_vit import vit_predictor_AdaLN
-from src.models.ac_predictor import vit_ac_predictor
 from app.plan_common.models.vit import ViTPredictor
+from src.models.ac_predictor import vit_ac_predictor
 
 
 class TestAdaLNPredictor(unittest.TestCase):
@@ -226,7 +226,6 @@ class TestViTPredictor(unittest.TestCase):
 
         self.assertIsInstance(output, torch.Tensor)
         self.assertEqual(output.size(), (BS, N, self.dim))
-
 
     def test_vit_predictor_batchsize_1(self):
         predictor = ViTPredictor(

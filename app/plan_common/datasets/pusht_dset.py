@@ -1,9 +1,8 @@
 import pickle
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Callable, Optional
 
 import decord
-import numpy as np
 import torch
 from decord import VideoReader
 from einops import rearrange

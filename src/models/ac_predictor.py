@@ -49,7 +49,7 @@ class VisionTransformerPredictorAC(nn.Module):
         proprio_tokens=1,
         proprio_encoder_inpred=False,
         action_encoder_inpred=True,
-        **kwargs
+        **kwargs,
     ):
         super().__init__()
         self.action_dim = action_dim
@@ -207,7 +207,7 @@ class VisionTransformerPredictorAC(nn.Module):
 
         # Encode action if action_encoder_inpred is True, else actions are pre-encoded
         if self.action_encoder_inpred:
-            a = self.action_encoder(actions).unsqueeze(2) # B T A -> B T 1 A
+            a = self.action_encoder(actions).unsqueeze(2)  # B T A -> B T 1 A
         else:
             a = actions
 
@@ -215,7 +215,7 @@ class VisionTransformerPredictorAC(nn.Module):
         if self.action_conditioning == "token":
             if self.proprio_tokens > 0:
                 if self.proprio_encoder_inpred:
-                    s = self.proprio_encoder(states).unsqueeze(2) # B T P -> B T 1 P
+                    s = self.proprio_encoder(states).unsqueeze(2)  # B T P -> B T 1 P
                 else:
                     s = states
             else:

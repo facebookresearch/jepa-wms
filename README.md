@@ -112,6 +112,8 @@ conda activate jepa-wms
 git clone git@github.com:facebookresearch/jepa-wms.git
 cd jepa-wms
 uv pip install -e .
+# Optional: Install dev dependencies
+uv pip install -e ".[dev]"
 
 # 4. Verify installation
 python -c "import torchcodec; print('✓ torchcodec works')"
@@ -199,12 +201,12 @@ Required for RoboCasa/RoboSuite environments:
 ```bash
 # Install RoboSuite
 git clone https://github.com/Basile-Terv/robosuite.git && cd robosuite
-git checkout robocasa-dev && uv pip install -e . && cd ..
+uv pip install -e . && cd ..
 
 # Install RoboCasa
 git clone https://github.com/Basile-Terv/robocasa.git && cd robocasa
 uv pip install -e .
-python robocasa/scripts/download_kitchen_assets.py  # ~5GB
+python robocasa/scripts/download_kitchen_assets.py   # Caution: Assets to be downloaded are around 20GB.
 python robocasa/scripts/setup_macros.py && cd ..
 ```
 
@@ -374,16 +376,21 @@ All configs under `configs/vjepa_wm/`.
 
 Decoder heads enable visualization and light evals (rollout decoding via `val_rollout()` in the training loop).
 
+> **Note**: Decoder heads are **not required** for training world models or running planning evaluations. The training configs in `configs/vjepa_wm/*_sweep/` have `heads_cfg: null` by default.
+
 **Two training strategies:**
-- **Cross-environment** (recommended if available): Train one head on VideoMix2M (HowTo100M + SSv2 + K400) — works across all environments
-- **In-domain**: Train one head per encoder per environment on environment-specific data
+- **Cross-environment** (recommended if datasets available): Train one decoder on VideoMix2M (HowTo100M + SSv2 + K400) — works across all environments. See configs in `configs/vjepa_wm/vm2m/open_source_decs/`.
+- **In-domain**: Train one decoder per encoder per environment on environment-specific data
 
 ```bash
-# State head
-python -m app.main --fname configs/vjepa_wm/<env>/step2_lpips_<env>_state_head_dinovitb_r224.yaml --debug
+# Cross-environment decoder (recommended)
+python -m app.main --fname configs/vjepa_wm/vm2m/open_source_decs/step2_lpips_vm2m_<enc>_<params>.yaml --debug
 
-# Image decoder head
-python -m app.main --fname configs/vjepa_wm/<env>/step2_lpips_<env>_vitbdec_dinovitbenc_224_beta0.95.yaml --debug
+# State head (environment-specific)
+python -m app.main --fname configs/vjepa_wm/<env>/step2_<env>_state_head_<enc>_<params>.yaml --debug
+
+# Image decoder head (environment-specific)
+python -m app.main --fname configs/vjepa_wm/<env>/step2_lpips_<env>_<enc>_<params>.yaml --debug
 ```
 
 </details>
@@ -406,6 +413,38 @@ python -m evals.simu_env_planning.run_eval_grid --env <env> --config <config.yam
 > 📓 **Visualization**: `app/plan_common/notebooks/logs_planning_joint.ipynb`
 
 > **Full documentation**: [`evals/simu_env_planning/README.md`](evals/simu_env_planning/README.md)
+
+<details>
+<summary><b>📈 Reproducing Paper Design Choice Plots</b></summary>
+
+To reproduce the design choice comparison plots from the paper (e.g., encoder comparison, predictor architecture, rollout steps), train models using the configs in `configs/vjepa_wm/*_sweep/` and then run the plotting commands in [`app/plan_common/plot/logs_plan_joint_per_design_choice.py`](app/plan_common/plot/logs_plan_joint_per_design_choice.py).
+
+Example commands:
+```bash
+# Encoder comparison
+python app/plan_common/plot/logs_plan_joint_per_design_choice.py \
+    --design_choices_file app/plan_common/plot/local/design_choice_yamls/enc.yaml \
+    --output enc_comparison --verbose
+
+# Predictor architecture comparison
+python app/plan_common/plot/logs_plan_joint_per_design_choice.py \
+    --design_choices_file app/plan_common/plot/local/design_choice_yamls/pred_arch.yaml \
+    --output pred_arch_comparison --verbose
+
+# Rollout steps comparison
+python app/plan_common/plot/logs_plan_joint_per_design_choice.py \
+    --design_choices_file app/plan_common/plot/local/design_choice_yamls/rollout_steps.yaml \
+    --output rollout_steps_comparison --plot_line --verbose
+
+# Final baseline comparison (LaTeX table)
+python app/plan_common/plot/logs_plan_joint_per_design_choice.py \
+    --design_choices_file app/plan_common/plot/local/design_choice_yamls/final_baseline_comp.yaml \
+    --output final_baseline_comp --generate_latex --verbose
+```
+
+See the `main()` docstring in the script for the full list of commands used to generate paper figures.
+
+</details>
 
 <details>
 <summary><b>⚙️ Eval Config Generation</b></summary>
@@ -474,6 +513,17 @@ The hardcoded actions can be customized by modifying the `create_counterfactual_
 ```
 
 ## 🔧 Troubleshooting
+
+<details>
+<summary><b>🖥️ SLURM Configuration (HPC Users)</b></summary>
+
+The SLURM job submission is configured in `src/utils/cluster.py`. This file may need to be modified depending on your cluster's setup:
+
+- **Account/Partition/QoS**: The function `slurm_account_partition_and_qos()` reads SLURM environment variables from the current job. Some clusters don't use all these concepts (account, partition, QoS) — the function handles `None` values gracefully.
+
+- **Low-priority QoS**: For evaluation jobs, set the `SLURM_QOS_LOW_PRIORITY` environment variable to your cluster's low-priority QoS name (e.g., `export SLURM_QOS_LOW_PRIORITY="lowest"`).
+
+</details>
 
 <details>
 <summary><b>🖥️ MuJoCo Rendering</b></summary>

@@ -14,7 +14,7 @@ import sys
 import zipfile
 from pathlib import Path
 
-from huggingface_hub import hf_hub_download, snapshot_download
+from huggingface_hub import snapshot_download
 from huggingface_hub.utils import GatedRepoError, RepositoryNotFoundError
 
 REPO_ID = "facebook/jepa-wms"
@@ -35,9 +35,10 @@ DATASETS = {
     },
     "wall": {
         "pattern": "wall/*",
-        "post_process": "rename",
-        "rename_from": "wall",
-        "rename_to": "wall_single",
+        "post_process": "unzip_and_rename",
+        "zip_file": "wall/wall_single.zip",
+        "extract_to": "wall_single",
+        "cleanup": ["wall"],
     },
     "metaworld": {
         "pattern": "metaworld/*",
@@ -194,10 +195,7 @@ Examples:
         return
 
     if not args.dataset_root:
-        parser.error(
-            "Dataset root not specified. Set DATASET_ROOT environment variable "
-            "or use --dataset-root"
-        )
+        parser.error("Dataset root not specified. Set DATASET_ROOT environment variable " "or use --dataset-root")
 
     dataset_root = Path(args.dataset_root)
     dataset_root.mkdir(parents=True, exist_ok=True)

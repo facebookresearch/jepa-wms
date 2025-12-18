@@ -12,9 +12,9 @@ from pathlib import Path
 
 import yaml
 
-from src.utils.yaml_utils import expand_env_vars
 from app.scaffold import main as app_main
 from src.utils.distributed import init_distributed
+from src.utils.yaml_utils import expand_env_vars
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--fname", type=str, help="name of config file to load", default="configs.yaml")

@@ -1,14 +1,10 @@
 import abc
-import os
-import sys
-from typing import Callable, List, Optional, Sequence
+from typing import List, Optional, Sequence
 
-import numpy as np
 import torch
 from einops import rearrange
 from torch import default_generator, randperm
-from torch.utils.data import Dataset, Subset
-from tqdm import tqdm
+from torch.utils.data import Dataset
 
 
 # https://github.com/JaidedAI/EasyOCR/issues/1243

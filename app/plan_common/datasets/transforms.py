@@ -1,4 +1,3 @@
-import numpy as np
 import torch
 from torchvision import transforms
 
@@ -62,7 +61,6 @@ def make_transforms(
     motion_shift=False,
     img_size=224,
     normalize=((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
-    transform_name="default",
     hwc=False,
     do_255_to_1=False,
 ):

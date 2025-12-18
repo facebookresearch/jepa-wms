@@ -11,12 +11,11 @@ from functools import partial
 import torch
 import torch.nn as nn
 
-from src.utils.tensors import trunc_normal_
 from src.masks.utils import apply_masks
-
-from src.models.utils.patch_embed import PatchEmbed, PatchEmbed3D
 from src.models.utils.modules import Block, build_causal_attention_mask
+from src.models.utils.patch_embed import PatchEmbed, PatchEmbed3D
 from src.models.utils.pos_embs import get_2d_sincos_pos_embed, get_3d_sincos_pos_embed
+from src.utils.tensors import trunc_normal_
 
 
 class VisionTransformer(nn.Module):
@@ -56,7 +55,7 @@ class VisionTransformer(nn.Module):
         interpolate_rope=False,
         pretraining_img_size=None,
         pretraining_num_frames=None,
-        **kwargs
+        **kwargs,
     ):
         super().__init__()
         self.num_features = self.embed_dim = embed_dim
@@ -361,7 +360,7 @@ def vit_synthetic(patch_size=16, **kwargs):
         mlp_ratio=4,
         qkv_bias=True,
         norm_layer=partial(nn.LayerNorm, eps=1e-6),
-        **kwargs
+        **kwargs,
     )
     return model
 
@@ -375,7 +374,7 @@ def vit_tiny(patch_size=16, **kwargs):
         mlp_ratio=4,
         qkv_bias=True,
         norm_layer=partial(nn.LayerNorm, eps=1e-6),
-        **kwargs
+        **kwargs,
     )
     return model
 
@@ -389,7 +388,7 @@ def vit_small(patch_size=16, **kwargs):
         mlp_ratio=4,
         qkv_bias=True,
         norm_layer=partial(nn.LayerNorm, eps=1e-6),
-        **kwargs
+        **kwargs,
     )
     return model
 
@@ -403,7 +402,7 @@ def vit_base(patch_size=16, **kwargs):
         mlp_ratio=4,
         qkv_bias=True,
         norm_layer=partial(nn.LayerNorm, eps=1e-6),
-        **kwargs
+        **kwargs,
     )
     return model
 
@@ -417,7 +416,7 @@ def vit_large(patch_size=16, **kwargs):
         mlp_ratio=4,
         qkv_bias=True,
         norm_layer=partial(nn.LayerNorm, eps=1e-6),
-        **kwargs
+        **kwargs,
     )
     return model
 
@@ -432,7 +431,7 @@ def vit_large_rope(patch_size=16, **kwargs):
         qkv_bias=True,
         use_rope=True,
         norm_layer=partial(nn.LayerNorm, eps=1e-6),
-        **kwargs
+        **kwargs,
     )
     return model
 
@@ -446,7 +445,7 @@ def vit_huge(patch_size=16, **kwargs):
         mlp_ratio=4,
         qkv_bias=True,
         norm_layer=partial(nn.LayerNorm, eps=1e-6),
-        **kwargs
+        **kwargs,
     )
     return model
 
@@ -461,7 +460,7 @@ def vit_huge_rope(patch_size=16, **kwargs):
         qkv_bias=True,
         use_rope=True,
         norm_layer=partial(nn.LayerNorm, eps=1e-6),
-        **kwargs
+        **kwargs,
     )
     return model
 
@@ -476,7 +475,7 @@ def vit_giant_rope(patch_size=16, **kwargs):
         qkv_bias=True,
         use_rope=True,
         norm_layer=partial(nn.LayerNorm, eps=1e-6),
-        **kwargs
+        **kwargs,
     )
     return model
 
@@ -490,7 +489,7 @@ def vit_giant_xformers(patch_size=16, **kwargs):
         mlp_ratio=48 / 11,
         qkv_bias=True,
         norm_layer=partial(nn.LayerNorm, eps=1e-6),
-        **kwargs
+        **kwargs,
     )
     return model
 
@@ -505,7 +504,7 @@ def vit_giant_xformers_rope(patch_size=16, **kwargs):
         qkv_bias=True,
         use_rope=True,
         norm_layer=partial(nn.LayerNorm, eps=1e-6),
-        **kwargs
+        **kwargs,
     )
     return model
 
@@ -519,7 +518,7 @@ def vit_gigantic(patch_size=16, **kwargs):
         mpl_ratio=64 / 13,
         qkv_bias=True,
         norm_layer=partial(nn.LayerNorm, eps=1e-6),
-        **kwargs
+        **kwargs,
     )
     return model
 
@@ -533,7 +532,7 @@ def vit_gigantic_xformers(patch_size=16, **kwargs):
         mpl_ratio=64 / 13,
         qkv_bias=True,
         norm_layer=partial(nn.LayerNorm, eps=1e-6),
-        **kwargs
+        **kwargs,
     )
     return model
 

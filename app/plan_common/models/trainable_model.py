@@ -10,10 +10,9 @@ import sys
 from abc import ABC, abstractmethod
 
 import torch
-from torch import nn
 
 from src.utils.adamw import AdamW as RAdamW
-from src.utils.logging import AverageMeter, CSVLogger, adamw_logger, get_logger, gpu_timer, grad_logger
+from src.utils.logging import adamw_logger, grad_logger
 from src.utils.schedulers import CosineWDSchedule, WarmupCosineSchedule
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)

@@ -46,7 +46,7 @@ class VisionTransformer(nn.Module):
         is_causal=False,
         use_sdpa=True,
         use_activation_checkpointing=False,
-        **kwargs
+        **kwargs,
     ):
         super().__init__()
         self.num_features = self.embed_dim = embed_dim
@@ -275,7 +275,7 @@ def vit_synthetic(patch_size=16, **kwargs):
         mlp_ratio=4,
         qkv_bias=True,
         norm_layer=partial(nn.LayerNorm, eps=1e-6),
-        **kwargs
+        **kwargs,
     )
     return model
 
@@ -289,7 +289,7 @@ def vit_tiny(patch_size=16, **kwargs):
         mlp_ratio=4,
         qkv_bias=True,
         norm_layer=partial(nn.LayerNorm, eps=1e-6),
-        **kwargs
+        **kwargs,
     )
     return model
 
@@ -303,7 +303,7 @@ def vit_small(patch_size=16, **kwargs):
         mlp_ratio=4,
         qkv_bias=True,
         norm_layer=partial(nn.LayerNorm, eps=1e-6),
-        **kwargs
+        **kwargs,
     )
     return model
 
@@ -317,7 +317,7 @@ def vit_base(patch_size=16, **kwargs):
         mlp_ratio=4,
         qkv_bias=True,
         norm_layer=partial(nn.LayerNorm, eps=1e-6),
-        **kwargs
+        **kwargs,
     )
     return model
 
@@ -331,7 +331,7 @@ def vit_large(patch_size=16, **kwargs):
         mlp_ratio=4,
         qkv_bias=True,
         norm_layer=partial(nn.LayerNorm, eps=1e-6),
-        **kwargs
+        **kwargs,
     )
     return model
 
@@ -345,7 +345,7 @@ def vit_huge(patch_size=16, **kwargs):
         mlp_ratio=4,
         qkv_bias=True,
         norm_layer=partial(nn.LayerNorm, eps=1e-6),
-        **kwargs
+        **kwargs,
     )
     return model
 
@@ -359,7 +359,7 @@ def vit_giant(patch_size=16, **kwargs):
         mlp_ratio=48 / 11,
         qkv_bias=True,
         norm_layer=partial(nn.LayerNorm, eps=1e-6),
-        **kwargs
+        **kwargs,
     )
     return model
 
@@ -373,7 +373,7 @@ def vit_gigantic(patch_size=14, **kwargs):
         mlp_ratio=64 / 13,
         qkv_bias=True,
         norm_layer=partial(nn.LayerNorm, eps=1e-6),
-        **kwargs
+        **kwargs,
     )
     return model
 

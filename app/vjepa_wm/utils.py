@@ -7,13 +7,9 @@
 
 import logging
 import sys
-import math
-from collections import OrderedDict
 
 import torch
-from torch import nn
 
-from src.utils.yaml_utils import load_yaml
 import src.models.ac_predictor as vit_ac_pred
 import src.models.vision_transformer_v2 as vit_v2_open
 from app.plan_common.models.AdaLN_vit import vit_predictor_AdaLN
@@ -23,6 +19,7 @@ from app.plan_common.models.vit import ViTPredictor
 from src.utils.adamw import AdamW as RAdamW
 from src.utils.schedulers import CosineWDSchedule, WarmupCosineSchedule, WSDSchedule
 from src.utils.tensors import trunc_normal_
+from src.utils.yaml_utils import load_yaml
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 logger = logging.getLogger()
@@ -174,6 +171,7 @@ def build_plan_eval_args(
     num_act_stepped=None,
     horizon=None,
     goal_H=None,
+    num_elites=None,
     override_cfgs_data=True,
     override_datasets=True,
     wrapper_kwargs={},
@@ -270,6 +268,8 @@ def build_plan_eval_args(
         if horizon is not None:
             planning_cfg["planner"]["horizon"] = horizon
             pref_tag = update_tag_pattern(pref_tag, "H", horizon)
+        if num_elites is not None:
+            planning_cfg["planner"]["num_elites"] = num_elites
         if goal_H is not None:
             planning_cfg["task_specification"]["goal_H"] = goal_H
             pref_tag = update_tag_pattern(pref_tag, "gH", goal_H)

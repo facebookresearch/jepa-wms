@@ -1,8 +1,6 @@
 import logging
-import os
 import sys
 from collections import defaultdict
-from typing import List, Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -13,7 +11,7 @@ from einops import rearrange, repeat
 from tensordict import TensorDict
 from tqdm import tqdm
 
-from src.utils.logging import adamw_logger, grad_logger
+from src.utils.logging import grad_logger
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 logger = logging.getLogger()
