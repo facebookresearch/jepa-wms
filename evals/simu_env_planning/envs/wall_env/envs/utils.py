@@ -1,7 +1,5 @@
 import torch
 
-from ..data.wall import WallDataset
-
 
 def check_vertical_wall_intersect(pos1, pos2, wall_x, hole_y, door_space):
     check_intersection = (torch.sign(pos1[0] - wall_x) * torch.sign(pos2[0] - wall_x)) <= 0.1

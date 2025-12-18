@@ -10,28 +10,33 @@ from evals.simu_env_planning.envs.wrappers.multitask import MultitaskWrapper
 from evals.simu_env_planning.envs.wrappers.pixels import PixelWrapper
 from evals.simu_env_planning.envs.wrappers.tensor import TensorWrapper
 
+# Lazy imports for environments with heavy dependencies (mujoco-py, robocasa, etc.)
+_lazy_env_cache = {}
 
-def missing_dependencies(task):
-    raise ValueError(f"Missing dependencies for task {task}; install dependencies to use this environment.")
+_LAZY_ENV_CONFIG = {
+    "maze": ("evals.simu_env_planning.envs.pointmaze_gym_wrap", "MuJoCo 2.1"),
+    "robocasa": ("evals.simu_env_planning.envs.robocasa", "RoboCasa"),
+    "metaworld": ("evals.simu_env_planning.envs.metaworld", "Metaworld"),
+}
 
 
+def _lazy_make_env(env_key, cfg):
+    """Lazily import and call make_env for environments with optional dependencies."""
+    if env_key not in _lazy_env_cache:
+        module_path, install_name = _LAZY_ENV_CONFIG[env_key]
+        try:
+            import importlib
+
+            _lazy_env_cache[env_key] = importlib.import_module(module_path).make_env
+        except Exception as e:
+            raise ImportError(f"Missing dependencies for {install_name}. See README.md. Error: {e}") from e
+    return _lazy_env_cache[env_key](cfg)
+
+
+# These environments have minimal dependencies and can be imported eagerly
 from evals.simu_env_planning.envs.droid_dset_dummy_env import make_env as make_droid_dset_dummy_env
 from evals.simu_env_planning.envs.pusht_gym_wrap import make_env as make_pusht_env
 from evals.simu_env_planning.envs.wall_gym_wrap import make_env as make_wall_env
-
-try:
-    from evals.simu_env_planning.envs.pointmaze_gym_wrap import make_env as make_maze_env
-except ImportError as e:
-    make_maze_env = missing_dependencies
-try:
-    from evals.simu_env_planning.envs.robocasa import make_env as make_robocasa_env
-except ImportError as e:
-    make_robocasa_env = missing_dependencies
-try:
-    from evals.simu_env_planning.envs.metaworld import make_env as make_metaworld_env
-except Exception as e:
-    make_metaworld_env = missing_dependencies
-
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
@@ -83,15 +88,15 @@ def make_env(cfg):
     else:
         env = None
         if cfg.task_specification.task.startswith("mw-"):
-            env = make_metaworld_env(cfg)
+            env = _lazy_make_env("metaworld", cfg)
         elif cfg.task_specification.task.startswith("pusht-"):
             env = make_pusht_env(cfg)
         elif cfg.task_specification.task.startswith("wall-"):
             env = make_wall_env(cfg)
         elif cfg.task_specification.task.startswith("maze-"):
-            env = make_maze_env(cfg)
+            env = _lazy_make_env("maze", cfg)
         elif cfg.task_specification.task.startswith("robocasa-"):
-            env = make_robocasa_env(cfg)
+            env = _lazy_make_env("robocasa", cfg)
         elif cfg.task_specification.task.startswith("droid-"):
             env = make_droid_dset_dummy_env(cfg)
 

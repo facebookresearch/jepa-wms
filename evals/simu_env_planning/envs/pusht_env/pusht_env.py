@@ -3,7 +3,6 @@ import collections
 from typing import Dict, Optional, Sequence, Tuple, Union
 
 import cv2
-import einops
 import gym
 import numpy as np
 import pygame
@@ -11,7 +10,6 @@ import pymunk
 import pymunk.pygame_util
 import shapely.geometry as sg
 import skimage.transform as st
-import torch
 from gym import spaces
 from matplotlib import cm
 from pymunk.space_debug_draw_options import SpaceDebugColor

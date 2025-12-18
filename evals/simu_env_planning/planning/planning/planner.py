@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
-from time import time
-from typing import Callable, List, NamedTuple, Optional
+from typing import Callable, List, NamedTuple
 
 import nevergrad as ng
 import numpy as np

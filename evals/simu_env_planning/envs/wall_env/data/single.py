@@ -2,7 +2,6 @@ import math
 from dataclasses import dataclass
 from typing import NamedTuple
 
-import numpy as np
 import torch
 from scipy.stats import truncnorm
 

@@ -1,4 +1,3 @@
-import os
 import gym
 import numpy as np
 from metaworld import policies

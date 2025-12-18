@@ -5,7 +5,6 @@ import gym.spaces
 import numpy as np
 
 from .grid_spec import LAVA, RENDER_DICT, REWARD, REWARD2, REWARD3, REWARD4, START, TILES, WALL
-from .utils import flat_to_one_hot, one_hot_to_flat
 
 ACT_NOOP = 0
 ACT_UP = 1

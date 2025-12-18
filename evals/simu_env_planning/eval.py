@@ -16,10 +16,6 @@ import torch.multiprocessing as mp
 import yaml
 from omegaconf import OmegaConf
 
-from app.plan_common.datasets.preprocessor import Preprocessor
-from app.plan_common.datasets.transforms import make_inverse_transforms, make_transforms
-from app.plan_common.datasets.utils import init_data
-from src.utils.yaml_utils import expand_env_vars
 from evals.simu_env_planning.envs.init import make_env
 from evals.simu_env_planning.planning.common.gc_logger import Logger
 from evals.simu_env_planning.planning.common.parser import parse_cfg
@@ -27,7 +23,7 @@ from evals.simu_env_planning.planning.gc_agent import GC_Agent
 from evals.simu_env_planning.planning.plan_evaluator import PlanEvaluator
 from evals.simu_env_planning.planning.utils import aggregate_results, compute_task_distribution, set_seed
 from evals.utils import make_datasets
-from src.datasets.utils.utils import get_dataset_paths
+from src.utils.yaml_utils import expand_env_vars
 
 # -- FOR DISTRIBUTED TRAINING ENSURE ONLY 1 DEVICE VISIBLE PER PROCESS
 try:

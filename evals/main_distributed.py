@@ -6,7 +6,6 @@
 #
 
 import argparse
-import getpass
 import os
 import pprint
 import shutil
@@ -22,11 +21,6 @@ from src.utils.logging import get_logger
 logger = get_logger(force=True)
 
 
-try:
-    USER = getpass.getuser()
-except OSError:
-    USER = "massran"
-
 parser = argparse.ArgumentParser()
 parser.add_argument(
     "--use_config_folder", action="store_true", help="If specified, use the folder specified in the config"
@@ -36,6 +30,12 @@ parser.add_argument(
     type=str,
     help="location to save submitit logs (unless --use_config_folder is specified)",
     default=f"{os.environ.get('CHECKPOINT_ROOT')}/submitit/",
+)
+parser.add_argument(
+    "--submitit_folder",
+    type=str,
+    help="location to save submitit logs; if not specified, uses the value of --folder",
+    default=None,
 )
 parser.add_argument("--checkpoint", type=str, help="location of pretrained ckpt")
 parser.add_argument("--model_name", type=str, help="Model name")
@@ -56,20 +56,26 @@ parser.add_argument(
 parser.add_argument(
     "--account",
     type=str,
-    default="jepa",
-    help="Cluster account to use when submitting jobs",
+    default=None,
+    help="SLURM account to use when submitting jobs",
 )
 parser.add_argument(
     "--partition",
     type=str,
-    default="learn",
-    help="cluster partition to submit jobs on",
+    default=None,
+    help="SLURM partition to use when submitting jobs",
 )
 parser.add_argument(
     "--qos",
     type=str,
-    default="lowest",
-    help="If specified, qos value to use when submitting jobs",
+    default=None,
+    help="SLURM QoS to use when submitting jobs",
+)
+parser.add_argument(
+    "--array-parallelism",
+    type=int,
+    default=64,
+    help="Maximum number of concurrent jobs in the array",
 )
 parser.add_argument("--time", type=int, default=4300, help="time in minutes to run job")
 parser.add_argument("--use_fsdp", action="store_true")
@@ -122,8 +128,8 @@ def copy_code_folder(code_folder, ignore_patterns, ignore_paths):
 def launch_evals_with_parsed_args(
     args_for_evals,
     submitit_folder,
-    account="jepa",
-    partition="learn",
+    account=None,
+    partition=None,
     qos=None,
     timeout=4300,
     nodes=1,
@@ -135,6 +141,7 @@ def launch_evals_with_parsed_args(
     save_configs=False,
     dependency=None,
     copy_code=False,
+    array_parallelism=64,
 ):
     if not isinstance(args_for_evals, list):
         logger.info(f"Passed in eval-args of type {type(args_for_evals)}")
@@ -175,7 +182,7 @@ def launch_evals_with_parsed_args(
         slurm_account=account,
         slurm_qos=qos,
         slurm_mem_per_gpu=mem_per_gpu,
-        slurm_array_parallelism=64,
+        slurm_array_parallelism=array_parallelism,
         timeout_min=timeout,
         nodes=nodes,
         tasks_per_node=tasks_per_node,
@@ -253,6 +260,9 @@ def launch_evals():
             cpus_per_task = _params.get("cpus_per_task", 32)
             configs += [_params]
 
+    # Use submitit_folder if specified, otherwise fall back to args.folder
+    submitit_folder = args.submitit_folder if args.submitit_folder is not None else args.folder
+
     logger.info(f"Loaded {len(configs)} config files")
     logger.info(f"Running all jobs with {nodes=} / {tasks_per_node=}")
     # ---------------------------------------------------------------------- #
@@ -263,7 +273,7 @@ def launch_evals():
     launch_evals_with_parsed_args(
         args_for_evals=configs,
         account=args.account,
-        submitit_folder=args.folder,
+        submitit_folder=submitit_folder,
         partition=args.partition,
         qos=args.qos,
         mem_per_gpu=mem_per_gpu,
@@ -273,6 +283,7 @@ def launch_evals():
         cpus_per_task=cpus_per_task,
         exclude_nodes=args.exclude,
         copy_code=args.copy_code,
+        array_parallelism=args.array_parallelism,
     )
     # ---------------------------------------------------------------------- #
 

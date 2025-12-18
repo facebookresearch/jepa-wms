@@ -1,9 +1,6 @@
 """A pointmass maze env."""
 
-import random
-
 import gym
-import matplotlib.pyplot as plt
 import numpy as np
 from d4rl import offline_env
 from gym import utils

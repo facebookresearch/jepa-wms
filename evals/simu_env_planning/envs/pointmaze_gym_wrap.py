@@ -1,5 +1,4 @@
 import gym
-import matplotlib.pyplot as plt
 import numpy as np
 
 from evals.simu_env_planning.envs.pointmaze_env.maze_model import MazeEnv

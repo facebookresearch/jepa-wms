@@ -1,5 +1,6 @@
 import os
 from time import time
+
 import numpy as np
 import torch
 from einops import rearrange
@@ -22,7 +23,6 @@ from evals.simu_env_planning.planning.utils import (
     save_init_goal_frame,
 )
 from evals.utils import prepare_obs
-
 from src.utils.logging import get_logger
 
 log = get_logger(__name__)

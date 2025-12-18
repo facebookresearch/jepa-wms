@@ -6,7 +6,6 @@ import gym
 import numpy as np
 import torch
 
-from ..data.single import DotDataset
 from ..data.wall import WallDatasetConfig
 from ..data.wall_utils import generate_wall_layouts
 from .utils import check_wall_intersect

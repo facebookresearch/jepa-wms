@@ -110,7 +110,7 @@ def make_env(
     fix_wall_location=32,
     fix_door_location=10,
     device="cpu",
-    **kwargs
+    **kwargs,
 ):
     if not cfg.task_specification.task.startswith("wall-"):
         raise ValueError("Unknown task:", cfg.task_specification.task)
@@ -123,7 +123,7 @@ def make_env(
         fix_wall_location=fix_wall_location,
         fix_door_location=fix_door_location,
         device=device,
-        **kwargs
+        **kwargs,
     )
     # rng=cfg.rng, wall_config=cfg.wall_config, fix_wall=cfg.fix_wall,
     #   cross_wall=cfg.cross_wall, fix_wall_location=cfg.fix_wall_location,

@@ -1,6 +1,12 @@
 """
 Generate evaluation configs for different environments.
 
+This script generates config files to run planning evals. It works by:
+1. Reading a template config from the new directory structure:
+   configs/dump_online_evals/{env}/ (e.g., droid/, pt/, rcasa_custom/, etc.)
+2. Iterating over all requested variants, planners, objectives, epochs
+3. Outputting configs to --out-dir (defaults to configs/cwtemp)
+
 Usage:
     python -m evals.simu_env_planning.run_eval_grid --env droid
     python -m evals.simu_env_planning.run_eval_grid --env metaworld
@@ -25,10 +31,24 @@ yaml_rt.preserve_quotes = True
 # ============================================================================
 # Environment presets - each defines: variants (primary dimension), planners,
 # objectives, epochs, and how to apply variant-specific config changes.
+#
+# The configs follow the new directory structure:
+#   configs/dump_online_evals/{env}/  - for already-dumped configs
+#   configs/online_plan_evals/{env}/  - for template configs (used as fallback)
+# where {env} is the environment-specific directory (droid, pt, mz, wall, mw, rcasa_custom)
 # ============================================================================
+
+
+def _get_config_path(dump_path: str, template_path: str) -> Path:
+    """Return dump_path if it exists, otherwise fall back to template_path."""
+    dump = Path(dump_path)
+    template = Path(template_path)
+    return dump if dump.exists() else template
+
+
 ENV_PRESETS = {
     "droid": {
-        "default_conf": Path("configs/dump_online_evals/vjepa_wm/dset_ng_L2.yaml"),
+        "default_conf": Path("configs/dump_online_evals/droid/droid_L2_ng_sourcedset_H1_nas1_maxnorm01_ctxt2_gH1.yaml"),
         "variants": [("H1", 1), ("H3", 3), ("H6", 6)],
         "planners": [("ng", "nevergrad"), ("cem", "cem")],
         "objectives": [("L1", "repr_l1"), ("L2", "repr_dist")],
@@ -40,7 +60,11 @@ ENV_PRESETS = {
         or conf["task_specification"].update({"goal_H": v[1]}),
     },
     "metaworld": {
-        "default_conf": Path("configs/dump_online_evals/vjepa_wm/dset_ng_L2.yaml"),
+        # Template configs are in online_plan_evals/mw/; dump configs may not exist yet
+        "default_conf": _get_config_path(
+            "configs/dump_online_evals/mw/reach_L2_cem_sourcexp_H6_nas3_ctxt2.yaml",
+            "configs/online_plan_evals/mw/reach_L2_cem_sourcexp_H6_nas3_ctxt2.yaml",
+        ),
         "variants": [("reach-wall", "mw-reach-wall"), ("reach", "mw-reach")],
         "planners": [("ng", "nevergrad"), ("cem", "cem")],
         "objectives": [("L1", "repr_l1"), ("L2", "repr_dist")],
@@ -49,7 +73,9 @@ ENV_PRESETS = {
         "apply_variant": lambda conf, v: conf["task_specification"].update({"task": v[1]}),
     },
     "robocasa": {
-        "default_conf": Path("configs/dump_online_evals/vjepa_wm/dset_ng_L2.yaml"),
+        "default_conf": Path(
+            "configs/dump_online_evals/rcasa_custom/reach_L2_cem_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2.yaml"
+        ),
         "variants": [(s, s) for s in ["reach", "pick", "place", "reach-pick", "pick-place", "reach-pick-place"]],
         "planners": [("cem", "cem")],
         "objectives": [("L1", "repr_l1"), ("L2", "repr_dist")],
@@ -58,7 +84,11 @@ ENV_PRESETS = {
         "apply_variant": lambda conf, v: conf["task_specification"]["env"].update({"subtask": v[1]}),
     },
     "maze": {
-        "default_conf": Path("configs/dump_online_evals/vjepa_wm/dset_ng_L2.yaml"),
+        # Template configs are in online_plan_evals/mz/; dump configs may not exist yet
+        "default_conf": _get_config_path(
+            "configs/dump_online_evals/mz/mz_L2_ng_sourcerandstate_H6_nas6_ctxt2.yaml",
+            "configs/online_plan_evals/mz/ng/mz_L2_ng_sourcerandstate_H6_nas6_ctxt2.yaml",
+        ),
         "variants": [("randstate", "random_state")],
         "planners": [("ng", "nevergrad"), ("cem", "cem")],
         "objectives": [("L1", "repr_l1"), ("L2", "repr_dist")],
@@ -67,7 +97,7 @@ ENV_PRESETS = {
         "apply_variant": lambda conf, v: conf["task_specification"].update({"goal_source": v[1]}),
     },
     "pusht": {
-        "default_conf": Path("configs/dump_online_evals/vjepa_wm/dset_ng_L2.yaml"),
+        "default_conf": Path("configs/dump_online_evals/pt/pt_L2_ng_sourcedset_H6_nas6_ctxt2.yaml"),
         "variants": [("dset", "dset")],
         "planners": [("ng", "nevergrad"), ("cem", "cem")],
         "objectives": [("L1", "repr_l1"), ("L2", "repr_dist")],
@@ -76,7 +106,11 @@ ENV_PRESETS = {
         "apply_variant": lambda conf, v: conf["task_specification"].update({"goal_source": v[1]}),
     },
     "wall": {
-        "default_conf": Path("configs/dump_online_evals/vjepa_wm/dset_ng_L2.yaml"),
+        # Template configs are in online_plan_evals/wall/; dump configs may not exist yet
+        "default_conf": _get_config_path(
+            "configs/dump_online_evals/wall/wall_L2_ng_sourcerandstate_H6_nas6_ctxt2.yaml",
+            "configs/online_plan_evals/wall/ng/wall_L2_ng_sourcerandstate_H6_nas6_ctxt2.yaml",
+        ),
         "variants": [("randstate", "random_state")],
         "planners": [("ng", "nevergrad"), ("cem", "cem")],
         "objectives": [("L1", "repr_l1"), ("L2", "repr_dist")],
@@ -134,7 +168,12 @@ def main():
     parser.add_argument("--config", type=Path, default=None, help="Override default config file")
     parser.add_argument("--planner", type=str, choices=["ng", "cem"], help="Filter to a single planner")
     parser.add_argument("--objective", type=str, choices=["L1", "L2"], help="Filter to a single objective")
-    parser.add_argument("--variant", type=str, nargs="+", help="Filter to specific variants (e.g., --variant H1 H3 for droid, --variant reach place for robocasa)")
+    parser.add_argument(
+        "--variant",
+        type=str,
+        nargs="+",
+        help="Filter to specific variants (e.g., --variant H1 H3 for droid, --variant reach place for robocasa)",
+    )
     args = parser.parse_args()
 
     os.makedirs(args.out_dir, exist_ok=True)

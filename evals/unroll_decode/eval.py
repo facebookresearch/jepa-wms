@@ -20,9 +20,7 @@ import importlib
 import logging
 import os
 
-import imageio
 import lpips as lpips_lib
-import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import torch.multiprocessing as mp
@@ -30,7 +28,7 @@ import yaml
 from einops import rearrange
 from tensordict.tensordict import TensorDict
 
-from evals.utils import make_datasets, prepare_obs, save_image, save_video, log_media_local
+from evals.utils import log_media_local, make_datasets, prepare_obs
 from src.utils.logging import CSVLogger
 
 # Set CUDA device for distributed training
@@ -199,9 +197,7 @@ def main(args_eval, resume_preempt=False):
 
     # Initialize dataloader
     batch_size = cfgs_data.get("loader", {}).get("batch_size", 4)
-    loader = torch.utils.data.DataLoader(
-        dset, batch_size=batch_size, shuffle=False, num_workers=0, drop_last=False
-    )
+    loader = torch.utils.data.DataLoader(dset, batch_size=batch_size, shuffle=False, num_workers=0, drop_last=False)
     logger.info("Initialized dataloader")
 
     # CSV logger setup
@@ -275,16 +271,24 @@ def main(args_eval, resume_preempt=False):
         # Unroll predictions
         predicted_encs = wm.unroll(z_ctxt, act_suffix=actions)
         predicted_encs_visual = predicted_encs["visual"] if expected_obs == "rgb_state" else predicted_encs
-        predicted_encs_proprio = predicted_encs["proprio"] if expected_obs == "rgb_state" and use_proprio_loss else None
+        predicted_encs_proprio = (
+            predicted_encs["proprio"] if expected_obs == "rgb_state" and use_proprio_loss else None
+        )
 
         predicted_noise_encs = wm.unroll(z_ctxt, act_suffix=noise_actions)
-        predicted_noise_encs_visual = predicted_noise_encs["visual"] if expected_obs == "rgb_state" else predicted_noise_encs
-        predicted_noise_encs_proprio = predicted_noise_encs["proprio"] if expected_obs == "rgb_state" and use_proprio_loss else None
+        predicted_noise_encs_visual = (
+            predicted_noise_encs["visual"] if expected_obs == "rgb_state" else predicted_noise_encs
+        )
+        predicted_noise_encs_proprio = (
+            predicted_noise_encs["proprio"] if expected_obs == "rgb_state" and use_proprio_loss else None
+        )
 
         # Compute losses
         val_rollout_result = {}
         for h in range(1, len(predicted_encs_visual)):
-            pred_proprio_h = predicted_encs_proprio.transpose(1, 0)[:, h : h + 1] if predicted_encs_proprio is not None else None
+            pred_proprio_h = (
+                predicted_encs_proprio.transpose(1, 0)[:, h : h + 1] if predicted_encs_proprio is not None else None
+            )
             gt_proprio_h = z_gt_proprio[:, h : h + 1] if z_gt_proprio is not None else None
             losses = wm.model.compute_loss(
                 predicted_encs_visual.transpose(1, 0)[:, h : h + 1],
@@ -294,7 +298,11 @@ def main(args_eval, resume_preempt=False):
                 shift=0,
                 reduce_mean=True,
             )
-            noisy_pred_proprio_h = predicted_noise_encs_proprio.transpose(1, 0)[:, h : h + 1] if predicted_noise_encs_proprio is not None else None
+            noisy_pred_proprio_h = (
+                predicted_noise_encs_proprio.transpose(1, 0)[:, h : h + 1]
+                if predicted_noise_encs_proprio is not None
+                else None
+            )
             noisy_losses = wm.model.compute_loss(
                 predicted_noise_encs_visual.transpose(1, 0)[:, h : h + 1],
                 noisy_pred_proprio_h,
@@ -311,7 +319,9 @@ def main(args_eval, resume_preempt=False):
         rgb, rgb_noised, animation = None, None, None
         if "image_head" in wm.heads:
             eval_image_samples = torch.from_numpy(wm.decode_unroll(predicted_encs, batch=True)).unsqueeze(2)
-            noisy_eval_image_samples = torch.from_numpy(wm.decode_unroll(predicted_noise_encs, batch=True)).unsqueeze(2)
+            noisy_eval_image_samples = torch.from_numpy(wm.decode_unroll(predicted_noise_encs, batch=True)).unsqueeze(
+                2
+            )
 
             # Compute LPIPS scores (using pre-initialized lpips)
             for h in range(1, len(predicted_encs_visual)):
@@ -320,7 +330,8 @@ def main(args_eval, resume_preempt=False):
                     clips[:, h].to(wm.device, dtype=torch.float32) / 255.0,
                 ).mean()
                 noisy_v = lpips(
-                    noisy_eval_image_samples.squeeze(2)[:, h].permute(0, 3, 1, 2).to(wm.device, dtype=torch.float32) / 255.0,
+                    noisy_eval_image_samples.squeeze(2)[:, h].permute(0, 3, 1, 2).to(wm.device, dtype=torch.float32)
+                    / 255.0,
                     clips[:, h].to(wm.device, dtype=torch.float32) / 255.0,
                 ).mean()
                 val_rollout_result[f"val_rollout/lpips/{h}"] = v.detach().cpu().item()
@@ -373,7 +384,9 @@ def main(args_eval, resume_preempt=False):
             "visual": preprocessor.transform(torch.tensor(visual).permute(0, 1, 4, 2, 3).float() / 255.0).to(device),
             "proprio": torch.tensor(proprio).float().to(device),
         }
-        action = torch.tensor(poses_to_diffs(obs["proprio"].squeeze().cpu())).unsqueeze(0).to(device, dtype=torch.float32)
+        action = (
+            torch.tensor(poses_to_diffs(obs["proprio"].squeeze().cpu())).unsqueeze(0).to(device, dtype=torch.float32)
+        )
 
         rgb, rgb_noised, animation, eval_rollout_result = val_rollout(obs, action)
 

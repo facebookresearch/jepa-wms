@@ -7,11 +7,12 @@
 """
 Common utilities for evaluation scripts.
 """
-import os
-import numpy as np
-import matplotlib.pyplot as plt
 import logging
+import os
+
 import imageio
+import matplotlib.pyplot as plt
+import numpy as np
 
 from app.plan_common.datasets.preprocessor import Preprocessor
 from app.plan_common.datasets.transforms import make_inverse_transforms, make_transforms
@@ -141,6 +142,7 @@ def prepare_obs(obs_type, td):
         return td["visual"]
     else:
         raise ValueError(f"Unknown observation type: {obs_type}")
+
 
 def save_image(img_array, path):
     """Save image array to PDF file."""

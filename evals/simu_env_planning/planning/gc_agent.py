@@ -10,9 +10,9 @@ from evals.simu_env_planning.planning.planning.objectives import (
 )
 from evals.simu_env_planning.planning.planning.planner import (
     CEMPlanner,
+    GradientDescentPlanner,
     MPPIPlanner,
     NevergradPlanner,
-    GradientDescentPlanner,
 )
 from src.utils.logging import get_logger
 
