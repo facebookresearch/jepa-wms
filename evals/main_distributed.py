@@ -23,7 +23,7 @@ logger = get_logger(force=True)
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
-    "--use_config_folder", action="store_true", help="If specified, use the folder specified in the config"
+    "--use_config_folder", action="store_true", default=True, help="If specified, use the folder specified in the config"
 )
 parser.add_argument(
     "--folder",

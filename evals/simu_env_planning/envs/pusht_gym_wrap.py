@@ -101,7 +101,7 @@ def make_env(cfg, env_cls=None):
     env = PushTEnv(
         with_velocity=cfg.task_specification.env.with_velocity,
         with_target=cfg.task_specification.env.with_target,
-        render_size=cfg.task_specification.img_size,
+        # render_size=cfg.task_specification.img_size,
     )
     # kwargs from dino-wm codebase, env/__init__.py
     env = PushTWrapper(env, cfg)

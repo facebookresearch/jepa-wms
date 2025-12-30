@@ -53,7 +53,7 @@ def make_video_mp4(images, fps, output_path, obs_concat_channels=True):
         writer.append_data(img)
 
     writer.close()
-    print(f"Video saved to {output_path}")
+    log.info(f"🎬 Video saved to {output_path}")
 
 
 def make_video_gif(images, fps, output_path, obs_concat_channels=True):
@@ -65,7 +65,7 @@ def make_video_gif(images, fps, output_path, obs_concat_channels=True):
         writer.append_data(img)
 
     writer.close()
-    print(f"GIF saved to {output_path}")
+    log.info(f"🎞️  GIF saved to {output_path}")
 
 
 def make_video_pdf(images, output_path, obs_concat_channels=True):
@@ -102,7 +102,7 @@ def make_video_pdf(images, output_path, obs_concat_channels=True):
     # Save without any padding
     plt.savefig(output_path, format="pdf", bbox_inches="tight", pad_inches=0)
     plt.close(fig)
-    print(f"PDF saved to {output_path}")
+    log.info(f"📄 PDF saved to {output_path}")
 
 
 def save_init_goal_frame(init_obs, goal_obs, vis_work_dir=None, concat_channels=False):
@@ -249,7 +249,7 @@ def save_decoded_frames(pred_frames_over_iterations, costs, plan_vis_path, overl
         filename = f"{plan_vis_path}.gif"
         duration = 0.1
         imageio.mimsave(filename, frames, duration=duration, loop=0)
-        log.info(f"Plan decoding video saved to {plan_vis_path}")
+        log.info(f"🎬 Plan decoding video saved to {plan_vis_path}")
 
         # Save last iteration frames as PDF
         last_pred_frames = pred_frames_over_iterations[-1]
@@ -333,7 +333,7 @@ def compute_task_distribution(cfg):
         start_episode = cfg.rank * episodes_per_rank + min(cfg.rank, extra_episodes)
         # GPUs with a rank less than extra_episodes will handle one additional episode
         end_episode = start_episode + episodes_per_rank + (1 if cfg.rank < extra_episodes else 0)
-        print(f"Rank {cfg.rank}: {start_episode=}, {end_episode=}")
+        log.info(f"📊 Rank {cfg.rank}: episodes [{start_episode}→{end_episode}] ({end_episode - start_episode} total)")
         task_indices = []
         episodes_per_task = []
 

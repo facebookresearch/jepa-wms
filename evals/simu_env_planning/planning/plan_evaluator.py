@@ -233,8 +233,11 @@ class PlanEvaluator:
                     "obj_lift": infos[-1].get("obj_lift", -1.0),
                 }
             )
-            log.info(f"obj_initial_height {infos[-1].get('obj_initial_height', -1.0)}")
-            log.info(f"obj_up_once {infos[-1].get('obj_up_once', -1.0)}")
+            # Log robocasa-specific metrics only if they have meaningful values
+            obj_initial_height = infos[-1].get('obj_initial_height', -1.0)
+            obj_up_once = infos[-1].get('obj_up_once', -1.0)
+            if obj_initial_height != -1.0 or obj_up_once != -1.0:
+                log.info(f"📊 RoboCasa metrics: obj_initial_height={obj_initial_height:.2f}, obj_up_once={obj_up_once}")
             # We cannot step actions so cannot replan in the DROID case
             if "droid" in self.cfg.task_specification.task:
                 done = True

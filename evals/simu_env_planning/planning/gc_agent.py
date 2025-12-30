@@ -9,6 +9,7 @@ from evals.simu_env_planning.planning.planning.objectives import (
     ReprTargetDistMPCObjective,
 )
 from evals.simu_env_planning.planning.planning.planner import (
+    AdamPlanner,
     CEMPlanner,
     GradientDescentPlanner,
     MPPIPlanner,
@@ -28,7 +29,7 @@ class GC_Agent:
     def __init__(self, cfg, model, dset=None, preprocessor=None):
         self.cfg = cfg
         self.device = torch.device("cuda", index=0)
-        logger.info("starting WorldModel construction")
+        logger.info("🏗️  Initializing GC_Agent with WorldModel")
         self.model = model
         self.dset = dset
         if hasattr(self.dset, "frames_per_clip") and cfg.task_specification.goal_source == "dset":
@@ -78,6 +79,15 @@ class GC_Agent:
                 decode_unroll=self.model.decode_unroll,
                 **self.cfg.planner,
             )
+        elif self.cfg.planner.planner_name == "adam":
+            self.planner = AdamPlanner(
+                unroll=self.model.unroll,
+                action_dim=self.model.action_dim,
+                action_masks=None,
+                local_generator=self.local_gpu_generator,
+                decode_unroll=self.model.decode_unroll,
+                **self.cfg.planner,
+            )
         else:
             raise ValueError(f"Unknown planner: {self.cfg.planner}")
 
@@ -90,12 +100,12 @@ class GC_Agent:
         assert goal_state is not None, "Goal state must be set first for gc agent."
         self.goal_state = goal_state.unsqueeze(0)
         self.goal_state_enc = self.model.encode(self.goal_state, act=False).detach()
-        if self.cfg.planner.planning_objective.objective_type == "repr_dist":
+        if self.cfg.planner.planning_objective.objective_type == "L2":
             # Careful: unsqueeze applies to TensorDicts
             self.objective = ReprTargetDistMPCObjective(
                 self.cfg, target_enc=self.goal_state_enc, **self.cfg.planner.planning_objective
             )
-        elif self.cfg.planner.planning_objective.objective_type == "repr_l1":
+        elif self.cfg.planner.planning_objective.objective_type == "L1":
             self.objective = ReprTargetDistL1MPCObjective(
                 self.cfg, target_enc=self.goal_state_enc, **self.cfg.planner.planning_objective
             )
