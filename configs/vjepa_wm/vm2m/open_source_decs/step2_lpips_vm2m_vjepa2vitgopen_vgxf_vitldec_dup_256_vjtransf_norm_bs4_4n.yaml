@@ -183,7 +183,7 @@ optimization:
       warmup: 0
       num_epochs: 80
       iterations_per_epoch: 1000
-      clip_grad: 1.0
+      clip_grad: 1
       mixed_precision: true
 evals:
   eval_cfg_paths:

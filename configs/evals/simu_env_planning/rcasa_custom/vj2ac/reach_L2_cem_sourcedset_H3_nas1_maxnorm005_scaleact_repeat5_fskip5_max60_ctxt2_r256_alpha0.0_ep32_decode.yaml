@@ -255,6 +255,6 @@ planner:
   decode_each_iteration: true
   distribute_planner: false
   planning_objective:
-    objective_type: repr_dist
+    objective_type: L2
     sum_all_diffs: false
     alpha: 0.0

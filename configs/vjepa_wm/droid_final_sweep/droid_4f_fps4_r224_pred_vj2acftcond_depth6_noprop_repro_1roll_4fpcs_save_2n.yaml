@@ -215,7 +215,7 @@ optimization:
   transition_model:
     iterations_per_epoch: 300
     ipe_scale: 1.
-    clip_grad: 10.
+    clip_grad: 1
     use_radamw: false
     betas: [0.9, 0.999]
     eps: 1.e-8
@@ -230,7 +230,7 @@ optimization:
 evals:
   separate: true
   decode: true
-  eval_episodes: 16
+  eval_episodes: 32
   nodes: 1
   low_pri: true
   obs: rgb

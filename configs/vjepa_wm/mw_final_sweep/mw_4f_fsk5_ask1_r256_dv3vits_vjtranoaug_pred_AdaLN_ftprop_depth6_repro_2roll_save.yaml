@@ -78,7 +78,7 @@ loss:
   l2_loss_weight: 1.0
   smooth_l1_loss_weight: 0.0
 meta:
-  plan_only_eval_mode: false
+  plan_only_eval_mode: true
   light_eval_only_mode: false
   quick_debug: false
   freeze_encoder: true
@@ -179,7 +179,7 @@ optimization:
   transition_model:
     iterations_per_epoch: null
     ipe_scale: 1.
-    clip_grad: 10.
+    clip_grad: 1
     use_radamw: false
     betas: [0.9, 0.999]
     eps: 1.e-8
@@ -198,6 +198,7 @@ evals:
   low_pri: true
   obs: rgb_state
   alpha: 0.1
+  dump_eval_configs: true
   eval_cfg_paths:
     - configs/online_plan_evals/mw/ng/reach_L2_ng_sourcexp_H6_nas3_ctxt2.yaml
     - configs/online_plan_evals/mw/reach_L2_cem_sourcexp_H6_nas3_ctxt2.yaml

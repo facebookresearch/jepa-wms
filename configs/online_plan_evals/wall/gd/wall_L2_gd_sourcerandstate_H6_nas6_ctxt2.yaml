@@ -22,10 +22,11 @@ logging:
 model_kwargs:
   module_name:
   checkpoint:
-  pretrain_kwargs:
-    data: {}
+  pretrain_kwargs: {}
+  data: {}
+  data_aug: {}
+  wrapper_kwargs:
     ctxt_window: 2
-    data_aug: {}
 task_specification:
   task: wall-base
   obs: rgb
@@ -46,13 +47,13 @@ planner:
   action_noise: 0.003
   sample_type: randn
   lr: 1
-  iterations: 1000
+  iterations: 500
   horizon: 6
   num_act_stepped: 6
   repeat_actskip: false
   decode_each_iteration: false
   distribute_planner: false
   planning_objective:
-    objective_type: repr_dist
+    objective_type: L2
     sum_all_diffs: false
     alpha: 0.0
