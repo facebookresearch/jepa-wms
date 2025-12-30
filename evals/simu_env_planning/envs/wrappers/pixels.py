@@ -50,6 +50,15 @@ class PixelWrapper(gym.Wrapper):
     def get_proprios(self):
         return torch.stack([torch.tensor(proprio) for proprio in self._proprios])
 
+        # proprios = []
+        # for proprio in self._proprios:
+        #     if isinstance(proprio, torch.Tensor):
+        #         proprios.append(proprio.detach().clone())
+        #     else:
+        #         # numpy array, list, or scalar
+        #         proprios.append(torch.tensor(proprio))
+        # return torch.stack(proprios)
+
     def reset(self, task_idx=None, *args, **kwargs):
         """
         same frame repeated self._frames.maxlen times

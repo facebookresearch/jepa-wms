@@ -61,6 +61,7 @@ def main(args_eval, resume_preempt=False):
     args_pretrain = args_eval.get("model_kwargs")
     module_name = args_pretrain.get("module_name")
     pretrain_folder = args_eval.get("folder", None)
+    checkpoint_folder = args_eval.get("checkpoint_folder", pretrain_folder)
 
     # -- log/checkpointing paths
     folder = os.path.join(pretrain_folder, "simu_env_planning/")
@@ -73,7 +74,7 @@ def main(args_eval, resume_preempt=False):
     yaml_file_path = os.path.join(folder, "args_eval.yaml")
     with open(yaml_file_path, "w") as yaml_file:
         yaml.dump(args_eval, yaml_file, default_flow_style=False)
-    log.info(f"Saved args_eval to {yaml_file_path}")
+    log.info(f"📁 Saved args_eval to {yaml_file_path}")
 
     # -- Distributed
     try:
@@ -87,13 +88,12 @@ def main(args_eval, resume_preempt=False):
         device = torch.device("cuda:0")
         torch.cuda.set_device(device)
     world_size, rank = init_distributed()
-    log.info(f"Initialized (rank/world-size) {rank}/{world_size}")
+    log.info(f"🚀 Initialized (rank/world-size) {rank}/{world_size}")
     model_kwargs = args_eval["model_kwargs"]
 
     # -- Initialize model
     if importlib.util.find_spec(module_name) is None:
         raise NotImplementedError(f"Module {module_name} not found")
-    log.info(f"Module found: {module_name}")
     cfgs_data = model_kwargs.get("data", {})
     cfgs_data_aug = model_kwargs.get("data_aug", {})
     wrapper_kwargs = model_kwargs.get("wrapper_kwargs", {})
@@ -103,7 +103,7 @@ def main(args_eval, resume_preempt=False):
     args_eval["work_dir"] = folder
     checkpoint = args_eval["model_kwargs"].get("checkpoint")
     model = init_module(
-        folder=pretrain_folder,
+        folder=checkpoint_folder,
         checkpoint=checkpoint,
         module_name=module_name,
         model_kwargs=pretrain_kwargs,
@@ -114,7 +114,7 @@ def main(args_eval, resume_preempt=False):
         proprio_dim=dset.proprio_dim,
         preprocessor=preprocessor,
     )
-    log.info("Loaded encoder and predictor")
+    log.info("✅ Loaded encoder and predictor")
 
     # -- Launch eval
     main_distributed_episodes_eval(args_eval, model=model, dset=dset, preprocessor=preprocessor, rank=rank)
@@ -141,12 +141,20 @@ def main_distributed_episodes_eval(cfg: dict, model=None, dset=None, preprocesso
     cfg.active_ranks = [i for i in range(cfg.world_size)]
     log.info(f"{cfg.active_ranks=}")
     if cfg.rank == 0:
-        log.info(f"{'Work dir:'} {cfg.work_dir}")
+        log.info(f"📂 Work dir: {cfg.work_dir}")
     cfg.task_specification.goal_source = cfg.task_specification.get("goal_source", "expert")
+
+    # Check if we're using the full DINO-WM path
+    use_dino_wm_planner = cfg.planner.get("use_dino_wm_planner", False)
+    load_dino_wm_modules = cfg.model_kwargs.pretrain_kwargs.get("load_dino_wm_modules", False)
+
     # DEFINE cfg.action_ratio := simu_actions / wm_fw_passes
     # TODO, replace all mentions of cfg.frameskip by cfg.action_ratio in the logging logic
     # of this script
-    if cfg.planner.repeat_actskip:
+    if load_dino_wm_modules and use_dino_wm_planner:
+        # Full DINO-WM path: VWorldModel doesn't have action_skip
+        cfg.action_ratio = cfg.frameskip
+    elif cfg.planner.repeat_actskip:
         cfg.action_ratio = 1
     else:
         cfg.action_ratio = cfg.frameskip // model.action_skip
@@ -190,12 +198,79 @@ def main_distributed_episodes_eval(cfg: dict, model=None, dset=None, preprocesso
     # Build Logger, Agent, and start the evaluation loop
     logger = Logger(cfg)
 
-    agent = GC_Agent(cfg, model, dset=dset, preprocessor=preprocessor)
+    # Compute task distribution before creating evaluator
     cfg.task_indices, cfg.episodes_per_task = compute_task_distribution(cfg)
     log.info(f"Rank {cfg.rank}: \n {cfg.task_indices=} \n {cfg.episodes_per_task=}")
-    # The multitask wrapper allows to iterate over the task-specific envs
-    env = make_env(cfg)
-    evaluator = PlanEvaluator(cfg, agent)
+
+    # Choose between DINO-WM style evaluator and standard evaluator
+    use_dino_wm_planner = cfg.planner.get("use_dino_wm_planner", False)
+
+    if load_dino_wm_modules and use_dino_wm_planner:
+        # Full DINO-WM path: skip GC_Agent, use DINO-WM planning infrastructure directly
+        log.info("🔧 Using full DINO-WM path - skipping GC_Agent creation")
+        agent = None  # Agent is not used in the full DINO-WM path
+
+        # Import DINO-WM modules only when needed (to avoid registering gym envs unconditionally)
+        from evals.simu_env_planning.planning.dino_wm_plan_evaluator import (
+            DinoWMPlanEvaluatorWrapper,
+            load_dino_wm_dataset,
+            make_dino_wm_env,
+        )
+
+        # Create DINO-WM style environment (vectorized environment from evals/dino_wm_plan)
+        dino_wm_env = make_dino_wm_env(cfg, n_envs=1)
+
+        # Load DINO-WM dataset if use_dino_wm_dsets is enabled
+        use_dino_wm_dsets = cfg.task_specification.get("use_dino_wm_dsets", False)
+        if use_dino_wm_dsets:
+            log.info("📊 Loading DINO-WM dataset for trajectory sampling")
+            dino_wm_dset = load_dino_wm_dataset(cfg)
+            log.info(f"✅ Loaded DINO-WM dataset with {len(dino_wm_dset)} trajectories")
+        else:
+            dino_wm_dset = None
+
+        # Create a minimal agent-like object that holds the VWorldModel
+        class DinoWMAgentShim:
+            """Minimal agent shim for DINO-WM VWorldModel."""
+            def __init__(self, vworld_model, dset, preprocessor):
+                self.model = vworld_model
+                self.dset = dset
+                self.preprocessor = preprocessor
+                self.local_generator = torch.Generator(device="cpu")
+                self.local_generator.manual_seed(cfg.local_seed)
+
+        agent = DinoWMAgentShim(model, dset, preprocessor)
+        log.info("🤖 Using DINO-WM style plan evaluator (DinoWMPlanEvaluatorWrapper)")
+        evaluator = DinoWMPlanEvaluatorWrapper(cfg, agent, dino_wm_env=dino_wm_env, dino_wm_dset=dino_wm_dset)
+    else:
+        # Standard path: use GC_Agent
+        agent = GC_Agent(cfg, model, dset=dset, preprocessor=preprocessor)
+
+        if use_dino_wm_planner:
+            # Import DINO-WM modules only when needed (to avoid registering gym envs unconditionally)
+            from evals.simu_env_planning.planning.dino_wm_plan_evaluator import (
+                DinoWMPlanEvaluatorWrapper,
+                load_dino_wm_dataset,
+                make_dino_wm_env,
+            )
+
+            log.info("🤖 Using DINO-WM style plan evaluator (DinoWMPlanEvaluatorWrapper)")
+            # Create DINO-WM style environment (vectorized environment from evals/dino_wm_plan)
+            dino_wm_env = make_dino_wm_env(cfg, n_envs=1)
+
+            # Load DINO-WM dataset if use_dino_wm_dsets is enabled
+            use_dino_wm_dsets = cfg.task_specification.get("use_dino_wm_dsets", False)
+            if use_dino_wm_dsets:
+                log.info("📊 Loading DINO-WM dataset for trajectory sampling")
+                dino_wm_dset = load_dino_wm_dataset(cfg)
+                log.info(f"✅ Loaded DINO-WM dataset with {len(dino_wm_dset)} trajectories")
+            else:
+                dino_wm_dset = None
+
+            evaluator = DinoWMPlanEvaluatorWrapper(cfg, agent, dino_wm_env=dino_wm_env, dino_wm_dset=dino_wm_dset)
+        else:
+            log.info("🎮 Using standard plan evaluator (PlanEvaluator)")
+            evaluator = PlanEvaluator(cfg, agent)
     results = dict()
     processed_episodes = set()
     for task_pos, (task_idx, episodes) in enumerate(zip(cfg.task_indices, cfg.episodes_per_task)):
@@ -229,7 +304,7 @@ def main_distributed_episodes_eval(cfg: dict, model=None, dset=None, preprocesso
         # We want each episode to be independent from the others, even of the same task
         for i, ep in enumerate(episodes):
             log.info(
-                f"Evaluating task {cfg.tasks[task_idx]}, episode ({i + 1}/{len(cfg.episodes_per_task[task_pos])})"
+                f"🎯 Evaluating task {cfg.tasks[task_idx]}, episode ({i + 1}/{len(cfg.episodes_per_task[task_pos])})"
             )
             episode_start_time = time()
             (

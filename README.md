@@ -184,7 +184,7 @@ wget https://mujoco.org/download/mujoco210-linux-x86_64.tar.gz
 tar -xzvf mujoco210-linux-x86_64.tar.gz
 
 # Add to ~/.bashrc
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/.mujoco/mujoco210/bin:/usr/lib/nvidia
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/.mujoco/mujoco210/bin
 source ~/.bashrc  # or ~/.zshrc
 
 # Verify installation

@@ -113,8 +113,8 @@ class NevergradPlanner(Planner):
             budget=self.iterations * self.num_samples,
             num_workers=self.num_samples,
         )
-        logger.info(f"Optimizer: {optimizer}")
-        logger.info(f"Optimizer info: {optimizer._info()}")
+        logger.info(f"⚙️  Optimizer: {optimizer}")
+        logger.info(f"   Optimizer info: {optimizer._info()}")
 
         # Check if NGOpt selected MetaModel - it causes numerical instability
         # due to polynomial regression overflow when loss variance is low.
@@ -131,7 +131,7 @@ class NevergradPlanner(Planner):
                 budget=self.iterations * self.num_samples,
                 num_workers=self.num_samples,
             )
-            logger.info(f"Replacement optimizer: {optimizer}")
+            logger.info(f"⚙️  Replacement optimizer: {optimizer}")
 
         if hasattr(optimizer, "optim"):
             if optimizer.optim.name in ["MetaModel", "CMApara"]:
@@ -161,14 +161,10 @@ class NevergradPlanner(Planner):
 
         for itr in range(self.iterations):
             candidates = [optimizer.ask() for _ in range(self.num_samples)]
-            candidate_values = torch.tensor([c.value for c in candidates], device=z_init.device, dtype=torch.float32)
+            candidate_values = torch.from_numpy(
+                np.array([c.value for c in candidates])
+            ).to(device=z_init.device, dtype=torch.float32)
             loss = self.cost_function(candidate_values.permute(1, 0, 2), z_init)
-
-            # Log raw loss values for debugging
-            if itr == 0:
-                logger.info(
-                    f"Raw loss stats - min: {loss.min().item():.6e}, max: {loss.max().item():.6e}, mean: {loss.mean().item():.6e}, std: {loss.std().item():.6e}"
-                )
 
             # Check for NaN or Inf values in loss
             if torch.isnan(loss).any() or torch.isinf(loss).any():
@@ -287,6 +283,8 @@ class CEMPlanner(Planner):
             actions[:, :] = mean.unsqueeze(1) + std.unsqueeze(1) * torch.randn(
                 plan_length, self.num_samples, self.action_dim, device=std.device, generator=self.local_generator
             )
+            # Mean sample inclusion trick to never loose best previous action
+            actions[:, 0, :] = mean
             # Apply clipping if max_norms is specified
             if self.max_norms is not None:
                 for h in range(plan_length):
@@ -478,16 +476,18 @@ class GradientDescentPlanner(Planner):
         unroll: Callable,
         action_dim: int,
         horizon: int,
-        iterations: int,
-        lr: float = 0.1,
-        action_noise: float = 0.0,
+        iterations: int = 500,
+        lr: float = 1,
+        action_noise: float = 0.003,
         sample_type: str = "randn",
         var_scale: float = 1,
+        max_norms: List[float] = None,
+        max_norm_dims: List[List[int]] = [[0, 1, 2], [6]],
         num_act_stepped: int = None,
         decode_each_iteration: bool = False,
         decode_unroll: Callable = None,
         optimizer_type: str = "sgd",
-        adam_betas: tuple = (0.9, 0.999),
+        adam_betas: tuple = (0.9, 0.995),
         adam_eps: float = 1e-8,
         **kwargs,
     ):
@@ -502,11 +502,13 @@ class GradientDescentPlanner(Planner):
             lr: Learning rate for gradient descent
             action_noise: Standard deviation of Gaussian noise to add after each gradient step
             sample_type: Type of action initialization ("randn" or "zero")
+            max_norms: List of maximum norm values for each group of dimensions (None to disable clipping)
+            max_norm_dims: List of dimension groups to clip (e.g., [[0, 1, 2], [6]])
             num_act_stepped: Number of actions to execute (default: all)
             decode_each_iteration: Whether to decode predictions at each iteration
             decode_unroll: Function to decode latent predictions to frames
             optimizer_type: Type of optimizer to use ("sgd" or "adam")
-            adam_betas: Betas for Adam optimizer (default: (0.9, 0.999))
+            adam_betas: Betas for Adam optimizer (default: (0.9, 0.995))
             adam_eps: Epsilon for Adam optimizer (default: 1e-8)
         """
         super().__init__(unroll)
@@ -517,6 +519,8 @@ class GradientDescentPlanner(Planner):
         self.action_noise = action_noise
         self.var_scale = var_scale
         self.sample_type = sample_type
+        self.max_norms = max_norms
+        self.max_norm_dims = max_norm_dims
         self.num_act_stepped = num_act_stepped
         self.decode_each_iteration = decode_each_iteration
         self.decode_unroll = decode_unroll
@@ -601,6 +605,11 @@ class GradientDescentPlanner(Planner):
                 if self.action_noise > 0:
                     actions_new += torch.randn_like(actions_new) * self.action_noise
 
+                # Apply clipping if max_norms is specified (similar to CEM)
+                if self.max_norms is not None:
+                    for dims, maxnorm in zip(self.max_norm_dims, self.max_norms):
+                        actions_new[:, :, dims] = torch.clip(actions_new[:, :, dims], min=-maxnorm, max=maxnorm)
+
                 actions.copy_(actions_new)
 
             # Reset gradients after manual update
@@ -630,6 +639,52 @@ class GradientDescentPlanner(Planner):
             predicted_best_encs_over_iterations=predicted_best_encs_over_iterations,
         )
         return result
+
+
+class AdamPlanner(GradientDescentPlanner):
+    """Adam optimizer-based planner for action optimization in latent space.
+
+    This is a convenience wrapper around GradientDescentPlanner with optimizer_type="adam".
+    """
+
+    def __init__(
+        self,
+        unroll: Callable,
+        action_dim: int,
+        horizon: int,
+        iterations: int = 500,
+        lr: float = 1,
+        action_noise: float = 0.003,
+        sample_type: str = "randn",
+        var_scale: float = 1,
+        max_norms: List[float] = None,
+        max_norm_dims: List[List[int]] = [[0, 1, 2], [6]],
+        num_act_stepped: int = None,
+        decode_each_iteration: bool = False,
+        decode_unroll: Callable = None,
+        adam_betas: tuple = (0.9, 0.995),
+        adam_eps: float = 1e-8,
+        **kwargs,
+    ):
+        super().__init__(
+            unroll=unroll,
+            action_dim=action_dim,
+            horizon=horizon,
+            iterations=iterations,
+            lr=lr,
+            action_noise=action_noise,
+            sample_type=sample_type,
+            var_scale=var_scale,
+            max_norms=max_norms,
+            max_norm_dims=max_norm_dims,
+            num_act_stepped=num_act_stepped,
+            decode_each_iteration=decode_each_iteration,
+            decode_unroll=decode_unroll,
+            optimizer_type="adam",
+            adam_betas=adam_betas,
+            adam_eps=adam_eps,
+            **kwargs,
+        )
 
 
 class FullGatherLayer(torch.autograd.Function):

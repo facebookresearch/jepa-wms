@@ -7,7 +7,16 @@ from evals.simu_env_planning.envs.wrappers.time_limit import TimeLimit
 
 
 class MetaWorldWrapper(gym.Wrapper):
-    def __init__(self, env, cfg=None):
+    def __init__(self, env, cfg=None, camera_fovy: float | None = None):
+        """
+        MetaWorld environment wrapper.
+
+        Args:
+            env: The MetaWorld environment to wrap.
+            cfg: Configuration object.
+            camera_fovy: Camera field of view in degrees. Lower values = more zoomed in.
+                        If None (default), uses the original camera FOV (60 degrees for corner2).
+        """
         super().__init__(env)
         self.env = env
         self.cfg = cfg
@@ -19,6 +28,9 @@ class MetaWorldWrapper(gym.Wrapper):
         self.env.height = cfg.task_specification.img_size
         self.env._freeze_rand_vec = self.cfg.task_specification.env.freeze_rand_vec
         self.action_dim = self.env.action_space.shape[0]
+        # Set camera FOV if specified (for zoom effect)
+        if camera_fovy is not None:
+            self.set_camera_fovy(camera_fovy)
 
         self.init_renderer()
 
@@ -35,6 +47,25 @@ class MetaWorldWrapper(gym.Wrapper):
             camera_id=None,
             camera_name=self.env.camera_name,
         )
+
+    def set_camera_fovy(self, fovy: float):
+        """
+        Set camera field of view to control zoom level.
+
+        Args:
+            fovy: Field of view in degrees. Lower values = more zoomed in.
+                  The default corner2 camera uses 60 degrees.
+                  Typical zoom values: 45 (slight zoom), 30 (moderate zoom), 20 (high zoom).
+        """
+        import mujoco
+
+        camera_id = mujoco.mj_name2id(
+            self.env.model, mujoco.mjtObj.mjOBJ_CAMERA, self.camera_name
+        )
+        if camera_id >= 0:
+            self.env.model.cam_fovy[camera_id] = fovy
+        else:
+            raise ValueError(f"Camera '{self.camera_name}' not found in model.")
 
     def reset(self, **kwargs):
         obs, info = super().reset(**kwargs)

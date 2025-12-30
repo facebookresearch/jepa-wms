@@ -56,6 +56,7 @@ def make_datasets(cfgs_data, cfgs_data_aug, world_size=1, rank=0, filter_first_e
         reprob=0.0,
         auto_augment=False,
         motion_shift=False,
+        normalize_before_resize=cfgs_data_aug.get("normalize_before_resize", False),
     )
     inverse_transform = make_inverse_transforms(
         img_size=img_size,
@@ -104,6 +105,8 @@ def make_datasets(cfgs_data, cfgs_data_aug, world_size=1, rank=0, filter_first_e
             # robocasa
             "output_rcasa_state": True,
             "output_rcasa_info": True,
+            # Auto-enable slicing for DROID_slice dataset
+            "droid_use_slicing": any("DROID_slice" in d for d in datasets),
         }
     )
 

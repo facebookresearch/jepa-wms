@@ -74,6 +74,7 @@ def _build_dataset_paths():
             "METAWORLD_HF": f"{dataset_root}/Metaworld/data",
             "Robocasa": f"{dataset_root}/robocasa/",
             "DROID": f"{dataset_root}/DROID/droid_paths.csv",
+            "DROID_slice": f"{dataset_root}/DROID/droid_paths.csv",
             "Franka_hf": f"{dataset_root}/franka_custom",
             # Video datasets
             "K400": f"{dataset_root}/kinetics400/k400_train_paths.csv",

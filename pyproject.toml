@@ -45,6 +45,8 @@ dependencies = [
     "plotly",
     "termcolor",
     # Configuration and logging
+    "hydra-core",
+    "hydra-submitit-launcher",
     "omegaconf",
     "wandb",
     # Utilities

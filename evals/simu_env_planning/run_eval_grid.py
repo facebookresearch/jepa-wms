@@ -10,7 +10,7 @@ This script generates config files to run planning evals. It works by:
 Usage:
     python -m evals.simu_env_planning.run_eval_grid --env droid
     python -m evals.simu_env_planning.run_eval_grid --env metaworld
-    python -m evals.simu_env_planning.run_eval_grid --env robocasa
+    python -m evals.simu_env_planning.run_eval_grid --env robocasa --variant reach place
     python -m evals.simu_env_planning.run_eval_grid --env maze
     python -m evals.simu_env_planning.run_eval_grid --env pusht
     python -m evals.simu_env_planning.run_eval_grid --env wall
@@ -48,73 +48,86 @@ def _get_config_path(dump_path: str, template_path: str) -> Path:
 
 ENV_PRESETS = {
     "droid": {
-        "default_conf": Path("configs/dump_online_evals/droid/droid_L2_ng_sourcedset_H1_nas1_maxnorm01_ctxt2_gH1.yaml"),
+        "default_conf": _get_config_path(
+            "configs/dump_online_evals/droid/droid_L2_cem_sourcedset_H3_nas3_maxnorm01_ctxt2_gH3_r256_alpha0.0_ep64.yaml",
+            "configs/dump_online_evals/droid/droid_L2_cem_sourcedset_H3_nas3_maxnorm01_ctxt2_gH3_r256_alpha0.0_ep64_decode.yaml",
+        ),
         "variants": [("H1", 1), ("H3", 3), ("H6", 6)],
-        "planners": [("ng", "nevergrad"), ("cem", "cem")],
-        "objectives": [("L1", "repr_l1"), ("L2", "repr_dist")],
+        "planners": [("cem", "cem"), ("ng", "nevergrad"), ("gd", "gd"), ("adam", "adam")],
+        "objectives": [("L1", "L1"), ("L2", "L2")],
         "epochs": list(np.arange(0, 315, 6)),
-        "tag_transform": lambda tag, v: tag.replace("H1", v[0])
-        .replace("gH1", f"gH{v[1]}")
-        .replace("nas1", f"nas{v[1]}"),
+        "alphas": [0, 0.1, 1],
+        "tag_transform": lambda tag, v: re.sub(
+            r"nas\d+", f"nas{v[1]}", re.sub(r"gH\d+", f"gH{v[1]}", re.sub(r"H\d+", v[0], tag))
+        ),
         "apply_variant": lambda conf, v: conf["planner"].update({"horizon": v[1], "num_act_stepped": v[1]})
         or conf["task_specification"].update({"goal_H": v[1]}),
     },
     "metaworld": {
         # Template configs are in online_plan_evals/mw/; dump configs may not exist yet
         "default_conf": _get_config_path(
-            "configs/dump_online_evals/mw/reach_L2_cem_sourcexp_H6_nas3_ctxt2.yaml",
+            "configs/dump_online_evals/mw/reach-wall_L2_cem_sourcexp_H6_nas3_ctxt2_r224_alpha0.0_ep48.yaml",
             "configs/online_plan_evals/mw/reach_L2_cem_sourcexp_H6_nas3_ctxt2.yaml",
         ),
         "variants": [("reach-wall", "mw-reach-wall"), ("reach", "mw-reach")],
-        "planners": [("ng", "nevergrad"), ("cem", "cem")],
-        "objectives": [("L1", "repr_l1"), ("L2", "repr_dist")],
+        "planners": [("cem", "cem"), ("ng", "nevergrad"), ("gd", "gd"), ("adam", "adam")],
+        "objectives": [("L1", "L1"), ("L2", "L2")],
         "epochs": list(range(0, 50)),
-        "tag_transform": lambda tag, v: tag.replace("reach_", v[0] + "_"),
+        "alphas": [0, 0.1, 1],
+        "tag_transform": lambda tag, v: re.sub(r"^(reach-wall|reach)_", v[0] + "_", tag),
         "apply_variant": lambda conf, v: conf["task_specification"].update({"task": v[1]}),
     },
     "robocasa": {
-        "default_conf": Path(
-            "configs/dump_online_evals/rcasa_custom/reach_L2_cem_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2.yaml"
+        "default_conf": _get_config_path(
+            "configs/dump_online_evals/rcasa_custom/place_L2_cem_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r224_alpha0.0_ep32.yaml",
+            "configs/dump_online_evals/rcasa_custom/place_L2_cem_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r224_ep32.yaml",
         ),
         "variants": [(s, s) for s in ["reach", "pick", "place", "reach-pick", "pick-place", "reach-pick-place"]],
-        "planners": [("cem", "cem")],
-        "objectives": [("L1", "repr_l1"), ("L2", "repr_dist")],
+        "planners": [("cem", "cem"), ("ng", "nevergrad"), ("gd", "gd"), ("adam", "adam")],
+        "objectives": [("L1", "L1"), ("L2", "L2")],
         "epochs": list(np.arange(0, 315, 6)),
-        "tag_transform": lambda tag, v: tag.replace("reach_", v[0] + "_"),
+        "alphas": [0],
+        "tag_transform": lambda tag, v: re.sub(r"^(reach|pick|place|reach-pick|pick-place|reach-pick-place)_", v[0] + "_", tag),
         "apply_variant": lambda conf, v: conf["task_specification"]["env"].update({"subtask": v[1]}),
     },
     "maze": {
         # Template configs are in online_plan_evals/mz/; dump configs may not exist yet
         "default_conf": _get_config_path(
-            "configs/dump_online_evals/mz/mz_L2_ng_sourcerandstate_H6_nas6_ctxt2.yaml",
+            "configs/dump_online_evals/mz/mz_L2_cem_sourcerandstate_H6_nas6_ctxt2_r224_alpha0.0_ep96.yaml",
             "configs/online_plan_evals/mz/ng/mz_L2_ng_sourcerandstate_H6_nas6_ctxt2.yaml",
         ),
         "variants": [("randstate", "random_state")],
-        "planners": [("ng", "nevergrad"), ("cem", "cem")],
-        "objectives": [("L1", "repr_l1"), ("L2", "repr_dist")],
+        "planners": [("cem", "cem"), ("ng", "nevergrad"), ("gd", "gd"), ("adam", "adam")],
+        "objectives": [("L1", "L1"), ("L2", "L2")],
         "epochs": list(range(0, 50)),
+        "alphas": [0, 0.1, 1],
         "tag_transform": lambda tag, v: tag,
         "apply_variant": lambda conf, v: conf["task_specification"].update({"goal_source": v[1]}),
     },
     "pusht": {
-        "default_conf": Path("configs/dump_online_evals/pt/pt_L2_ng_sourcedset_H6_nas6_ctxt2.yaml"),
+        "default_conf": _get_config_path(
+            "configs/dump_online_evals/pt/pt_L2_ng_sourcedset_H6_nas6_ctxt2.yaml",
+            "configs/online_plan_evals/pt/ng/pt_L2_ng_sourcedset_H6_nas6_ctxt2.yaml",
+        ),
         "variants": [("dset", "dset")],
-        "planners": [("ng", "nevergrad"), ("cem", "cem")],
-        "objectives": [("L1", "repr_l1"), ("L2", "repr_dist")],
+        "planners": [("cem", "cem"), ("ng", "nevergrad"), ("gd", "gd"), ("adam", "adam")],
+        "objectives": [("L1", "L1"), ("L2", "L2")],
         "epochs": list(range(0, 50)),
+        "alphas": [0, 0.1, 1],
         "tag_transform": lambda tag, v: tag,
         "apply_variant": lambda conf, v: conf["task_specification"].update({"goal_source": v[1]}),
     },
     "wall": {
         # Template configs are in online_plan_evals/wall/; dump configs may not exist yet
         "default_conf": _get_config_path(
-            "configs/dump_online_evals/wall/wall_L2_ng_sourcerandstate_H6_nas6_ctxt2.yaml",
+            "configs/dump_online_evals/wall/wall_L2_ng_sourcerandstate_H6_nas6_ctxt2_r224_alpha0.0_ep96.yaml",
             "configs/online_plan_evals/wall/ng/wall_L2_ng_sourcerandstate_H6_nas6_ctxt2.yaml",
         ),
         "variants": [("randstate", "random_state")],
-        "planners": [("ng", "nevergrad"), ("cem", "cem")],
-        "objectives": [("L1", "repr_l1"), ("L2", "repr_dist")],
+        "planners": [("cem", "cem"), ("ng", "nevergrad"), ("gd", "gd"), ("adam", "adam")],
+        "objectives": [("L1", "L1"), ("L2", "L2")],
         "epochs": list(range(0, 50)),
+        "alphas": [0, 0.1, 1],
         "tag_transform": lambda tag, v: tag,
         "apply_variant": lambda conf, v: conf["task_specification"].update({"goal_source": v[1]}),
     },
@@ -122,44 +135,72 @@ ENV_PRESETS = {
 
 
 def generate_configs(preset: dict, out_dir: Path) -> int:
-    """Generate configs by iterating over variants × planners × objectives × epochs."""
-    ctr = 0
+    """Generate configs by iterating over variants × planners × objectives × epochs × alphas."""
+    from itertools import product
+
     with open(preset["default_conf"], "r") as f:
         base_conf = yaml_rt.load(f)
-    base_tag = base_conf["tag"].rsplit("/", 1)[0].removesuffix("_decode")
+    # Extract the eval setup tag (middle part: "online_gc_zeroshot/{tag}/epoch-xxx" -> {tag})
+    # Also preserve the prefix (e.g., "online_gc_zeroshot")
+    tag_parts = base_conf["tag"].split("/")
+    if len(tag_parts) >= 2:
+        tag_prefix = tag_parts[0]  # e.g., "online_gc_zeroshot"
+        base_tag = tag_parts[1].removesuffix("_decode")
+    else:
+        tag_prefix = ""
+        base_tag = tag_parts[0].removesuffix("_decode")
 
-    for variant in preset["variants"]:
-        for planner_abbrev, planner_name in preset["planners"]:
-            for obj_abbrev, objective in preset["objectives"]:
-                for epoch in preset["epochs"]:
-                    with open(preset["default_conf"], "r") as f:
-                        conf = yaml_rt.load(f)
+    # Log grid parameters before iterating
+    print(f"Grid parameters:")
+    print(f"  variants: {[v[0] for v in preset['variants']]}")
+    print(f"  planners: {[p[0] for p in preset['planners']]}")
+    print(f"  objectives: {[o[0] for o in preset['objectives']]}")
+    print(f"  epochs: {preset['epochs']}")
+    print(f"  alphas: {preset['alphas']}")
 
-                    # Build tag
-                    tag = (
-                        re.sub(r"L[12]", obj_abbrev, base_tag)
-                        .replace("ng", planner_abbrev)
-                        .replace("cem", planner_abbrev)
-                    )
-                    tag = preset["tag_transform"](tag, variant)
-                    if conf["planner"].get("decode_each_iteration"):
-                        tag += "_decode"
-                    conf["tag"] = f"{tag}/epoch-{epoch+1}"
+    # Cartesian product of all dimensions
+    grid = product(
+        preset["variants"],
+        preset["planners"],
+        preset["objectives"],
+        preset["epochs"],
+        preset["alphas"],
+    )
 
-                    # Common config updates
-                    conf["model_kwargs"]["checkpoint"] = f"0/checkpoints/model_{epoch}.pth"
-                    # conf["model_kwargs"]["checkpoint"] = f"jepa-e{epoch}.pth.tar"
-                    conf["planner"]["planner_name"] = planner_name
-                    conf["planner"]["optimizer_name"] = "NGOpt"
-                    conf["planner"]["planning_objective"]["objective_type"] = objective
+    for ctr, (variant, (planner_abbrev, planner_name), (obj_abbrev, objective), epoch, alpha) in enumerate(grid):
+        with open(preset["default_conf"], "r") as f:
+            conf = yaml_rt.load(f)
 
-                    # Variant-specific updates
-                    preset["apply_variant"](conf, variant)
+        # Build tag: replace objective (L1/L2) and planner name
+        tag = re.sub(r"L[12]", obj_abbrev, base_tag)
+        tag = re.sub(r"_(ng|cem|gd|adam)_", f"_{planner_abbrev}_", tag)
+        tag = preset["tag_transform"](tag, variant)
+        if alpha is not None:
+            tag = re.sub(r"alpha[0-9.]+", f"alpha{alpha}", tag)
+        if conf["planner"].get("decode_each_iteration"):
+            tag += "_decode"
+        # Construct full tag with prefix if available
+        if tag_prefix:
+            conf["tag"] = f"{tag_prefix}/{tag}/epoch-{epoch+1}"
+        else:
+            conf["tag"] = f"{tag}/epoch-{epoch+1}"
 
-                    with open(out_dir / f"{ctr}.yaml", "w") as f:
-                        yaml_rt.dump(conf, f)
-                    ctr += 1
-    return ctr
+        # Common config updates
+        # conf["model_kwargs"]["checkpoint"] = f"0/checkpoints/model_{epoch}.pth"
+        conf["model_kwargs"]["checkpoint"] = f"jepa-e{epoch}.pth.tar"
+        conf["planner"]["planner_name"] = planner_name
+        conf["planner"]["optimizer_name"] = "NGOpt"
+        conf["planner"]["planning_objective"]["objective_type"] = objective
+        if alpha is not None:
+            conf["planner"]["planning_objective"]["alpha"] = alpha
+
+        # Variant-specific updates
+        preset["apply_variant"](conf, variant)
+
+        with open(out_dir / f"{ctr}.yaml", "w") as f:
+            yaml_rt.dump(conf, f)
+
+    return ctr + 1 if ctr is not None else 0
 
 
 def main():
@@ -167,7 +208,7 @@ def main():
     parser.add_argument("--env", type=str, required=True, choices=list(ENV_PRESETS.keys()))
     parser.add_argument("--out-dir", type=Path, default=Path("configs/cwtemp"))
     parser.add_argument("--config", type=Path, default=None, help="Override default config file")
-    parser.add_argument("--planner", type=str, choices=["ng", "cem"], help="Filter to a single planner")
+    parser.add_argument("--planner", type=str, nargs="+", choices=["ng", "cem", "gd", "adam"], help="Filter to specific planners")
     parser.add_argument("--objective", type=str, choices=["L1", "L2"], help="Filter to a single objective")
     parser.add_argument(
         "--variant",
@@ -181,6 +222,12 @@ def main():
         default=None,
         help="Epochs to evaluate: 'start:end:step' (e.g., '0:28:2') or comma-separated list (e.g., '0,2,4,6')",
     )
+    parser.add_argument(
+        "--alpha",
+        type=str,
+        default=None,
+        help="Alpha values for planning_objective: comma-separated list (e.g., '0.0,0.5,1.0')",
+    )
     args = parser.parse_args()
 
     os.makedirs(args.out_dir, exist_ok=True)
@@ -188,7 +235,7 @@ def main():
     if args.config:
         preset["default_conf"] = args.config
     if args.planner:
-        preset["planners"] = [(a, n) for a, n in preset["planners"] if a == args.planner]
+        preset["planners"] = [(a, n) for a, n in preset["planners"] if a in args.planner]
     if args.objective:
         preset["objectives"] = [(a, o) for a, o in preset["objectives"] if a == args.objective]
     if args.variant:
@@ -200,6 +247,8 @@ def main():
         else:
             preset["epochs"] = [int(x) for x in args.epochs.split(",")]
 
+    if args.alpha:
+        preset["alphas"] = [float(x) for x in args.alpha.split(",")]
     num_configs = generate_configs(preset, args.out_dir)
 
     # Write batch config
