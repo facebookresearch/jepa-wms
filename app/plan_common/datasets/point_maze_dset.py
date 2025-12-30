@@ -4,7 +4,11 @@ from typing import Callable, Optional
 import torch
 from einops import rearrange
 
+from src.utils.logging import get_logger
+
 from .traj_dset import TrajDataset, get_train_val_sliced
+
+log = get_logger(__name__)
 
 
 class PointMazeDataset(TrajDataset):
@@ -34,7 +38,7 @@ class PointMazeDataset(TrajDataset):
         self.actions = self.actions[:n]
         self.seq_lengths = self.seq_lengths[:n]
         self.proprios = self.states.clone()
-        print(f"Loaded {n} rollouts")
+        log.info(f"✅ Loaded {n} PointMaze rollouts")
 
         self.action_dim = self.actions.shape[-1]
         self.state_dim = self.states.shape[-1]

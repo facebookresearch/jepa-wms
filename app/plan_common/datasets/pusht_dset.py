@@ -7,7 +7,11 @@ import torch
 from decord import VideoReader
 from einops import rearrange
 
+from src.utils.logging import get_logger
+
 from .traj_dset import TrajDataset, TrajSlicerDataset
+
+log = get_logger(__name__)
 
 # precomputed dataset stats
 ACTION_MEAN = torch.tensor([-0.0087, 0.0068])
@@ -71,7 +75,7 @@ class PushTDataset(TrajDataset):
             self.velocities = self.velocities[:n].float()
             self.states = torch.cat([self.states, self.velocities], dim=-1)
             self.proprios = torch.cat([self.proprios, self.velocities], dim=-1)
-        print(f"Loaded {n} rollouts")
+        log.info(f"✅ Loaded {n} PushT rollouts")
 
         self.action_dim = self.actions.shape[-1]
         self.state_dim = self.states.shape[-1]

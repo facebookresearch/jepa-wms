@@ -1,3 +1,15 @@
+import re
+
+
+def normalize_eval_setup(eval_setup: str) -> str:
+    """Normalize eval setup string to handle variations like alpha0.0 vs alpha0.
+
+    Converts alpha values without decimal to include .0 suffix.
+    E.g., 'alpha0' -> 'alpha0.0', 'alpha1' -> 'alpha1.0'
+    """
+    return re.sub(r"_alpha(\d+)(?!\.)", r"_alpha\1.0", eval_setup)
+
+
 task_groups_mapping = {
     "droid": "DROID",
     "pt": "Push-T",
@@ -108,11 +120,23 @@ eval_setup_aliases = {
         "L2_ng_sourcerandstate_H6_nas6_ctxt2": r"NG rand $L_2$",
         "L1_gd_sourcerandstate_H6_nas6_ctxt2": r"GD rand $L_1$",
         "L2_gd_sourcerandstate_H6_nas6_ctxt2": r"GD rand $L_2$",
+        "L1_adam_sourcerandstate_H6_nas6_ctxt2": r"Adam rand $L_1$",
+        "L2_adam_sourcerandstate_H6_nas6_ctxt2": r"Adam rand $L_2$",
         # cut at alpha
         "L2_cem_sourcerandstate_H6_nas6_ctxt2_r224_alpha0.0": r"CEM rand $L_2$ alpha0.0",
         "L2_cem_sourcerandstate_H6_nas6_ctxt2_r256_alpha0.0": r"CEM rand $L_2$ alpha0.0",
         "L2_cem_sourcerandstate_H6_nas6_ctxt2_r224_alpha0.1": r"CEM rand $L_2$ alpha0.1",
         "L2_cem_sourcerandstate_H6_nas6_ctxt2_r256_alpha0.1": r"CEM rand $L_2$ alpha0.1",
+        # H5
+        "L1_cem_sourcerandstate_H5_nas5_ctxt2": r"CEM $L_1$ H=5",
+        "L2_cem_sourcerandstate_H5_nas5_ctxt2": r"CEM $L_2$ H=5",
+        "L1_ng_sourcerandstate_H5_nas5_ctxt2": r"NG $L_1$ H=5",
+        "L2_ng_sourcerandstate_H5_nas5_ctxt2": r"NG $L_2$ H=5",
+            # ctxt 3
+            "L1_cem_sourcerandstate_H5_nas5_ctxt3": r"CEM $L_1$ H=5 ctx3",
+            "L2_cem_sourcerandstate_H5_nas5_ctxt3": r"CEM $L_2$ H=5 ctx3",
+            "L1_ng_sourcerandstate_H5_nas5_ctxt3": r"NG $L_1$ H=5 ctx3",
+            "L2_ng_sourcerandstate_H5_nas5_ctxt3": r"NG $L_2$ H=5 ctx3",
     },
     "pt": {
         # source dataset
@@ -127,9 +151,18 @@ eval_setup_aliases = {
         "L2_ng_sourcedset_H6_nas6_ctxt2": r"NG $L_2$",
         "L1_gd_sourcedset_H6_nas6_ctxt2": r"GD $L_1$",
         "L2_gd_sourcedset_H6_nas6_ctxt2": r"GD $L_2$",
+        "L1_adam_sourcedset_H6_nas6_ctxt2": r"Adam $L_1$",
+        "L2_adam_sourcedset_H6_nas6_ctxt2": r"Adam $L_2$",
         # H5
         "L1_cem_sourcedset_H5_nas5_ctxt2": r"CEM $L_1$ H=5",
         "L2_cem_sourcedset_H5_nas5_ctxt2": r"CEM $L_2$ H=5",
+        "L1_ng_sourcedset_H5_nas5_ctxt2": r"NG $L_1$ H=5",
+        "L2_ng_sourcedset_H5_nas5_ctxt2": r"NG $L_2$ H=5",
+            # ctxt 3
+            "L1_cem_sourcedset_H5_nas5_ctxt3": r"CEM $L_1$ H=5 ctx3",
+            "L2_cem_sourcedset_H5_nas5_ctxt3": r"CEM $L_2$ H=5 ctx3",
+            "L1_ng_sourcedset_H5_nas5_ctxt3": r"NG $L_1$ H=5 ctx3",
+            "L2_ng_sourcedset_H5_nas5_ctxt3": r"NG $L_2$ H=5 ctx3",
         # cut at alpha
         "L2_cem_sourcedset_H6_nas6_ctxt2_r224_alpha0.0": r"CEM $L_2$ alpha0.0",
         "L2_cem_sourcedset_H6_nas6_ctxt2_r256_alpha0.0": r"CEM $L_2$ alpha0.0",
@@ -149,11 +182,23 @@ eval_setup_aliases = {
         "L2_ng_sourcerandstate_H6_nas6_ctxt2": r"NG rand $L_2$",
         "L1_gd_sourcerandstate_H6_nas6_ctxt2": r"GD rand $L_1$",
         "L2_gd_sourcerandstate_H6_nas6_ctxt2": r"GD rand $L_2$",
+        "L1_adam_sourcerandstate_H6_nas6_ctxt2": r"Adam rand $L_1$",
+        "L2_adam_sourcerandstate_H6_nas6_ctxt2": r"Adam rand $L_2$",
         # cut at alpha
         "L2_cem_sourcerandstate_H6_nas6_ctxt2_r224_alpha0.0": r"CEM rand $L_2$ alpha0.0",
         "L2_cem_sourcerandstate_H6_nas6_ctxt2_r256_alpha0.0": r"CEM rand $L_2$ alpha0.0",
         "L2_cem_sourcerandstate_H6_nas6_ctxt2_r224_alpha0.1": r"CEM rand $L_2$ alpha0.1",
         "L2_cem_sourcerandstate_H6_nas6_ctxt2_r256_alpha0.1": r"CEM rand $L_2$ alpha0.1",
+        # H5
+        "L1_cem_sourcerandstate_H5_nas5_ctxt2": r"CEM $L_1$ H=5",
+        "L2_cem_sourcerandstate_H5_nas5_ctxt2": r"CEM $L_2$ H=5",
+        "L1_ng_sourcerandstate_H5_nas5_ctxt2": r"NG $L_1$ H=5",
+        "L2_ng_sourcerandstate_H5_nas5_ctxt2": r"NG $L_2$ H=5",
+            # ctxt 3
+            "L1_cem_sourcerandstate_H5_nas5_ctxt3": r"CEM $L_1$ H=5 ctx3",
+            "L2_cem_sourcerandstate_H5_nas5_ctxt3": r"CEM $L_2$ H=5 ctx3",
+            "L1_ng_sourcerandstate_H5_nas5_ctxt3": r"NG $L_1$ H=5 ctx3",
+            "L2_ng_sourcerandstate_H5_nas5_ctxt3": r"NG $L_2$ H=5 ctx3",
     },
     "droid": {
         # H6
@@ -179,6 +224,8 @@ eval_setup_aliases = {
         # "L2_ng_sourcedset_H3_nas3_maxnorm01_momentum015_ctxt2": r"NG H3 $L_2$ max0.1 mom0.15",
         "L1_gd_sourcedset_H3_nas3_maxnorm01_ctxt2": r"GD H3 $L_1$ max0.1",
         "L2_gd_sourcedset_H3_nas3_maxnorm01_ctxt2": r"GD H3 $L_2$ max0.1",
+        "L1_adam_sourcedset_H3_nas3_maxnorm01_ctxt2": r"Adam H3 $L_1$ max0.1",
+        "L2_adam_sourcedset_H3_nas3_maxnorm01_ctxt2": r"Adam H3 $L_2$ max0.1",
         # H1
         "L1_cem_sourcedset_H1_nas1_ctxt2": r"CEM H1 $L_1$",
         "L2_cem_sourcedset_H1_nas1_ctxt2": r"CEM H1 $L_2$",
@@ -238,6 +285,8 @@ eval_setup_aliases = {
         "L2_ng_sourcexp_H6_nas3_ctxt2": r"NG $L_2$",
         "L1_gd_sourcexp_H6_nas3_ctxt2": r"GD $L_1$",
         "L2_gd_sourcexp_H6_nas3_ctxt2": r"GD $L_2$",
+        "L1_adam_sourcexp_H6_nas3_ctxt2": r"Adam $L_1$",
+        "L2_adam_sourcexp_H6_nas3_ctxt2": r"Adam $L_2$",
         # cut at alpha
         "L2_cem_sourcexp_H6_nas3_ctxt1_r224_alpha0.0": r"CEM $L_2$ alpha0.0",
         "L2_cem_sourcexp_H6_nas3_ctxt1_r256_alpha0.0": r"CEM $L_2$ alpha0.0",
@@ -257,6 +306,8 @@ eval_setup_aliases = {
         "L2_ng_sourcexp_H6_nas3_ctxt2": r"NG $L_2$",
         "L1_gd_sourcexp_H6_nas3_ctxt2": r"GD $L_1$",
         "L2_gd_sourcexp_H6_nas3_ctxt2": r"GD $L_2$",
+        "L1_adam_sourcexp_H6_nas3_ctxt2": r"Adam $L_1$",
+        "L2_adam_sourcexp_H6_nas3_ctxt2": r"Adam $L_2$",
         # cut at alpha
         "L2_cem_sourcexp_H6_nas3_ctxt1_r224_alpha0.0": r"CEM $L_2$ alpha0.0",
         "L2_cem_sourcexp_H6_nas3_ctxt1_r256_alpha0.0": r"CEM $L_2$ alpha0.0",
@@ -270,6 +321,8 @@ eval_setup_aliases = {
         "L1_ng_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2": r"NG $L_1$",
         "L2_gd_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2": r"GD $L_2$",
         "L1_gd_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2": r"GD $L_1$",
+        "L2_adam_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2": r"Adam $L_2$",
+        "L1_adam_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2": r"Adam $L_1$",
         # alpha 0
         "L2_cem_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r224_alpha0.0": r"CEM $L_2$ alpha0.0",
         "L1_cem_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r224_alpha0.0": r"CEM $L_1$ alpha0.0",
@@ -294,6 +347,11 @@ eval_setup_aliases = {
         "L1_ng_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r224_alpha0.0_ep32": r"NG $L_1$ ep32",
         "L1_gd_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r224_alpha0.0_ep32": r"GD $L_1$ ep32",
         "L2_gd_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r224_alpha0.0_ep32": r"GD $L_2$ ep32",
+        # Adam
+        "L2_adam_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r256_alpha0.0_ep32": r"Adam $L_2$ ep32",
+        "L1_adam_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r256_alpha0.0_ep32": r"Adam $L_1$ ep32",
+        "L2_adam_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r224_alpha0.0_ep32": r"Adam $L_2$ ep32",
+        "L1_adam_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r224_alpha0.0_ep32": r"Adam $L_1$ ep32",
     },
     # # "rcasa-pick": {
     # #     'L2_cem_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2': r"CEM $L_2$",
@@ -305,6 +363,8 @@ eval_setup_aliases = {
         "L1_ng_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2": r"NG $L_1$",
         "L2_gd_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2": r"GD $L_2$",
         "L1_gd_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2": r"GD $L_1$",
+        "L2_adam_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2": r"Adam $L_2$",
+        "L1_adam_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2": r"Adam $L_1$",
         # alpha 0
         "L2_cem_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r224_alpha0.0": r"CEM $L_2$ alpha0.0",
         "L1_cem_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r224_alpha0.0": r"CEM $L_1$ alpha0.0",
@@ -329,6 +389,11 @@ eval_setup_aliases = {
         "L1_ng_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r224_alpha0.0_ep32": r"NG $L_1$ ep32",
         "L1_gd_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r224_alpha0.0_ep32": r"GD $L_1$ ep32",
         "L2_gd_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r224_alpha0.0_ep32": r"GD $L_2$ ep32",
+        # Adam
+        "L2_adam_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r256_alpha0.0_ep32": r"Adam $L_2$ ep32",
+        "L1_adam_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r256_alpha0.0_ep32": r"Adam $L_1$ ep32",
+        "L2_adam_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r224_alpha0.0_ep32": r"Adam $L_2$ ep32",
+        "L1_adam_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2_r224_alpha0.0_ep32": r"Adam $L_1$ ep32",
     },
     # "rcasa-reach-pick": {
     #     'L2_cem_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2': r"CEM $L_2$",
@@ -354,6 +419,16 @@ hist1_eval_setup_aliases = {
         "L2_cem_sourcerandstate_H6_nas6_ctxt1": r"CEM rand $L_2$",
         "L1_ng_sourcerandstate_H6_nas6_ctxt1": r"NG rand $L_1$",
         "L2_ng_sourcerandstate_H6_nas6_ctxt1": r"NG rand $L_2$",
+        # H5
+        "L1_cem_sourcerandstate_H5_nas5_ctxt1": r"CEM $L_1$ H=5",
+        "L2_cem_sourcerandstate_H5_nas5_ctxt1": r"CEM $L_2$ H=5",
+        "L1_ng_sourcerandstate_H5_nas5_ctxt1": r"NG $L_1$ H=5",
+        "L2_ng_sourcerandstate_H5_nas5_ctxt1": r"NG $L_2$ H=5",
+            # ctxt 3
+            "L1_cem_sourcerandstate_H5_nas5_ctxt1": r"CEM $L_1$ H=5 ctx3",
+            "L2_cem_sourcerandstate_H5_nas5_ctxt1": r"CEM $L_2$ H=5 ctx3",
+            "L1_ng_sourcerandstate_H5_nas5_ctxt1": r"NG $L_1$ H=5 ctx3",
+            "L2_ng_sourcerandstate_H5_nas5_ctxt1": r"NG $L_2$ H=5 ctx3",
     },
     "pt": {
         # source dataset
@@ -476,6 +551,8 @@ unif_eval_setup_aliases_across_tasks = {
         "NG $L_2$": r"NG $L_2$",
         "GD $L_1$": r"GD $L_1$",
         "GD $L_2$": r"GD $L_2$",
+        "Adam $L_1$": r"Adam $L_1$",
+        "Adam $L_2$": r"Adam $L_2$",
     },
     "Wall": {
         "CEM rand $L_1$": r"CEM $L_1$",
@@ -484,6 +561,8 @@ unif_eval_setup_aliases_across_tasks = {
         "NG rand $L_2$": r"NG $L_2$",
         "GD rand $L_1$": r"GD $L_1$",
         "GD rand $L_2$": r"GD $L_2$",
+        "Adam rand $L_1$": r"Adam $L_1$",
+        "Adam rand $L_2$": r"Adam $L_2$",
     },
     "Maze": {
         "CEM rand $L_1$": r"CEM $L_1$",
@@ -492,6 +571,8 @@ unif_eval_setup_aliases_across_tasks = {
         "NG rand $L_2$": r"NG $L_2$",
         "GD rand $L_1$": r"GD $L_1$",
         "GD rand $L_2$": r"GD $L_2$",
+        "Adam rand $L_1$": r"Adam $L_1$",
+        "Adam rand $L_2$": r"Adam $L_2$",
     },
     "MW-\nReach-\nWall": {
         "CEM $L_1$": r"CEM $L_1$",
@@ -500,6 +581,8 @@ unif_eval_setup_aliases_across_tasks = {
         "NG $L_2$": r"NG $L_2$",
         "GD $L_1$": r"GD $L_1$",
         "GD $L_2$": r"GD $L_2$",
+        "Adam $L_1$": r"Adam $L_1$",
+        "Adam $L_2$": r"Adam $L_2$",
     },
     "MW-\nReach": {
         "CEM $L_1$": r"CEM $L_1$",
@@ -508,6 +591,8 @@ unif_eval_setup_aliases_across_tasks = {
         "NG $L_2$": r"NG $L_2$",
         "GD $L_1$": r"GD $L_1$",
         "GD $L_2$": r"GD $L_2$",
+        "Adam $L_1$": r"Adam $L_1$",
+        "Adam $L_2$": r"Adam $L_2$",
     },
     "DROID": {
         # "CEM H6 $L_1$": r"CEM $L_1$",
@@ -546,10 +631,12 @@ unif_eval_setup_aliases_across_tasks = {
         # # "NG H1 $L_2$": r"NG $L_2$",
         # "NG H1 $L_2$ max0.1": "NG-L2-max0.1",
         # "NG H1 $L_1$ max0.1": "NG-L1-max0.1",
-        # "GD H3 $L_2$ max0.1": r"GD $L_2$",
-        # "GD H3 $L_1$ max0.1": r"GD $L_1$",
-        "GD H3 $L_2$ max0.1 ep64": r"GD $L_2$",
-        "GD H3 $L_1$ max0.1 ep64": r"GD $L_1$",
+        "GD H3 $L_2$ max0.1": r"GD $L_2$",
+        "GD H3 $L_1$ max0.1": r"GD $L_1$",
+        # "GD H3 $L_2$ max0.1 ep64": r"GD $L_2$",
+        # "GD H3 $L_1$ max0.1 ep64": r"GD $L_1$",
+        "Adam H3 $L_2$ max0.1": r"Adam $L_2$",
+        "Adam H3 $L_1$ max0.1": r"Adam $L_1$",
     },
     "Rc-R": {
         "CEM $L_2$": r"CEM $L_2$",
@@ -558,6 +645,8 @@ unif_eval_setup_aliases_across_tasks = {
         "NG $L_1$": r"NG $L_1$",
         "GD $L_2$": r"GD $L_2$",
         "GD $L_1$": r"GD $L_1$",
+        "Adam $L_2$": r"Adam $L_2$",
+        "Adam $L_1$": r"Adam $L_1$",
         # ===
         "CEM $L_2$ ep32": r"CEM $L_2$",
         "CEM $L_1$ ep32": r"CEM $L_1$",
@@ -565,6 +654,8 @@ unif_eval_setup_aliases_across_tasks = {
         "NG $L_1$ ep32": r"NG $L_1$",
         "GD $L_2$ ep32": r"GD $L_2$",
         "GD $L_1$ ep32": r"GD $L_1$",
+        "Adam $L_2$ ep32": r"Adam $L_2$",
+        "Adam $L_1$ ep32": r"Adam $L_1$",
     },
     "Rc-Pl": {
         "CEM $L_2$ ep32": r"CEM $L_2$",
@@ -573,13 +664,17 @@ unif_eval_setup_aliases_across_tasks = {
         "NG $L_1$ ep32": r"NG $L_1$",
         "GD $L_2$ ep32": r"GD $L_2$",
         "GD $L_1$ ep32": r"GD $L_1$",
+        "Adam $L_2$ ep32": r"Adam $L_2$",
+        "Adam $L_1$ ep32": r"Adam $L_1$",
         # ===
         "CEM $L_2$": r"CEM $L_2$",
         "CEM $L_1$": r"CEM $L_1$",
         "NG $L_2$": r"NG $L_2$",
         "NG $L_1$": r"NG $L_1$",
         "GD $L_2$": r"GD $L_2$",
-        "GD $L_1": r"GD $L_1$",
+        "GD $L_1$": r"GD $L_1$",
+        "Adam $L_2$": r"Adam $L_2$",
+        "Adam $L_1$": r"Adam $L_1$",
     },
     "Rc-P": {
         "CEM $L_2$": r"CEM $L_2$",

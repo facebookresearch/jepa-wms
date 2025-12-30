@@ -13,9 +13,10 @@ import seaborn as sns
 from matplotlib.ticker import FormatStrFormatter
 
 # ALIASES
-from app.vjepa_wm.local.aliases import (
+from app.plan_common.plot.aliases import (
     eval_setup_aliases,
     hist1_eval_setup_aliases,
+    normalize_eval_setup,
 )
 
 # Import local configuration from macros.py (gitignored)
@@ -304,6 +305,8 @@ def collect_task_eval_data(
 
             # Filter out eval_setups not in aliases
             if eval_setup_aliases is not None:
+                # Normalize eval_setup to handle variations like alpha0 vs alpha0.0
+                eval_setup = normalize_eval_setup(eval_setup)
                 # Special handling for hist1 folders
                 if is_hist1_folder:
                     # Use hist1-specific aliases if available

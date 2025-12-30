@@ -86,7 +86,7 @@ def init_data(
     duration=None,
     **kwargs,
 ) -> tuple[Callable]:
-    print(f"{data_paths=}")
+    logger.info(f"📂 Data paths: {data_paths}")
     shuffle = True
     if dataset_type == "custom":
         if all("droid" in p for p in data_paths) or all("franka_custom" in p for p in data_paths):

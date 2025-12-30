@@ -3,7 +3,11 @@ from typing import Callable, Optional
 
 import torch
 
+from src.utils.logging import get_logger
+
 from .traj_dset import TrajDataset, TrajSlicerDataset, get_train_val_sliced
+
+log = get_logger(__name__)
 
 # precomputed dataset stats
 ACTION_MEAN = torch.tensor([0.0006, 0.0015])
@@ -24,7 +28,7 @@ class WallDataset(TrajDataset):
         self.data_path = Path(data_path)
         self.transform = transform
         self.normalize_action = normalize_action
-        print(f"Loading wall dataset...")
+        log.info("📂 Loading Wall dataset...")
         states = torch.load(self.data_path / f"states.pth")
         self.states = states
         self.proprios = self.states.clone()
@@ -38,7 +42,7 @@ class WallDataset(TrajDataset):
             n = self.n_rollout
         else:
             n = len(self.states)
-            print(f"Loaded {n} rollouts")
+            log.info(f"✅ Loaded {n} rollouts")
 
         self.states = self.states[:n]
         self.actions = self.actions[:n]

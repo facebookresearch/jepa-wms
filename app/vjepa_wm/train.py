@@ -77,13 +77,15 @@ def main(args, resume_preempt=False):
     # ----------------------------------------------------------------------- #
     args = expand_env_vars(args)
     folder = args.get("folder")
+    checkpoint_folder = args.get("checkpoint_folder", folder)
+    os.makedirs(checkpoint_folder, exist_ok=True)
     # -- META
     cfgs_meta = args.get("meta")
     load_model = cfgs_meta.get("load_checkpoint") or resume_preempt
     load_opt_scale_epoch = cfgs_meta.get("load_opt_scale_epoch", False)
     freeze_encoder = cfgs_meta.get("freeze_encoder", True)
     r_file = cfgs_meta.get("read_checkpoint", None)
-    pretrained_path = cfgs_meta.get("pretrained_path", "none")
+    pretrained_path = cfgs_meta.get("pretrained_path", None)
     seed = cfgs_meta.get("seed", _GLOBAL_SEED)
 
     eval_freq = cfgs_meta.get("eval_freq", DEFAULT_EVAL_FREQ)
@@ -102,7 +104,7 @@ def main(args, resume_preempt=False):
     save_every_freq = cfgs_meta.get("save_every_freq", -1)
     quick_debug = cfgs_meta.get("quick_debug", False)
     which_dtype = cfgs_meta.get("dtype")
-    logger.info(f"{which_dtype=}")
+    logger.info(f"⚙️  Using dtype: {which_dtype}")
     if which_dtype.lower() == "bfloat16":
         dtype = torch.bfloat16
         mixed_precision = True
@@ -116,16 +118,6 @@ def main(args, resume_preempt=False):
     # -- EVALS
     cfgs_plan_evals = args.get("evals", None)
     cfgs_unroll_decode_evals = args.get("unroll_decode_evals", None)
-
-    # When not in plan_only_eval_mode, disable dump_eval_configs to avoid stopping training
-    if not plan_only_eval_mode and cfgs_plan_evals is not None:
-        if cfgs_plan_evals.get("dump_eval_configs", False):
-            logger.warning(
-                "evals.dump_eval_configs is True but plan_only_eval_mode is False. "
-                "Setting dump_eval_configs to False to continue training. "
-                "Set evals.dump_eval_configs to False explicitly to suppress this warning."
-            )
-            cfgs_plan_evals["dump_eval_configs"] = False
 
     # -- MODEL (extract only fields needed outside init_video_model)
     cfgs_model = args.get("model")
@@ -248,7 +240,7 @@ def main(args, resume_preempt=False):
         pass
     # -- init torch distributed backend
     world_size, rank = init_distributed()
-    logger.info(f"Initialized (rank/world-size) {rank}/{world_size}")
+    logger.info(f"🚀 Initialized (rank/world-size) {rank}/{world_size}")
 
     # -- set device
     if not torch.cuda.is_available():
@@ -261,16 +253,17 @@ def main(args, resume_preempt=False):
     train_log_file = os.path.join(folder, f"log_r{rank}.csv")
     pref_tag = f"{tag}-" if tag else ""
     latest_file = pref_tag + f"latest.{latest_format}"
-    latest_path = os.path.join(folder, latest_file)
+    latest_path = os.path.join(checkpoint_folder, latest_file)
     finetune = pretrained_path is not None
-    logger.info(f"Finetuning: {finetune}")
+    logger.info(f"{'🔧 Finetuning mode' if finetune else '🆕 Training from scratch'}")
     # finetune covers the case of training heads on top of frozen transition_model
     # if cfgs_model["pretrained_path"] is None, i.e. training head just on encoder
     head_training_mode = main_optimizer in ["image_head", "state_head"]
     resume = os.path.exists(latest_path)
     resume_finetune = os.path.exists(latest_path) and finetune
     resume_latest = os.path.exists(latest_path) and not finetune
-    logger.info(f"Resuming finetuning or heads training: {resume_finetune}")
+    if resume_finetune:
+        logger.info("♻️  Resuming from checkpoint")
     load_path = None
     if load_model:
         if resume_finetune:
@@ -405,7 +398,7 @@ def main(args, resume_preempt=False):
     _dlen = len(unsupervised_loader)
     if ipe is None:
         ipe = _dlen
-    logger.info(f"iterations per epoch/dataset length: {ipe}/{_dlen}")
+    logger.info(f"📊 Iterations per epoch: {ipe} (dataset size: {_dlen})")
     if main_optimizer == "transition_model":
         cfgs_opt["transition_model"]["iterations_per_epoch"] = ipe
     elif main_optimizer == "image_head":
@@ -466,7 +459,7 @@ def main(args, resume_preempt=False):
                     self.log_media_local(image_stats, epoch, itr)
                 if not self.disable_wandb_media:
                     log_dict.update(image_stats)
-            if "loss" in log_dict.keys():
+            if "loss" in log_dict.keys() and itr % log_freq == 0:
                 logger.info("[%d, %5d] " "loss: %.3f | " % (epoch + 1, itr, log_dict["loss"]))
             if self.use_wandb and rank == 0:
                 wandb.log(log_dict)
@@ -821,7 +814,9 @@ def main(args, resume_preempt=False):
     # -- TRAINING LOOP
     if not (plan_only_eval_mode or unroll_decode_eval_only_mode):
         for epoch in range(start_epoch, num_epochs):
-            logger.info("Epoch %d" % (epoch + 1))
+            logger.info("\n" + "─" * 50)
+            logger.info(f"📈 Epoch {epoch + 1}/{num_epochs}")
+            logger.info("─" * 50)
 
             # -- update distributed-data-loader epoch
             unsupervised_sampler.set_epoch(epoch)
@@ -895,7 +890,12 @@ def main(args, resume_preempt=False):
                         total_transition_loss += predictor_loss
                     stats = defaultdict(list)
                     for k in predictor_losses:
-                        stats[k].append(torch.tensor(predictor_losses[k]).unsqueeze(0))
+                        val = predictor_losses[k]
+                        if isinstance(val, torch.Tensor):
+                            val = val.detach().clone()
+                        else:
+                            val = torch.tensor(val)
+                        stats[k].append(val.unsqueeze(0))
                     # mean over 1 element in list
                     stats = {k: torch.stack(stats[k]).mean(0) for k in stats}
                     for k in stats:
@@ -1427,14 +1427,18 @@ def main(args, resume_preempt=False):
                         save_checkpoint(epoch + 1, latest_path)
                         if save_every_freq > 0 and epoch % save_every_freq == 0:
                             save_every_file = pref_tag + f"e{epoch}.{latest_format}"
-                            save_every_path = os.path.join(folder, save_every_file)
+                            save_every_path = os.path.join(checkpoint_folder, save_every_file)
                             save_checkpoint(epoch + 1, save_every_path)
 
             # -- Launch Planning Eval
             if not light_eval_only_mode:
                 if (epoch % eval_freq == 0) or epoch == (num_epochs - 1):
                     if save_every_freq > 0:
-                        checkpoint = pref_tag + f"e{epoch}.{latest_format}"
+                        checkpoint = (
+                            pref_tag + f"latest.{latest_format}"
+                            if epoch == (num_epochs - 1)
+                            else pref_tag + f"e{epoch}.{latest_format}"
+                        )
                     else:
                         checkpoint = pref_tag + f"latest.{latest_format}"
                     launch_planning_evals(
@@ -1450,6 +1454,7 @@ def main(args, resume_preempt=False):
                         world_model=world_model,
                         dset=val_traj_dataset,
                         preprocessor=preprocessor,
+                        checkpoint_folder=checkpoint_folder,
                     )
                     world_model.train()
     elif unroll_decode_eval_only_mode:
@@ -1481,6 +1486,7 @@ def main(args, resume_preempt=False):
             world_model=world_model,
             dset=val_traj_dataset,
             preprocessor=preprocessor,
+            checkpoint_folder=checkpoint_folder,
         )
 
 
@@ -1497,6 +1503,7 @@ def launch_planning_evals(
     world_model=None,
     dset=None,
     preprocessor=None,
+    checkpoint_folder=None,
 ):
     """
     Launch planning evaluations for the current training checkpoint.
@@ -1582,6 +1589,7 @@ def launch_planning_evals(
             goal_H=goal_H,
             num_elites=num_elites,
             wrapper_kwargs=cfgs_plan_evals.get("wrapper_kwargs", {}),
+            checkpoint_folder=checkpoint_folder,
         )
 
         # Dump eval configs if in dump_eval_configs mode (useful for generating configs without training)
@@ -1602,18 +1610,26 @@ def launch_planning_evals(
                 else:
                     dump_dir = "configs/dump_online_evals"
                 os.makedirs(dump_dir, exist_ok=True)
+                dumped_paths = []
                 for i, cfg in enumerate(args_eval):
-                    # Derive output filename from the template path (e.g., "mz_L2_ng_sourcerandstate_H6.yaml")
-                    template_path = eval_cfg_paths[i] if i < len(eval_cfg_paths) else None
-                    if template_path:
-                        output_name = os.path.basename(template_path)
+                    # Derive output filename from the config's tag field
+                    # e.g., "online_gc_zeroshot/wall_L2_ng_sourcerandstate_H6_nas6_ctxt2_r224_alpha0.1_ep96/epoch-50-plan-only"
+                    # -> "wall_L2_ng_sourcerandstate_H6_nas6_ctxt2_r224_alpha0.1_ep96.yaml"
+                    tag = cfg.get("tag", None)
+                    if tag:
+                        tag_parts = tag.split("/")
+                        if len(tag_parts) >= 2:
+                            output_name = tag_parts[-2] + ".yaml"
+                        else:
+                            output_name = tag_parts[0] + ".yaml"
                     else:
                         output_name = f"eval_config_{i}.yaml"
                     output_path = os.path.join(dump_dir, output_name)
                     dump_yaml(cfg, output_path)
-                logger.info(f"Dumped {len(args_eval)} eval configs to {dump_dir}")
-            # All ranks exit early after dumping configs (skip launching evals)
-            return
+                    dumped_paths.append(output_path)
+                logger.info(f"Dumped {len(args_eval)} eval configs:\n" + "\n".join(f"  - {p}" for p in dumped_paths))
+            import sys
+            sys.exit(0)
 
         for i, cfg in enumerate(args_eval):
             args_eval[i] = convert_to_dict_recursive(args_eval[i])

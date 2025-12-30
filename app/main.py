@@ -58,7 +58,7 @@ def process_main(rank, fname, world_size, devices):
         # Expand environment variables in folder as early as possible
         if "folder" in params:
             params["folder"] = expand_env_vars(params["folder"], _path="folder")
-        logger.info("loaded params...")
+        logger.info("✅ Config loaded")
 
     # Log config
     if rank == 0:

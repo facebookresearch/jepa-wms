@@ -1,6 +1,7 @@
 Plan setup: [
   # S
-  "${CHECKPOINT_ROOT}/mw_sweep/mw_4f_fsk5_ask1_r224_pred_dino_wm_depth6_noprop_repro_1roll_save_seed1",
+  "${CHECKPOINT_ROOT}/mw_final_sweep/mw_4f_fsk5_ask1_r224_pred_dino_wm_depth6_noprop_repro_1roll_save_seed1",
+  # "${CHECKPOINT_ROOT}/mw_sweep/mw_4f_fsk5_ask1_r224_pred_dino_wm_depth6_noprop_repro_1roll_save_seed1",
   "${CHECKPOINT_ROOT}/mz_sweep/mz_4f_fsk5_ask1_r224_pred_dino_wm_depth6_noprop_repro_1roll_save_2n",
   "${CHECKPOINT_ROOT}/pt_sweep/pt_4f_fsk5_ask1_r224_pred_dino_wm_depth6_noprop_repro_1roll_save",
   "${CHECKPOINT_ROOT}/wall_sweep/wall_4f_fsk5_ask1_r224_pred_dino_wm_depth6_noprop_repro_1roll_save_2n",

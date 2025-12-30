@@ -7,7 +7,11 @@ from einops import rearrange
 
 from datasets import load_dataset
 
+from src.utils.logging import get_logger
+
 from .traj_dset import TrajDataset, get_train_val_sliced
+
+log = get_logger(__name__)
 
 
 def decode_video_frames(video_bytes):
@@ -67,12 +71,12 @@ class MetaworldHFDataset(TrajDataset):
         self.with_reward = with_reward
 
         # Load HuggingFace dataset from parquet files
-        print(f"Loading HuggingFace dataset from {data_path}...")
+        log.info(f"📂 Loading Metaworld HuggingFace dataset from {data_path}...")
         ds = load_dataset("parquet", data_dir=str(data_path), split="train")
 
         # Filter by task if specified
         if filter_tasks is not None:
-            print(f"Filtering for tasks {filter_tasks}...")
+            log.info(f"   Filtering for tasks {filter_tasks}...")
             ds = ds.filter(lambda x: x["task"] in filter_tasks)
 
         # Limit number of rollouts
@@ -80,7 +84,7 @@ class MetaworldHFDataset(TrajDataset):
             ds = ds.select(range(min(n_rollout, len(ds))))
 
         self.dataset = ds
-        print(f"Loaded {len(ds)} rollouts")
+        log.info(f"✅ Loaded {len(ds)} Metaworld rollouts")
 
         # Pre-load states, actions, rewards (lightweight, no video decoding yet)
         states = []

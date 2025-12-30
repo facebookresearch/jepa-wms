@@ -260,14 +260,16 @@ class VisionTransformerAdaLN(nn.Module):
         with torch.no_grad():
             for block in self.predictor_blocks:
                 linear_layer = block.adaLN_modulation[1]
-                chunk_size = predictor_embed_dim
                 if self.init_scale_factor_adaln == 0:
                     nn.init.constant_(linear_layer.weight, 0)
-                    logger.info(f"Initialized AdaLN-zero with {self.init_scale_factor_adaln=}")
                 else:
                     trunc_normal_(linear_layer.weight, std=self.init_std * self.init_scale_factor_adaln)
-                    logger.info(f"Initialized AdaLN with {self.init_scale_factor_adaln=}")
                 nn.init.constant_(linear_layer.bias, 0)
+            # Log once after initializing all blocks
+            if self.init_scale_factor_adaln == 0:
+                logger.info(f"🔧 Initialized {len(self.predictor_blocks)} AdaLN-zero blocks")
+            else:
+                logger.info(f"🔧 Initialized {len(self.predictor_blocks)} AdaLN blocks (scale_factor={self.init_scale_factor_adaln})")
 
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):

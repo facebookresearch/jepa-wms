@@ -118,13 +118,16 @@ class VideoWM(nn.Module):
         self.cfgs_loss = cfgs_loss
         self.loss_func = "base"
         if cfgs_loss is not None:
-            logger.info(
-                f"Initialized loss with:\n"
-                f'  cos_loss_weight: {cfgs_loss.get("cos_loss_weight", None)}\n'
-                f'  l1_loss_weight: {cfgs_loss.get("l1_loss_weight", None)}\n'
-                f'  l2_loss_weight: {cfgs_loss.get("l2_loss_weight", None)}\n'
-                f'  smooth_l1_loss_weight: {cfgs_loss.get("smooth_l1_loss_weight", None)}'
-            )
+            weights = []
+            if cfgs_loss.get("l2_loss_weight", 0) > 0:
+                weights.append(f"L2={cfgs_loss['l2_loss_weight']}")
+            if cfgs_loss.get("l1_loss_weight", 0) > 0:
+                weights.append(f"L1={cfgs_loss['l1_loss_weight']}")
+            if cfgs_loss.get("cos_loss_weight", 0) > 0:
+                weights.append(f"cos={cfgs_loss['cos_loss_weight']}")
+            if cfgs_loss.get("smooth_l1_loss_weight", 0) > 0:
+                weights.append(f"smooth_L1={cfgs_loss['smooth_l1_loss_weight']}")
+            logger.info(f"📉 Loss weights: {', '.join(weights) if weights else 'default'}")
             if "func" in cfgs_loss.keys():
                 self.loss_func = cfgs_loss["func"]
             self.proprio_loss = cfgs_loss.get("proprio_loss", True)

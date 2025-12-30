@@ -21,7 +21,7 @@ from app.plan_common.plot.aliases import (
 from src.utils.yaml_utils import expand_env_vars
 
 CHECKPOINT_ROOT = os.environ.get("CHECKPOINT_ROOT", "~")
-base_dir = "app/plan_common/plot/local/plan_joint_per_design_choice"
+base_dir = "app/plan_common/local/plan_joint_per_design_choice"
 
 task_groups_mapping = {
     "droid": "DROID",
@@ -45,10 +45,10 @@ best_eval_setup_per_task_group = {
     "Push-T": r"CEM $L_2$",
     "Maze": r"CEM rand $L_2$",
     "Wall": r"CEM rand $L_2$",
-    # "MW-\nReach": r"CEM $L_2$",
-    # "MW-\nReach-\nWall": r"CEM $L_2$",
-    "MW-\nReach": r"NG $L_2$",
-    "MW-\nReach-\nWall": r"NG $L_2$",
+    "MW-\nReach": r"CEM $L_2$",
+    "MW-\nReach-\nWall": r"CEM $L_2$",
+    # "MW-\nReach": r"NG $L_2$",
+    # "MW-\nReach-\nWall": r"NG $L_2$",
     # ===
     "DROID": r"CEM H3 $L_2$ max0.1",
     # "DROID": r"CEM H3 $L_2$ max0.1 ep64",
@@ -531,7 +531,7 @@ def aggregate_task_data_by_groups(
         if task_name == "droid":
             if "Act_err_xyz" in df.columns and not df["Act_err_xyz"].isnull().any():
                 # For DROID, use 1-Act_err_xyz as the "success rate"
-                metric_values = 800 * (0.1 - df["Act_err_xyz"])
+                metric_values = np.maximum(0, 800 * (0.1 - df["Act_err_xyz"]))
                 # metric_values = 100 * (1 - df['Act_err_xyz'])
             else:
                 print(f"'Act_err_xyz' not found or NaN for {eval_setup} in {model_path}, skipping ..")
@@ -543,21 +543,23 @@ def aggregate_task_data_by_groups(
         # Get the last n epochs' data or filter from a starting epoch
         epochs = df["epoch"].values
 
-        # Check if start_from_epoch is specified for this task
+        # First, apply start_from_epoch filter if specified for this task
         if task_name in start_from_epoch:
             # Filter epochs >= start_from_epoch
             start_epoch = start_from_epoch[task_name]
             mask = epochs >= start_epoch
-            filtered_values = metric_values[mask].values
+            filtered_epochs = epochs[mask]
+            filtered_metric_values = metric_values[mask]
         else:
-            # Use the last_n_epochs logic
-            task_specific_last_n = last_n_epochs.get(task_name, 10)
-            if len(epochs) >= task_specific_last_n:
-                filtered_values = metric_values.iloc[-task_specific_last_n:].values
-            else:
-                filtered_values = metric_values.values
+            filtered_epochs = epochs
+            filtered_metric_values = metric_values
 
-        last_n_values = filtered_values
+        # Then, apply last_n_epochs on the filtered data
+        task_specific_last_n = last_n_epochs.get(task_name, 10)
+        if len(filtered_epochs) >= task_specific_last_n:
+            last_n_values = filtered_metric_values.iloc[-task_specific_last_n:].values
+        else:
+            last_n_values = filtered_metric_values.values if hasattr(filtered_metric_values, 'values') else filtered_metric_values
 
         # Store all values for this setup
         if key not in eval_setup_data:
@@ -734,7 +736,7 @@ def aggregate_task_data_by_eval_setup(
         if task_name == "droid":
             if "Act_err_xyz" in df.columns and not df["Act_err_xyz"].isnull().any():
                 # For DROID, use 1-Act_err_xyz as the "success rate"
-                metric_values = 800 * (0.1 - df["Act_err_xyz"])
+                metric_values = np.maximum(0, 800 * (0.1 - df["Act_err_xyz"]))
                 # metric_values = 100 * (1 - df['Act_err_xyz'])
             else:
                 print(f"'Act_err_xyz' not found or NaN for {eval_setup} in {model_path}, skipping ..")
@@ -966,6 +968,7 @@ def plot_design_choices_line(
     use_computed_best_eval_setup=False,
     std_average_group=False,
     offset_markers=True,
+    highlight_task_groups=None,
 ):
     """
     Create a line plot showing performance trends across ordered design choices.
@@ -980,7 +983,9 @@ def plot_design_choices_line(
         save_path: Optional path to save the figure
         dpi: DPI for saved figure
         connect_means: Whether to connect mean points with a line
-        sort_designs: Whether to sort design choices (if they are orderable)
+        highlight_task_groups: List of task group names to highlight with full lines instead of markers.
+                              These will be rendered with solid lines like the Average line.
+                              Example: ["DROID", "Rc-R", "Rc-Pl"] to highlight scaling environments.
 
     Returns:
         matplotlib.figure.Figure: The created figure
@@ -989,11 +994,12 @@ def plot_design_choices_line(
     sns.set_theme()
 
     # Extract design choices and task groups
+    # Note: We preserve the order from the YAML file (Python 3.7+ dicts are ordered)
     if "design_choice_name" in design_choices.keys():
         design_choice_name = design_choices.pop("design_choice_name")
-        design_names = sorted(list(design_choices.keys()))
+        design_names = list(design_choices.keys())
     else:
-        design_names = sorted(list(design_choices.keys()))
+        design_names = list(design_choices.keys())
         design_choice_name = ""
 
     # Aggregate data by task groups and design choices
@@ -1050,9 +1056,28 @@ def plot_design_choices_line(
         marker = markers[i % len(markers)]
         x_pos_offset = x_pos + offsets[group_to_offset_idx[task_group]]
 
-        ax.errorbar(
-            x_pos_offset, means, yerr=stds, fmt=marker, capsize=3, label=task_group, color=colors[i], alpha=0.4
-        )
+        # Check if this task group should be highlighted
+        is_highlighted = highlight_task_groups and task_group in highlight_task_groups
+
+        if is_highlighted:
+            # Render highlighted task groups with full lines (like Average)
+            ax.errorbar(
+                x_pos,
+                means,
+                yerr=stds,
+                fmt=f"{marker}-",
+                capsize=3,
+                label=task_group,
+                color=colors[i],
+                linewidth=1.5,
+                markersize=7,
+                alpha=0.8,
+            )
+        else:
+            # Render non-highlighted task groups with low alpha markers only
+            ax.errorbar(
+                x_pos_offset, means, yerr=stds, fmt=marker, capsize=3, label=task_group, color=colors[i], alpha=0.4
+            )
 
     if "Avg" in aggregated_data:
         means = []
@@ -1222,7 +1247,8 @@ def generate_latex_table(
                         cell = f"{mean:.1f} ({std:.1f})"
 
                     # Apply formatting for best and second best
-                    if design == best_designs.get(task_group):
+                    # Don't bold if the best value is 0.0 (all models failed)
+                    if design == best_designs.get(task_group) and mean > 0:
                         cell = f"\\textbf{{{cell}}}"
                 else:
                     cell = "—"  # em dash for no data
@@ -1378,6 +1404,20 @@ def generate_latex_table_all(
             if best_mean >= 0:
                 best_performances[(eval_setup, task_group)] = best_mean
 
+    # Track the overall best performance for each task_group (column) across all planners and models
+    overall_best_performances = {}
+    for task_group in task_groups:
+        best_mean = -1
+        for eval_setup in eval_setups:
+            for design_choice in design_names:
+                if design_choice in unified_data[task_group]:
+                    if eval_setup in unified_data[task_group][design_choice]:
+                        mean, _, count = unified_data[task_group][design_choice][eval_setup]
+                        if count > 0 and mean > best_mean:
+                            best_mean = mean
+        if best_mean >= 0:
+            overall_best_performances[task_group] = best_mean
+
     # Reorganize table: group by planner first, then show all models
     for planner_idx, eval_setup in enumerate(eval_setups):
         for model_idx, design in enumerate(design_names):
@@ -1399,9 +1439,17 @@ def generate_latex_table_all(
                             cell = f"{mean:.1f} ({std:.1f})"
 
                         # Bold if this is the best performance for this (planner, task_group)
+                        # Don't bold if the best value is 0.0 (all models failed)
                         best_mean = best_performances.get((eval_setup, task_group), -1)
-                        if abs(mean - best_mean) < 0.01:  # Close enough to be considered best
+                        is_best_in_planner = abs(mean - best_mean) < 0.01 and best_mean > 0
+                        if is_best_in_planner:
                             cell = f"\\textbf{{{cell}}}"
+
+                        # Underline if this is the overall best performance for this task_group
+                        overall_best = overall_best_performances.get(task_group, -1)
+                        is_overall_best = abs(mean - overall_best) < 0.01
+                        if is_overall_best:
+                            cell = f"\\underline{{{cell}}}"
                     else:
                         cell = "—"
                 else:
@@ -1434,28 +1482,34 @@ def generate_latex_table_all(
 def main():
     """
     Final paper figures commands:
-        python app/plan_common/local/logs_plan_joint_per_design_choice.py --design_choices_file app/plan_common/local/design_choice_yamls/W.yaml --output W_comparison --plot_line --verbose
-        python app/plan_common/local/logs_plan_joint_per_design_choice.py --design_choices_file app/plan_common/local/design_choice_yamls/rollout_steps.yaml --output rollout_steps_comparison --plot_line --verbose
-        python app/plan_common/local/logs_plan_joint_per_design_choice.py --design_choices_file app/plan_common/local/design_choice_yamls/model_size.yaml --output model_size_comparison --plot_line --verbose
-        python app/plan_common/local/logs_plan_joint_per_design_choice.py --design_choices_file app/plan_common/local/design_choice_yamls/plan_setup.yaml --output plan_setup --verbose --design_choices_eval_setup
-        python app/plan_common/local/logs_plan_joint_per_design_choice.py --design_choices_file app/plan_common/local/design_choice_yamls/enc.yaml --output enc_comparison --verbose
-        python app/plan_common/local/logs_plan_joint_per_design_choice.py --design_choices_file app/plan_common/local/design_choice_yamls/pred_arch.yaml --output pred_arch_comparison --verbose
-        python app/plan_common/local/logs_plan_joint_per_design_choice.py --design_choices_file app/plan_common/local/design_choice_yamls/prop.yaml --output prop_comparison --verbose
-        python app/plan_common/local/logs_plan_joint_per_design_choice.py --design_choices_file app/plan_common/local/design_choice_yamls/final_baseline_comp.yaml --output final_baseline_comp --generate_latex --verbose
+        python app/plan_common/plot/logs_plan_joint_per_design_choice.py --design_choices_file app/plan_common/plot/design_choice_yamls/W.yaml --output W_comparison --plot_line --verbose --highlight_task_groups "DROID"
+        python app/plan_common/plot/logs_plan_joint_per_design_choice.py --design_choices_file app/plan_common/plot/design_choice_yamls/rollout_steps.yaml --output rollout_steps_comparison --plot_line --verbose --highlight_task_groups "DROID"
+        python app/plan_common/plot/logs_plan_joint_per_design_choice.py --design_choices_file app/plan_common/plot/design_choice_yamls/model_size.yaml --output model_size_comparison --plot_line --verbose
+        python app/plan_common/plot/logs_plan_joint_per_design_choice.py --design_choices_file app/plan_common/plot/design_choice_yamls/model_size.yaml --output model_size_comparison --plot_line --verbose --highlight_task_groups "DROID"
+        python app/plan_common/plot/logs_plan_joint_per_design_choice.py --design_choices_file app/plan_common/plot/design_choice_yamls/plan_setup.yaml --output plan_setup --verbose --design_choices_eval_setup
+        python app/plan_common/plot/logs_plan_joint_per_design_choice.py --design_choices_file app/plan_common/plot/design_choice_yamls/enc.yaml --output enc_comparison --verbose
+        python app/plan_common/plot/logs_plan_joint_per_design_choice.py --design_choices_file app/plan_common/plot/design_choice_yamls/pred_arch.yaml --output pred_arch_comparison --verbose
+        python app/plan_common/plot/logs_plan_joint_per_design_choice.py --design_choices_file app/plan_common/plot/design_choice_yamls/predictor_scaling.yaml --output predictor_scaling_comparison --plot_line --verbose --highlight_task_groups "DROID","Push-T"
+        python app/plan_common/plot/logs_plan_joint_per_design_choice.py --design_choices_file app/plan_common/plot/design_choice_yamls/prop.yaml --output prop_comparison --verbose --exclude_robocasa
+        python app/plan_common/plot/logs_plan_joint_per_design_choice.py --design_choices_file app/plan_common/plot/design_choice_yamls/final_baseline_comp.yaml --output final_baseline_comp --generate_latex --verbose
 
         Test:
-        python app/plan_common/local/logs_plan_joint_per_design_choice.py --design_choices_file app/plan_common/local/design_choice_yamls/test_n_epochs.yaml --output test_n_epochs --generate_latex --verbose
-        python app/plan_common/local/logs_plan_joint_per_design_choice.py --design_choices_file app/plan_common/local/design_choice_yamls/test_n_epochs.yaml --output test_n_epochs --generate_latex --verbose --cut_eval_setup ep
+        python app/plan_common/plot/logs_plan_joint_per_design_choice.py --design_choices_file app/plan_common/plot/design_choice_yamls/test_n_epochs.yaml --output test_n_epochs --generate_latex --verbose
+        python app/plan_common/plot/logs_plan_joint_per_design_choice.py --design_choices_file app/plan_common/plot/design_choice_yamls/test_n_epochs.yaml --output test_n_epochs --generate_latex --verbose --cut_eval_setup ep
         Rebuttal: Comment out GD planners from unif_eval_setup_aliases_across_tasks and run below to get fixed planner table
-        python app/plan_common/local/logs_plan_joint_per_design_choice.py --design_choices_file app/plan_common/local/design_choice_yamls/final_baseline_comp.yaml --output final_baseline_comp_all_planners --generate_latex_all --verbose
+        python app/plan_common/plot/logs_plan_joint_per_design_choice.py --design_choices_file app/plan_common/plot/design_choice_yamls/final_baseline_comp.yaml --output final_baseline_comp_all_planners --generate_latex_all --verbose
         Compare planners with average across DWM-S and other models without GD (as in ICLR submission): Comment out GD planners from unif_eval_setup_aliases_across_tasks and run:
-        python app/plan_common/local/logs_plan_joint_per_design_choice.py --design_choices_file app/plan_common/local/design_choice_yamls/plan_setup_all.yaml --output plan_setup_all --verbose --design_choices_eval_setup
+        python app/plan_common/plot/logs_plan_joint_per_design_choice.py --design_choices_file app/plan_common/plot/design_choice_yamls/plan_setup_all.yaml --output plan_setup_all --verbose --design_choices_eval_setup
         Rebuttal: Additional compare of planners with proprio
-        python app/plan_common/local/logs_plan_joint_per_design_choice.py --design_choices_file app/plan_common/local/design_choice_yamls/plan_setup_prop.yaml --output plan_setup_prop --verbose --design_choices_eval_setup
+        python app/plan_common/plot/logs_plan_joint_per_design_choice.py --design_choices_file app/plan_common/plot/design_choice_yamls/plan_setup_prop.yaml --output plan_setup_prop --verbose --design_choices_eval_setup
         Rebuttal: new revised final table:
-        python app/plan_common/local/logs_plan_joint_per_design_choice.py --design_choices_file app/plan_common/local/design_choice_yamls/final_baseline_comp.yaml --output final_baseline_comp_revised --generate_latex --verbose
+        python app/plan_common/plot/logs_plan_joint_per_design_choice.py --design_choices_file app/plan_common/plot/design_choice_yamls/final_baseline_comp.yaml --output final_baseline_comp_revised --generate_latex --verbose
         new comparison of ftcond to seqcond:
-        python app/plan_common/local/logs_plan_joint_per_design_choice.py --design_choices_file app/plan_common/local/design_choice_yamls/ft_seq_cond.yaml --output ft_seq_cond_comparison --verbose
+        python app/plan_common/plot/logs_plan_joint_per_design_choice.py --design_choices_file app/plan_common/plot/design_choice_yamls/ft_seq_cond.yaml --output ft_seq_cond_comparison --verbose
+
+        Per-seed stats at final checkpoint (use last_n_epochs_override=1 to compare seed variance vs last-epochs variance):
+        python app/plan_common/plot/logs_plan_joint_per_design_choice.py --design_choices_file app/plan_common/plot/design_choice_yamls/final_baseline_comp.yaml --output final_baseline_final_ckpt --generate_latex --verbose --last_n_epochs_override 1
+
 
     In the ICRL submission, we used the last_n_epochs logic. During rebuttal, we introduced the start_from_epoch logic.
     This allows to avoid having to evaluate 100 checkpoints for DROID models, but rather a subset of the epochs in [215, 315].
@@ -1500,14 +1554,31 @@ def main():
         default=None,
         help='Comma-separated list of planner names to include (after unification). Example: "CEM $L_2$,NG $L_2$"',
     )
+    parser.add_argument(
+        "--last_n_epochs_override",
+        type=int,
+        default=None,
+        help="Override last_n_epochs for all tasks. Use 1 to get per-seed stats at the final checkpoint.",
+    )
+    parser.add_argument(
+        "--highlight_task_groups",
+        type=str,
+        default=None,
+        help='Comma-separated list of task group names to highlight with full lines in line plots. Example: "DROID"',
+    )
+    parser.add_argument(
+        "--exclude_robocasa",
+        action="store_true",
+        help="Exclude robocasa tasks (Rc-R, Rc-P, Rc-Pl, Rc-RP, Rc-PP, Rc-RPP) from the analysis",
+    )
     args = parser.parse_args()
 
     hist1_folders = [
-        "CHECKPOINT_ROOT/mw_sweep/mw_4f_fsk5_ask1_r224_pred_dino_wm_depth6_noprop_repro_1roll_hist1_save",
-        "CHECKPOINT_ROOT/mz_sweep/mz_4f_fsk5_ask1_r224_pred_dino_wm_depth6_noprop_repro_1roll_hist1_save_2n",
-        "CHECKPOINT_ROOT/pt_sweep/pt_4f_fsk5_ask1_r224_pred_dino_wm_depth6_noprop_repro_1roll_hist1_save",
-        "CHECKPOINT_ROOT/wall_sweep/wall_4f_fsk5_ask1_r224_pred_dino_wm_depth6_noprop_repro_1roll_hist1_save_2n",
-        "CHECKPOINT_ROOT/droid_final_sweep/droid_4f_fps4_r224_pred_dino_wm_depth6_noprop_repro_1roll_2fpcs_2n",
+        "mw_4f_fsk5_ask1_r224_pred_dino_wm_depth6_noprop_repro_1roll_hist1",
+        "mz_4f_fsk5_ask1_r224_pred_dino_wm_depth6_noprop_repro_1roll_hist1_save_2n",
+        "pt_4f_fsk5_ask1_r224_pred_dino_wm_depth6_noprop_repro_1roll_hist1_save",
+        "wall_4f_fsk5_ask1_r224_pred_dino_wm_depth6_noprop_repro_1roll_hist1_save_2n",
+        "droid_4f_fps4_r224_pred_dino_wm_depth6_noprop_repro_1roll_2fpcs_2n",
     ]
 
     if args.design_choices_eval_setup:
@@ -1528,6 +1599,12 @@ def main():
 
     # Define task subset from task_groups_mapping
     task_subset = list(task_groups_mapping.keys())
+
+    # Exclude robocasa tasks if requested
+    if args.exclude_robocasa:
+        task_subset = [t for t in task_subset if not t.startswith("rcasa-")]
+        if args.verbose:
+            print("Excluding robocasa tasks from analysis")
 
     # Flatten model paths for data collection
     model_paths = []
@@ -1569,21 +1646,37 @@ def main():
         )
         print_task_eval_data_structure(task_eval_data)
 
+    # Apply last_n_epochs_override if provided
+    effective_last_n_epochs = last_n_epochs.copy()
+    effective_start_from_epoch = start_from_epoch.copy()
+    if args.last_n_epochs_override is not None:
+        for task_name in effective_last_n_epochs:
+            effective_last_n_epochs[task_name] = args.last_n_epochs_override
+        # Also clear start_from_epoch to ensure last_n_epochs_override takes effect
+        effective_start_from_epoch = {}
+        print(f"Overriding last_n_epochs to {args.last_n_epochs_override} for all tasks (and disabling start_from_epoch)")
+
     # Plot the grouped bar chart
     with Timer("Plotting"):
         if args.plot_line:
+            # Parse highlight_task_groups if provided
+            highlight_groups = None
+            if args.highlight_task_groups:
+                highlight_groups = [g.strip() for g in args.highlight_task_groups.split(",")]
+
             fig = plot_design_choices_line(
                 task_eval_data,
                 design_choices,
                 task_groups_mapping,
-                last_n_epochs=last_n_epochs,
-                start_from_epoch=start_from_epoch,
+                last_n_epochs=effective_last_n_epochs,
+                start_from_epoch=effective_start_from_epoch,
                 figsize=figsize,
                 save_path=save_file,
                 dpi=args.dpi,
                 connect_means=True,
                 use_computed_best_eval_setup=args.use_computed_best_eval_setup,
                 std_average_group=args.std_average_group,
+                highlight_task_groups=highlight_groups,
             )
         elif args.generate_latex_all:
             # Parse planners_to_include if provided
@@ -1595,8 +1688,8 @@ def main():
                 task_eval_data,
                 design_choices,
                 task_groups_mapping,
-                last_n_epochs=last_n_epochs,
-                start_from_epoch=start_from_epoch,
+                last_n_epochs=effective_last_n_epochs,
+                start_from_epoch=effective_start_from_epoch,
                 save_path=save_file.with_suffix(".tex"),
                 use_computed_best_eval_setup=args.use_computed_best_eval_setup,
                 std_average_group=args.std_average_group,
@@ -1608,8 +1701,8 @@ def main():
                 task_eval_data,
                 design_choices,
                 task_groups_mapping,
-                last_n_epochs=last_n_epochs,
-                start_from_epoch=start_from_epoch,
+                last_n_epochs=effective_last_n_epochs,
+                start_from_epoch=effective_start_from_epoch,
                 save_path=save_file.with_suffix(".tex"),
                 design_choices_eval_setup=args.design_choices_eval_setup,
                 use_computed_best_eval_setup=args.use_computed_best_eval_setup,
@@ -1621,8 +1714,8 @@ def main():
                 task_eval_data,
                 design_choices,
                 task_groups_mapping,
-                last_n_epochs=last_n_epochs,
-                start_from_epoch=start_from_epoch,
+                last_n_epochs=effective_last_n_epochs,
+                start_from_epoch=effective_start_from_epoch,
                 figsize=figsize,
                 save_path=save_file,
                 dpi=args.dpi,
