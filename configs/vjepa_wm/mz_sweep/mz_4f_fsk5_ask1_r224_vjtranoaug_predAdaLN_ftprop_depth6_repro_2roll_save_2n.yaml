@@ -84,7 +84,7 @@ meta:
   load_checkpoint: true
   load_opt_scale_epoch: true
   read_checkpoint: null
-  pretrained_path: none
+  pretrained_path:
   seed: 234
   eval_freq: 1
   light_eval_freq: 200
@@ -178,7 +178,7 @@ optimization:
   transition_model:
     iterations_per_epoch: null
     ipe_scale: 1.
-    clip_grad: 10.
+    clip_grad: 1
     use_radamw: false
     betas: [0.9, 0.999]
     eps: 1.e-8
@@ -191,19 +191,19 @@ optimization:
     final_lr: 5.e-4
     mixed_precision: true
 evals:
-  dump_eval_configs: false
   decode: false
   eval_episodes: 96
   nodes: 1
   low_pri: true
   obs: rgb_state
   alpha: 0.1
+  dump_eval_configs: true
   eval_cfg_paths:
-    # - configs/online_plan_evals/mz/ng/mz_L2_ng_sourcedset_H6_nas6_ctxt2.yaml
-    # - configs/online_plan_evals/mz/mz_L2_cem_sourcedset_H6_nas6_ctxt2.yaml
-    # - configs/online_plan_evals/mz/ng/mz_L1_ng_sourcedset_H6_nas6_ctxt2.yaml
-    # - configs/online_plan_evals/mz/mz_L1_cem_sourcedset_H6_nas6_ctxt2.yaml
-    # rand state
+    - configs/online_plan_evals/mz/gd/mz_L1_gd_sourcerandstate_H6_nas6_ctxt2.yaml
+    - configs/online_plan_evals/mz/gd/mz_L2_gd_sourcerandstate_H6_nas6_ctxt2.yaml
+    - configs/online_plan_evals/mz/adam/mz_L1_adam_sourcerandstate_H6_nas6_ctxt2.yaml
+    - configs/online_plan_evals/mz/adam/mz_L2_adam_sourcerandstate_H6_nas6_ctxt2.yaml
+
     - configs/online_plan_evals/mz/ng/mz_L2_ng_sourcerandstate_H6_nas6_ctxt2.yaml
     - configs/online_plan_evals/mz/mz_L2_cem_sourcerandstate_H6_nas6_ctxt2.yaml
     - configs/online_plan_evals/mz/ng/mz_L1_ng_sourcerandstate_H6_nas6_ctxt2.yaml

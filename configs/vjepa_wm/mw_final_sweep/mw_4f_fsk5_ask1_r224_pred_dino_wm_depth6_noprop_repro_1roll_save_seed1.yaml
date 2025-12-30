@@ -36,7 +36,7 @@ data:
     use_hf_format: true
     normalize_action: true
     traj_subset: true
-    filter_first_episodes: 100
+    filter_first_episodes:
     filter_tasks: null
     num_hist: 3
     num_pred: 1
@@ -78,14 +78,14 @@ loss:
   l2_loss_weight: 1.0
   smooth_l1_loss_weight: 0.0
 meta:
-  plan_only_eval_mode: false
+  plan_only_eval_mode: true
   light_eval_only_mode: false
   quick_debug: false
   freeze_encoder: true
   load_checkpoint: true
   load_opt_scale_epoch: true
   read_checkpoint: null
-  pretrained_path: none
+  pretrained_path:
   seed: 1
   eval_freq: 1
   light_eval_freq: 300
@@ -180,7 +180,7 @@ optimization:
   transition_model:
     iterations_per_epoch: null
     ipe_scale: 1.
-    clip_grad: 10.
+    clip_grad: 1
     use_radamw: false
     betas: [0.9, 0.999]
     eps: 1.e-8
@@ -199,13 +199,17 @@ evals:
   low_pri: true
   obs: rgb
   sum_all_diffs: false
+  dump_eval_configs: true
   eval_cfg_paths:
     - configs/online_plan_evals/mw/gd/reach_L2_gd_sourcexp_H6_nas3_ctxt2.yaml
     - configs/online_plan_evals/mw/ng/reach_L2_ng_sourcexp_H6_nas3_ctxt2.yaml
     - configs/online_plan_evals/mw/reach_L2_cem_sourcexp_H6_nas3_ctxt2.yaml
+    - configs/online_plan_evals/mw/adam/reach_L2_adam_sourcexp_H6_nas3_ctxt2.yaml
+
     - configs/online_plan_evals/mw/gd/reach_L1_gd_sourcexp_H6_nas3_ctxt2.yaml
     - configs/online_plan_evals/mw/ng/reach_L1_ng_sourcexp_H6_nas3_ctxt2.yaml
     - configs/online_plan_evals/mw/reach_L1_cem_sourcexp_H6_nas3_ctxt2.yaml
+    - configs/online_plan_evals/mw/adam/reach_L1_adam_sourcexp_H6_nas3_ctxt2.yaml
     #
     # - configs/online_plan_evals/mw/ng/reach_L2_ng_sourcexp_H15_nas15_ctxt2_maxstp75_itr30.yaml
     # - configs/online_plan_evals/mw/ng/reach_L2_ng_sourcexp_H15_nas15_ctxt2_maxstp75.yaml
@@ -215,9 +219,13 @@ evals:
     - configs/online_plan_evals/mw/gd/reach-wall_L2_gd_sourcexp_H6_nas3_ctxt2.yaml
     - configs/online_plan_evals/mw/ng/reach-wall_L2_ng_sourcexp_H6_nas3_ctxt2.yaml
     - configs/online_plan_evals/mw/reach-wall_L2_cem_sourcexp_H6_nas3_ctxt2.yaml
+    - configs/online_plan_evals/mw/adam/reach-wall_L2_adam_sourcexp_H6_nas3_ctxt2.yaml
+
     - configs/online_plan_evals/mw/gd/reach-wall_L1_gd_sourcexp_H6_nas3_ctxt2.yaml
     - configs/online_plan_evals/mw/ng/reach-wall_L1_ng_sourcexp_H6_nas3_ctxt2.yaml
     - configs/online_plan_evals/mw/reach-wall_L1_cem_sourcexp_H6_nas3_ctxt2.yaml
+    - configs/online_plan_evals/mw/adam/reach-wall_L1_adam_sourcexp_H6_nas3_ctxt2.yaml
+
     #
     # - configs/online_plan_evals/mw/ng/reach-wall_L2_ng_sourcexp_H15_nas15_ctxt2_maxstp75_itr30.yaml
     # - configs/online_plan_evals/mw/ng/reach-wall_L2_ng_sourcexp_H15_nas15_ctxt2_maxstp75.yaml

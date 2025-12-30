@@ -1,0 +1,18 @@
+# Hydra defaults configuration
+# This is a minimal config that allows Hydra to bootstrap.
+# The actual config is specified via --config-path and --config-name
+
+defaults:
+  - _self_
+  - launcher: submitit_slurm
+
+# Hydra configuration
+hydra:
+  run:
+    dir: ${folder}
+  sweep:
+    dir: ${folder}
+    subdir: .
+  job:
+    chdir: false
+  output_subdir: hydra_outputs

@@ -1,0 +1,65 @@
+nodes: 1
+tasks_per_node: 8
+cpus_per_task: 16
+mem_per_gpu: 210G
+copy_code: false
+folder:
+tag: gc_zeroshot/droid_L2_adam_sourcedset_H3_nas3_maxnorm01_ctxt2_gH3
+eval_name: simu_env_planning
+meta:
+  quick_debug: false
+  seed: 1
+  eval_episodes: 64
+distributed:
+  distribute_multitask_eval: true
+  local_rng_samplers: true
+  seed_shift: horizon_1000
+logging:
+  exp_name: gc_zeroshot_dist
+  save_csv: true
+  tqdm_silent: false
+  optional_plots: true
+model_kwargs:
+  module_name:
+  checkpoint:
+  pretrain_kwargs: {}
+  data: {}
+  data_aug: {}
+  wrapper_kwargs:
+    ctxt_window: 2
+task_specification:
+  task: droid-base
+  obs: rgb
+  obs_concat_channels: false
+  goal_source: dset
+  succ_def: simu
+  done_at_succ: false
+  max_episode_steps: 100
+  goal_H: 3
+  num_frames: 1
+  num_proprios: 1
+  img_size: 224
+  env:
+    with_target: true
+    with_velocity: true
+    freeze_rand_vec: false
+planner:
+  planner_name: adam
+  action_noise: 0.003
+  sample_type: randn
+  lr: 1
+  adam_betas: [0.9, 0.995]
+  adam_eps: 1.0e-8
+  iterations: 500
+  horizon: 3
+  var_scale: 0.1
+  max_norms: [0.1, 0.75]
+  max_norm_dims: [[0, 1, 2, 3, 4, 5], [6]]
+  num_act_stepped: 3
+  repeat_actskip: false
+  decode_each_iteration: true
+  distribute_planner: false
+  planning_objective:
+    objective_type: L2
+    sum_all_diffs: false
+    alpha: 0.0

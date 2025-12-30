@@ -1,0 +1,36 @@
+# Hydra Submitit SLURM launcher configuration
+# Reference: https://hydra.cc/docs/plugins/submitit_launcher/
+#
+# IMPORTANT: Hydra processes launcher config BEFORE the main config is merged.
+# This means ${nodes}, ${folder} etc. won't work here - they need to be
+# passed via CLI overrides or set in the config's defaults section.
+#
+# To set nodes from config, add to your config yaml:
+#   defaults:
+#     - override hydra/launcher: submitit_slurm
+#   hydra:
+#     launcher:
+#       nodes: ${nodes}
+#       submitit_folder: ${folder}/submitit-job
+#
+_target_: hydra_plugins.hydra_submitit_launcher.submitit_launcher.SlurmLauncher
+
+# Submitit logs folder - override in your config with:
+# hydra.launcher.submitit_folder: ${folder}/submitit-job
+submitit_folder: ${hydra.sweep.dir}/.submitit
+
+# Resource defaults - override in config or via CLI
+nodes: 1
+tasks_per_node: 8
+cpus_per_task: 16
+gpus_per_node: 8
+
+# Memory settings - use per-GPU memory like main_distributed.py does
+mem_per_gpu: 210GB
+
+timeout_min: 4320  # 72 hours
+
+# Default SLURM settings - override via CLI: account=X partition=Y qos=Z
+partition: learn
+account: fair_amaia_cw_explore
+qos: explore

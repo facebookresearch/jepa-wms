@@ -1,0 +1,100 @@
+nodes: 1
+tasks_per_node: 8
+cpus_per_task: 16
+mem_per_gpu: 210G
+copy_code: false
+folder:
+tag: gc_zeroshot/place_L1_adam_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2
+eval_name: simu_env_planning
+meta:
+  quick_debug: false
+  seed: 1
+  eval_episodes: 32
+distributed:
+  distribute_multitask_eval: true
+  local_rng_samplers: true
+  seed_shift: horizon_1000
+logging:
+  exp_name: gc_zeroshot_dist
+  save_csv: true
+  tqdm_silent: false
+  optional_plots: true
+model_kwargs:
+  module_name:
+  checkpoint:
+  pretrain_kwargs: {}
+  data:
+    datasets:
+      - Robocasa
+    # Validation datasets
+    validation:
+      val_datasets:
+        - Robocasa
+      val_dataset_camera_views:
+        - robot0_leftview
+    # Loader configuration
+    loader: {}
+    # Custom dataset parameters
+    custom:
+      split_ratio: 0
+      num_hist: 7
+      num_pred: 1
+      frameskip: 5
+      action_skip: 5
+      filter_first_episodes: 1
+      filter_tasks:
+        - PnPCounterTop
+      output_rcasa_info: true
+      output_rcasa_state: true
+      custom_teleop_dset: True
+    # Droid-specific parameters
+    droid: {}
+  data_aug: {}
+  wrapper_kwargs:
+    ctxt_window: 2
+task_specification:
+  task: robocasa-PnPCounterTop # not really used at env construction
+  obs: rgb
+  obs_concat_channels: false
+  goal_source: dset
+  succ_def: simu
+  done_at_succ: false
+  max_episode_steps: 60
+  goal_last: true
+  goal_H: 75
+  replay_expert: false
+  num_frames: 1
+  num_proprios: 1
+  img_size: 224
+  env:
+    with_target: true
+    with_velocity: true
+    freeze_rand_vec: false
+    manip_only: True
+    custom_task: False
+    camera_name: robot0_leftview
+    rescale_act_droid_to_rcasa: true
+    subtask: place
+    sample_subtask_slice: true
+    reach_threshold: 0.2
+    place_threshold: 0.15
+planner:
+  planner_name: adam
+  action_noise: 0.003
+  sample_type: randn
+  lr: 1
+  adam_betas: [0.9, 0.995]
+  adam_eps: 1.0e-8
+  iterations: 500
+  horizon: 3
+  var_scale: 0.1
+  max_norms: [0.05, 0.01, 1.]
+  max_norm_dims: [[0, 1, 2], [3, 4, 5], [6]]
+  num_act_stepped: 1
+  repeat_actskip: true
+  decode_each_iteration: true
+  distribute_planner: false
+  planning_objective:
+    objective_type: L1
+    sum_all_diffs: false
+    alpha: 0.0

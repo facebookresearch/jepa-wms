@@ -9,7 +9,7 @@ eval_name: simu_env_planning
 meta:
   quick_debug: false
   seed: 1
-  eval_episodes: 10
+  eval_episodes: 32
 distributed:
   distribute_multitask_eval: true
   local_rng_samplers: true
@@ -83,14 +83,16 @@ planner:
   action_noise: 0.003
   sample_type: randn
   lr: 1
-  iterations: 1000
+  iterations: 500
   horizon: 3
   var_scale: 0.1
+  max_norms: [0.05, 0.01, 1.]
+  max_norm_dims: [[0, 1, 2], [3, 4, 5], [6]]
   num_act_stepped: 1
   repeat_actskip: true
   decode_each_iteration: true
   distribute_planner: false
   planning_objective:
-    objective_type: repr_l1
+    objective_type: L1
     sum_all_diffs: false
     alpha: 0.0

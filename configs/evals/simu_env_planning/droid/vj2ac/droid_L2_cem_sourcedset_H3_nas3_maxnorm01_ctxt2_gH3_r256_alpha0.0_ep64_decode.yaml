@@ -4,7 +4,7 @@ cpus_per_task: 16
 mem_per_gpu: 210G
 copy_code: false
 folder:
-  ${CHECKPOINT_ROOT}/droid_final_sweep/droid_8fpcs_fps4_r256_vj2acvitgL1_repro_2roll_noprop_4n_asp1_wsd_seed1
+  ${CHECKPOINT_ROOT}/droid_final_sweep/droid_8fpcs_r256_vj2acvitgL1_repro_2roll_noprop_4n_asp1_wsd
 tag:
   online_gc_zeroshot/droid_L2_cem_sourcedset_H3_nas3_maxnorm01_ctxt2_gH3_r256_alpha0.0_ep64_decode/epoch-315-plan-only
 eval_name: simu_env_planning
@@ -242,6 +242,6 @@ planner:
   decode_each_iteration: true
   distribute_planner: false
   planning_objective:
-    objective_type: repr_dist
+    objective_type: L2
     sum_all_diffs: false
     alpha: 0.0
