@@ -151,6 +151,16 @@ def build_unroll_decode_eval_args(
     return [unroll_decode_cfg]
 
 
+def _to_list(value):
+    """Convert a value to a list for cartesian product. None becomes [None], lists stay as-is."""
+    if value is None:
+        return [None]
+    elif isinstance(value, list):
+        return value
+    else:
+        return [value]
+
+
 def build_plan_eval_args(
     app_name,
     folder,
@@ -175,6 +185,7 @@ def build_plan_eval_args(
     override_cfgs_data=True,
     override_datasets=True,
     wrapper_kwargs={},
+    checkpoint_folder=None,
 ):
     """
     Builds evaluation arguments for online planning evaluations.
@@ -186,10 +197,30 @@ def build_plan_eval_args(
         cfgs_model (dict): Model configuration.
         cfgs_data (dict): Data configuration.
         tag (str): Tag for the evaluation.
+        evals_alpha: Single value or list of alpha values.
+        horizon: Single value or list of horizon values.
+        num_act_stepped: Single value or list of num_act_stepped values.
+        goal_H: Single value or list of goal_H values.
+        num_elites: Single value or list of num_elites values.
+
+        If any of these parameters is a list, a cartesian product is created
+        across all list parameters and eval_cfg_paths. For example, with
+        2 eval_cfg_paths and alpha=[0.1, 0.2] and horizon=[5, 10], this will
+        generate 2 * 2 * 2 = 8 eval configs.
 
     Returns:
-        tuple: (eval_nodes, eval_tasks_per_node, args_eval)
+        tuple: (eval_nodes, eval_tasks_per_node, args_eval, cpus_per_task)
     """
+    import copy
+    import itertools
+
+    # Convert sweep parameters to lists for cartesian product
+    alpha_values = _to_list(evals_alpha)
+    horizon_values = _to_list(horizon)
+    num_act_stepped_values = _to_list(num_act_stepped)
+    goal_H_values = _to_list(goal_H)
+    num_elites_values = _to_list(num_elites)
+
     args_eval = []
     for eval_cfg_path in eval_cfg_paths:
         planning_cfg_template = load_yaml(eval_cfg_path)
@@ -200,86 +231,93 @@ def build_plan_eval_args(
         eval_nodes = _nodes if eval_nodes is None else eval_nodes
         eval_tasks_per_node = _tasks if eval_tasks_per_node is None else eval_tasks_per_node
 
-        planning_cfg = planning_cfg_template.copy()
+        # Cartesian product over all sweep parameters
+        for alpha_val, horizon_val, nas_val, goal_H_val, num_elites_val in itertools.product(
+            alpha_values, horizon_values, num_act_stepped_values, goal_H_values, num_elites_values
+        ):
+            planning_cfg = copy.deepcopy(planning_cfg_template)
 
-        # Update the pretrain_kwargs field without overwriting it completely
-        # Useful to keep ctxt_window or other args added in pretrain_kwargs
-        planning_cfg["nodes"] = eval_nodes
-        planning_cfg["tasks_per_node"] = eval_tasks_per_node
-        model_kwargs = planning_cfg.get("model_kwargs", {})
-        model_kwargs["module_name"] = f"app.{app_name}.modelcustom.simu_env_planning.vit_enc_preds"
-        model_kwargs["checkpoint"] = checkpoint
-        model_kwargs["pretrain_kwargs"].update(cfgs_model)  # Merge cfgs_model into pretrain_kwargs
-        # take the needed keys from the planning cfg before overriding
-        # Set to False for eval on Robocasa from DROID model
-        if not override_datasets:  # take datasets from the planning_cfg, overwrite cfgs_data from training
-            cfgs_data["custom"]["filter_tasks"] = planning_cfg["model_kwargs"]["data"]["custom"].get("filter_tasks")
-            cfgs_data["datasets"] = planning_cfg["model_kwargs"]["data"].get("datasets", [])
-            cfgs_data["validation"]["val_datasets"] = planning_cfg["model_kwargs"]["data"]["validation"].get(
-                "val_datasets", []
-            )
-            cfgs_data["custom"]["split_ratio"] = planning_cfg["model_kwargs"]["data"]["custom"].get("split_ratio", 1.0)
-            cfgs_data["custom"]["custom_teleop_dset"] = planning_cfg["model_kwargs"]["data"]["custom"].get(
-                "custom_teleop_dset", None
-            )
-            cfgs_data["custom"]["frameskip"] = planning_cfg["model_kwargs"]["data"]["custom"].get("frameskip", 1)
-            cfgs_data["custom"]["action_skip"] = planning_cfg["model_kwargs"]["data"]["custom"].get("action_skip", 1)
-            cfgs_data["validation"]["val_dataset_camera_views"] = planning_cfg["model_kwargs"]["data"][
-                "validation"
-            ].get("val_dataset_camera_views", None)
-            cfgs_data["custom"]["num_hist"] = planning_cfg["model_kwargs"]["data"]["custom"].get("num_hist", 0)
-            cfgs_data["custom"]["num_pred"] = planning_cfg["model_kwargs"]["data"]["custom"].get("num_pred", 0)
-        if override_cfgs_data:  # always True
-            model_kwargs["data"] = cfgs_data  # Override with cfgs_data to pretrain_kwargs
-        model_kwargs["data"]["img_size"] = cfgs_data.get("img_size", 256)  # Ensure img_size is set in data
-        model_kwargs["data_aug"] = cfgs_data_aug  # Override with cfgs_data_aug to pretrain_kwargs
-        planning_cfg["model_kwargs"] = model_kwargs
-        planning_cfg["folder"] = folder
+            # Update the pretrain_kwargs field without overwriting it completely
+            # Useful to keep ctxt_window or other args added in pretrain_kwargs
+            planning_cfg["nodes"] = eval_nodes
+            planning_cfg["tasks_per_node"] = eval_tasks_per_node
+            model_kwargs = planning_cfg.get("model_kwargs", {})
+            model_kwargs["module_name"] = f"app.{app_name}.modelcustom.simu_env_planning.vit_enc_preds"
+            model_kwargs["checkpoint"] = checkpoint
+            model_kwargs["pretrain_kwargs"].update(cfgs_model)  # Merge cfgs_model into pretrain_kwargs
+            # take the needed keys from the planning cfg before overriding
+            # Set to False for eval on Robocasa from DROID model
+            if not override_datasets:  # take datasets from the planning_cfg, overwrite cfgs_data from training
+                cfgs_data["custom"]["filter_tasks"] = planning_cfg["model_kwargs"]["data"]["custom"].get("filter_tasks")
+                cfgs_data["datasets"] = planning_cfg["model_kwargs"]["data"].get("datasets", [])
+                cfgs_data["validation"]["val_datasets"] = planning_cfg["model_kwargs"]["data"]["validation"].get(
+                    "val_datasets", []
+                )
+                cfgs_data["custom"]["split_ratio"] = planning_cfg["model_kwargs"]["data"]["custom"].get(
+                    "split_ratio", 1.0
+                )
+                cfgs_data["custom"]["custom_teleop_dset"] = planning_cfg["model_kwargs"]["data"]["custom"].get(
+                    "custom_teleop_dset", None
+                )
+                cfgs_data["custom"]["frameskip"] = planning_cfg["model_kwargs"]["data"]["custom"].get("frameskip", 1)
+                cfgs_data["custom"]["action_skip"] = planning_cfg["model_kwargs"]["data"]["custom"].get("action_skip", 1)
+                cfgs_data["validation"]["val_dataset_camera_views"] = planning_cfg["model_kwargs"]["data"][
+                    "validation"
+                ].get("val_dataset_camera_views", None)
+                cfgs_data["custom"]["num_hist"] = planning_cfg["model_kwargs"]["data"]["custom"].get("num_hist", 0)
+                cfgs_data["custom"]["num_pred"] = planning_cfg["model_kwargs"]["data"]["custom"].get("num_pred", 0)
+            if override_cfgs_data:  # always True
+                model_kwargs["data"] = cfgs_data  # Override with cfgs_data to pretrain_kwargs
+            model_kwargs["data"]["img_size"] = cfgs_data.get("img_size", 256)  # Ensure img_size is set in data
+            model_kwargs["data_aug"] = cfgs_data_aug  # Override with cfgs_data_aug to pretrain_kwargs
+            planning_cfg["model_kwargs"] = model_kwargs
+            planning_cfg["folder"] = folder
+            planning_cfg["checkpoint_folder"] = checkpoint_folder
 
-        # To have one template working for both DINO and VJEPA WMs
-        planning_cfg["task_specification"]["num_frames"] = cfgs_model["tubelet_size_enc"]
-        planning_cfg["task_specification"]["num_proprios"] = cfgs_model["tubelet_size_enc"]
+            # To have one template working for both DINO and VJEPA WMs
+            planning_cfg["task_specification"]["num_frames"] = cfgs_model["tubelet_size_enc"]
+            planning_cfg["task_specification"]["num_proprios"] = cfgs_model["tubelet_size_enc"]
 
-        planning_cfg["planner"]["decode_each_iteration"] = evals_decode
-        if "img_size" in cfgs_data.keys():
-            planning_cfg["task_specification"]["img_size"] = cfgs_data["img_size"]
-        if evals_obs is not None:
-            planning_cfg["task_specification"]["obs"] = evals_obs
-        if evals_alpha is not None:
-            planning_cfg["planner"]["planning_objective"]["alpha"] = evals_alpha
+            planning_cfg["planner"]["decode_each_iteration"] = evals_decode
+            if "img_size" in cfgs_data.keys():
+                planning_cfg["task_specification"]["img_size"] = cfgs_data["img_size"]
+            if evals_obs is not None:
+                planning_cfg["task_specification"]["obs"] = evals_obs
+            if alpha_val is not None:
+                planning_cfg["planner"]["planning_objective"]["alpha"] = alpha_val
 
-        pref_tag = f"online_{planning_cfg['tag']}_r{planning_cfg['task_specification']['img_size']}_alpha{planning_cfg['planner']['planning_objective']['alpha']}"
-        if max_episode_steps is not None:
-            planning_cfg["task_specification"]["max_episode_steps"] = max_episode_steps
-            pref_tag = update_tag_pattern(pref_tag, "maxstp", max_episode_steps)
-        if num_act_stepped is not None:
-            planning_cfg["planner"]["num_act_stepped"] = num_act_stepped
-            pref_tag = update_tag_pattern(pref_tag, "nas", num_act_stepped)
-        if sum_all_diffs is not None:
-            planning_cfg["planner"]["planning_objective"]["sum_all_diffs"] = sum_all_diffs
-            pref_tag = update_tag_pattern(pref_tag, "sum", sum_all_diffs, insert_before="ctxt")
-        ctxt_window = wrapper_kwargs.get("ctxt_window")
-        if ctxt_window is not None:
-            planning_cfg["model_kwargs"]["wrapper_kwargs"]["ctxt_window"] = ctxt_window
-            pref_tag = update_tag_pattern(pref_tag, "ctxt", ctxt_window)
-        for k, v in wrapper_kwargs.items():
-            if k != "ctxt_window":
-                planning_cfg["model_kwargs"]["wrapper_kwargs"][k] = v
-        if horizon is not None:
-            planning_cfg["planner"]["horizon"] = horizon
-            pref_tag = update_tag_pattern(pref_tag, "H", horizon)
-        if num_elites is not None:
-            planning_cfg["planner"]["num_elites"] = num_elites
-        if goal_H is not None:
-            planning_cfg["task_specification"]["goal_H"] = goal_H
-            pref_tag = update_tag_pattern(pref_tag, "gH", goal_H)
-        if eval_episodes is not None:
-            planning_cfg["meta"]["eval_episodes"] = eval_episodes
-            pref_tag = update_tag_pattern(pref_tag, "ep", eval_episodes)
-        if planning_cfg["planner"]["decode_each_iteration"]:
-            pref_tag += "_decode"
-        planning_cfg["tag"] = f"{pref_tag}/{tag}"
-        args_eval.append(planning_cfg)
+            pref_tag = f"online_{planning_cfg['tag']}_r{planning_cfg['task_specification']['img_size']}_alpha{planning_cfg['planner']['planning_objective']['alpha']}"
+            if max_episode_steps is not None:
+                planning_cfg["task_specification"]["max_episode_steps"] = max_episode_steps
+                pref_tag = update_tag_pattern(pref_tag, "maxstp", max_episode_steps)
+            if nas_val is not None:
+                planning_cfg["planner"]["num_act_stepped"] = nas_val
+                pref_tag = update_tag_pattern(pref_tag, "nas", nas_val)
+            if sum_all_diffs is not None:
+                planning_cfg["planner"]["planning_objective"]["sum_all_diffs"] = sum_all_diffs
+                pref_tag = update_tag_pattern(pref_tag, "sum", sum_all_diffs, insert_before="ctxt")
+            ctxt_window = wrapper_kwargs.get("ctxt_window")
+            if ctxt_window is not None:
+                planning_cfg["model_kwargs"]["wrapper_kwargs"]["ctxt_window"] = ctxt_window
+                pref_tag = update_tag_pattern(pref_tag, "ctxt", ctxt_window)
+            for k, v in wrapper_kwargs.items():
+                if k != "ctxt_window":
+                    planning_cfg["model_kwargs"]["wrapper_kwargs"][k] = v
+            if horizon_val is not None:
+                planning_cfg["planner"]["horizon"] = horizon_val
+                pref_tag = update_tag_pattern(pref_tag, "H", horizon_val)
+            if num_elites_val is not None:
+                planning_cfg["planner"]["num_elites"] = num_elites_val
+            if goal_H_val is not None:
+                planning_cfg["task_specification"]["goal_H"] = goal_H_val
+                pref_tag = update_tag_pattern(pref_tag, "gH", goal_H_val)
+            if eval_episodes is not None:
+                planning_cfg["meta"]["eval_episodes"] = eval_episodes
+                pref_tag = update_tag_pattern(pref_tag, "ep", eval_episodes)
+            if planning_cfg["planner"]["decode_each_iteration"]:
+                pref_tag += "_decode"
+            planning_cfg["tag"] = f"{pref_tag}/{tag}"
+            args_eval.append(planning_cfg)
 
     return eval_nodes, eval_tasks_per_node, args_eval, _cpus
 
@@ -318,6 +356,56 @@ def fetch_checkpoint(source, device="cpu", dino_wm_format=False):
             raise
 
     return checkpoint
+
+
+# Keys expected in DINO-WM checkpoints that contain model modules
+ALL_DINO_WM_MODEL_KEYS = [
+    "encoder",
+    "predictor",
+    "decoder",
+    "proprio_encoder",
+    "action_encoder",
+]
+
+
+def load_dino_wm_modules(checkpoint, device="cuda"):
+    """Load DINO-WM model modules directly from checkpoint.
+
+    This function loads entire module objects from a DINO-WM checkpoint, mimicking
+    the behavior of the original DINO-WM codebase's load_ckpt function in plan.py.
+
+    Unlike load_checkpoint_state_dict() which extracts state_dicts and loads them
+    onto pre-constructed modules, this function returns the actual pickled module
+    objects from the checkpoint.
+
+    Args:
+        checkpoint (dict): Checkpoint data loaded with fetch_checkpoint(dino_wm_format=True).
+        device (str or torch.device): Device to move modules to. Default is 'cuda'.
+
+    Returns:
+        dict: Dictionary containing loaded module objects with keys:
+            - 'encoder': Visual encoder module (if present)
+            - 'predictor': Predictor module (if present)
+            - 'decoder': Decoder module (if present, may be None)
+            - 'proprio_encoder': Proprioceptive encoder module (if present)
+            - 'action_encoder': Action encoder module (if present)
+            - 'epoch': Training epoch from checkpoint
+    """
+    device = torch.device(device) if isinstance(device, str) else device
+    result = {}
+    for key in ALL_DINO_WM_MODEL_KEYS:
+        if key in checkpoint:
+            module = checkpoint[key]
+            if module is not None and hasattr(module, "to"):
+                result[key] = module.to(device)
+            else:
+                result[key] = module
+            logger.info(f"Loaded DINO-WM module '{key}' from checkpoint")
+
+    result["epoch"] = checkpoint.get("epoch", -1)
+    logger.info(f"Loaded DINO-WM modules from epoch {result['epoch']}")
+
+    return result
 
 
 def load_checkpoint_state_dict(
@@ -558,6 +646,7 @@ def init_video_model(
     tubelet_size=1,
     use_rope=False,
     use_SiLU=False,
+    use_sdpa=False,
     cfgs_attn_pattern=None,
     use_activation_checkpointing=False,
     init_scale_factor_adaln=10,
@@ -664,7 +753,7 @@ def init_video_model(
         for p in encoder.parameters():
             p.requires_grad = False
         encoder = encoder.eval()
-    logger.info(f"Encoder : {encoder}")
+    logger.info(f"Encoder: {encoder}")
     assert (
         img_size % encoder.patch_size == 0
     ), f"Image size {img_size} should be divisible by encoder patch size {encoder.patch_size}"
@@ -679,7 +768,7 @@ def init_video_model(
     elif pred_type == "dino_wm":
         # CAREFUL: num_patches defined here is essential: it determines both the block size of the causal attn mask
         # and the positional embedding
-        # only works with action_conditioning == ‘feature’, proprio_encoding == 'feature' and action_encoder_inpred == False
+        # only works with action_conditioning == 'feature', proprio_encoding == 'feature' and action_encoder_inpred == False
         assert action_encoder_inpred == False
         assert proprio_encoder_inpred == False
         assert action_conditioning == "feature" and proprio_encoding == "feature"
@@ -693,6 +782,7 @@ def init_video_model(
             num_patches=int(img_size / encoder.patch_size) ** 2,
             num_frames=num_frames_pred,
             dim=pred_embed_dim + (proprio_emb_dim * 1 + action_emb_dim * 1) * (concat_dim),
+            use_sdpa=use_sdpa,
         ).to(device)
     elif pred_type == "vjepa2_ac":
         # works with both action_encoder_inpred False or True, with action_conditioning in [’feature’, ‘token’],
@@ -752,8 +842,10 @@ def init_video_model(
             proprio_tokens=proprio_tokens,
             init_scale_factor_adaln=init_scale_factor_adaln,
         ).to(device)
-    logger.info(predictor)
-    logger.info(f"Predictor number of parameters: {count_parameters(predictor)}")
+    enc_params = sum(p.numel() for p in encoder.parameters())
+    pred_params = sum(p.numel() for p in predictor.parameters())
+    logger.info(f"🧠 Encoder: {type(encoder).__name__} ({enc_params:,} params, frozen={not any(p.requires_grad for p in encoder.parameters())})")
+    logger.info(f"🔮 Predictor: {type(predictor).__name__} ({pred_params:,} params)")
     if (action_tokens > 0 or action_emb_dim > 0) and not action_encoder_inpred:
         # Determine the correct output dimension for the action encoder
         if action_conditioning == "token":
@@ -963,5 +1055,5 @@ def init_opt(
         final_wd=final_weight_decay,
         T_max=T_max,
     )
-    scaler = torch.cuda.amp.GradScaler() if mixed_precision else None
+    scaler = torch.amp.GradScaler("cuda") if mixed_precision else None
     return optimizer, scaler, scheduler, wd_scheduler

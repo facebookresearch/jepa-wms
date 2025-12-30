@@ -63,6 +63,7 @@ def make_transforms(
     normalize=((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
     hwc=False,
     do_255_to_1=False,
+    normalize_before_resize=False,
 ):
     transform = VideoTransform(
         random_horizontal_flip=random_horizontal_flip,
@@ -75,6 +76,7 @@ def make_transforms(
         normalize=normalize,
         hwc=hwc,
         do_255_to_1=do_255_to_1,
+        normalize_before_resize=normalize_before_resize,
     )
     return transform
 
@@ -106,6 +108,7 @@ class VideoTransform(object):
         normalize=((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
         hwc=False,
         do_255_to_1=False,
+        normalize_before_resize=False,
     ):
         self.hwc = hwc
         self.random_horizontal_flip = random_horizontal_flip
@@ -115,6 +118,7 @@ class VideoTransform(object):
         self.motion_shift = motion_shift
         self.crop_size = crop_size
         self.do_255_to_1 = do_255_to_1
+        self.normalize_before_resize = normalize_before_resize
         self.mean = torch.tensor(normalize[0], dtype=torch.float32)
         self.std = torch.tensor(normalize[1], dtype=torch.float32)
 
@@ -181,6 +185,10 @@ class VideoTransform(object):
         else:
             buffer = buffer.permute(1, 0, 2, 3)  # T C H W -> C T H W
 
+        # Normalize before resize to match DINO-WM transform order
+        if self.normalize_before_resize:
+            buffer = _tensor_normalize_inplace(buffer, self.mean, self.std, do_255_to_1=self.do_255_to_1)
+
         buffer = self.spatial_transform(
             images=buffer,
             target_height=self.crop_size,
@@ -191,7 +199,10 @@ class VideoTransform(object):
         if self.random_horizontal_flip:
             buffer, _ = video_transforms.horizontal_flip(0.5, buffer)
 
-        buffer = _tensor_normalize_inplace(buffer, self.mean, self.std, do_255_to_1=self.do_255_to_1)
+        # Normalize after resize (default behavior)
+        if not self.normalize_before_resize:
+            buffer = _tensor_normalize_inplace(buffer, self.mean, self.std, do_255_to_1=self.do_255_to_1)
+
         if self.reprob > 0:
             self.erase_transform.device = buffer.device
             buffer = buffer.permute(1, 0, 2, 3)  # C T H W -> T C H W

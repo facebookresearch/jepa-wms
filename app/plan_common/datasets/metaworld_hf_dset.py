@@ -7,7 +7,11 @@ from einops import rearrange
 
 from datasets import load_dataset
 
+from src.utils.logging import get_logger
+
 from .traj_dset import TrajDataset, get_train_val_sliced
+
+log = get_logger(__name__)
 
 
 def decode_video_frames(video_bytes):
@@ -60,6 +64,7 @@ class MetaworldHFDataset(TrajDataset):
         action_scale=1.0,
         filter_tasks: Optional[List[str]] = None,
         with_reward: bool = True,
+        filter_first_episodes: Optional[int] = None,
     ):
         self.data_path = Path(data_path)
         self.transform = transform
@@ -67,12 +72,12 @@ class MetaworldHFDataset(TrajDataset):
         self.with_reward = with_reward
 
         # Load HuggingFace dataset from parquet files
-        print(f"Loading HuggingFace dataset from {data_path}...")
+        log.info(f"📂 Loading Metaworld HuggingFace dataset from {data_path}...")
         ds = load_dataset("parquet", data_dir=str(data_path), split="train")
 
         # Filter by task if specified
         if filter_tasks is not None:
-            print(f"Filtering for tasks {filter_tasks}...")
+            log.info(f"   Filtering for tasks {filter_tasks}...")
             ds = ds.filter(lambda x: x["task"] in filter_tasks)
 
         # Limit number of rollouts
@@ -80,16 +85,26 @@ class MetaworldHFDataset(TrajDataset):
             ds = ds.select(range(min(n_rollout, len(ds))))
 
         self.dataset = ds
-        print(f"Loaded {len(ds)} rollouts")
+        log.info(f"✅ Loaded {len(ds)} Metaworld rollouts")
 
         # Pre-load states, actions, rewards (lightweight, no video decoding yet)
+        # If filter_first_episodes is set, only process first N episodes total
+        # to speed up dataloader construction in debug/eval modes
         states = []
         actions = []
         proprio_states = []
         seq_lengths = []
         rewards = []
 
-        for i in range(len(ds)):
+        n_episodes = len(ds)
+        if filter_first_episodes is not None:
+            n_episodes = min(filter_first_episodes, n_episodes)
+            log.info(f"   Filtering to first {n_episodes} episodes for faster loading")
+
+        # Store mapping from local indices to dataset indices for get_frames()
+        self.dataset_indices = list(range(n_episodes))
+
+        for i in range(n_episodes):
             row = ds[i]
             state = np.array(row["states"])  # 100 states
             action = np.array(row["actions"])  # 99 actions
@@ -150,7 +165,9 @@ class MetaworldHFDataset(TrajDataset):
 
     def get_frames(self, idx, frames):
         """Load and decode video frames on demand."""
-        row = self.dataset[idx]
+        # Use dataset_indices to map local idx to original dataset idx
+        dataset_idx = self.dataset_indices[idx]
+        row = self.dataset[dataset_idx]
 
         # Handle video decoding based on format
         video = row["video"]
@@ -204,6 +221,7 @@ def load_metaworld_hf_slice_train_val(
     action_skip=1,
     traj_subset=True,
     filter_tasks=None,
+    filter_first_episodes=None,
     random_seed=42,
     with_reward=False,
     process_actions="concat",
@@ -215,6 +233,7 @@ def load_metaworld_hf_slice_train_val(
         normalize_action=normalize_action,
         filter_tasks=filter_tasks,
         with_reward=with_reward,
+        filter_first_episodes=filter_first_episodes,
     )
     dset_train, dset_val, train_slices, val_slices = get_train_val_sliced(
         traj_dataset=dset,

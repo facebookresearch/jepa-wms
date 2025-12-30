@@ -1,9 +1,13 @@
 # Inspired from https://github.com/gaoyuezhou/dino_wm
 
 import os
+import warnings
 
 import torch
 import torch.nn as nn
+
+# Suppress xFormers availability warnings from DINOv2
+warnings.filterwarnings("ignore", message="xFormers is not available")
 
 torch.hub._validate_not_a_forked_repo = lambda a, b, c: True
 

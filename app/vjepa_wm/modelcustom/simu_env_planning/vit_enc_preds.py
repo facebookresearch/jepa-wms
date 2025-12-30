@@ -22,11 +22,35 @@ from app.vjepa_wm.utils import (
     fetch_checkpoint,
     init_video_model,
     load_checkpoint_state_dict,
+    load_dino_wm_modules,
 )
 from app.vjepa_wm.video_wm import VideoWM
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 logger = logging.getLogger()
+
+
+def load_dino_wm_model(checkpoint_path, model_cfg, device, num_action_repeat=1):
+    """
+    Load a DINO-WM model using the exact same logic as evals/dino_wm_plan/plan.py:load_model().
+
+    This is a thin wrapper around the DINO-WM codebase's load_model function to
+    ensure perfect compatibility with DINO-WM trained checkpoints.
+
+    Args:
+        checkpoint_path (str or Path): Path to the checkpoint file.
+        model_cfg (OmegaConf): Model configuration (hydra.yaml from training).
+        device (torch.device): Device to load model on.
+        num_action_repeat (int): Number of action repeats (typically 1 for planning).
+
+    Returns:
+        VWorldModel: DINO-WM VWorldModel instance ready for inference.
+    """
+    from evals.dino_wm_plan.plan import load_model
+
+    model_ckpt = Path(checkpoint_path)
+    model = load_model(model_ckpt, model_cfg, num_action_repeat, device=device, model_type="dino_wm")
+    return model
 
 
 def init_module(
@@ -42,12 +66,18 @@ def init_module(
     **kwargs,
 ):
     """Initialize EncPredWM model with pretrained weights and decoders.
+
+    When `model_kwargs.load_dino_wm_modules` is True, this function loads the entire
+    DINO-WM module objects from the checkpoint and builds a VWorldModel directly,
+    providing exact compatibility with DINO-WM trained checkpoints.
+
     Args:
         folder (str or Path): Directory containing checkpoint file (only used for local paths).
         checkpoint (str): Checkpoint source - can be either:
             - A filename to load from folder (e.g., "jepa-latest.pth.tar")
             - A full URL to download from (e.g., "https://dl.fbaipublicfiles.com/jepa-wms/...")
         model_kwargs (dict): Model configuration with encoder, predictor, heads, and data configs.
+            If `load_dino_wm_modules: true`, will load entire modules from checkpoint.
         device (torch.device): Device to load model on.
         action_dim (int): Action dimension from the dataset.
         proprio_dim (int): Proprioception dimension from the dataset.
@@ -56,8 +86,48 @@ def init_module(
         wrapper_kwargs (dict): Additional kwargs for EncPredWM wrapper.
         **kwargs: Additional arguments (unused).
     Returns:
-        EncPredWM: Wrapped VideoWM model ready for encoding and prediction.
+        EncPredWM or VWorldModel: If load_dino_wm_modules=True, returns VWorldModel directly.
+            Otherwise returns wrapped VideoWM model (EncPredWM) ready for encoding and prediction.
     """
+    # Check if we should load entire DINO-WM modules
+    load_dino_wm_modules_flag = model_kwargs.get("load_dino_wm_modules", False)
+    dino_wm_format = model_kwargs.get("dino_wm_format", False)
+
+    if load_dino_wm_modules_flag:
+        # Load entire DINO-WM model using the exact same logic as evals/dino_wm_plan/plan.py:load_model()
+        logger.info("Loading DINO-WM model using evals/dino_wm_plan/plan.py:load_model()...")
+
+        is_url = isinstance(checkpoint, str) and checkpoint.startswith(("http://", "https://"))
+        if is_url:
+            checkpoint_source = checkpoint
+        else:
+            checkpoint_source = Path(folder) / checkpoint
+
+        # Load hydra.yaml from the training output directory
+        # The checkpoint path is like "0/checkpoints/model_10.pth", so hydra.yaml is in the parent of "checkpoints"
+        from omegaconf import OmegaConf
+        import os
+
+        # Determine the path to hydra.yaml
+        # folder is the training output directory, checkpoint is the relative path
+        ckpt_dir = Path(folder) / Path(checkpoint).parent.parent  # Go from 0/checkpoints/model_10.pth to 0/
+        hydra_yaml_path = ckpt_dir / "hydra.yaml"
+
+        if not hydra_yaml_path.exists():
+            raise ValueError(f"hydra.yaml not found at {hydra_yaml_path}. Required for load_dino_wm_modules=True.")
+
+        logger.info(f"Loading model config from {hydra_yaml_path}")
+        with open(hydra_yaml_path, "r") as f:
+            model_cfg = OmegaConf.load(f)
+
+        # Load the model using the DINO-WM load_model function
+        num_action_repeat = model_cfg.get("num_action_repeat", 1)
+        vworld_model = load_dino_wm_model(checkpoint_source, model_cfg, device, num_action_repeat)
+
+        logger.info("Loaded VWorldModel directly using DINO-WM plan.py:load_model()")
+        return vworld_model
+
+    # Original behavior: create modules from scratch and load state dicts
     img_size = cfgs_data.get("img_size", 256)
     frameskip = cfgs_data.get("custom").get("frameskip", 1)
     action_skip = cfgs_data.get("custom").get("action_skip", 1)
@@ -152,7 +222,6 @@ def init_module(
     else:
         checkpoint_source = Path(folder) / checkpoint
 
-    dino_wm_format = model_kwargs.get("dino_wm_format", False)
     checkpoint_data = fetch_checkpoint(checkpoint_source, device="cpu", dino_wm_format=dino_wm_format)
 
     (

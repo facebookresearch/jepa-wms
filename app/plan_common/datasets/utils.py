@@ -14,7 +14,7 @@ import torch.utils.data
 
 from src.datasets.data_manager import init_data as init_data_src
 
-from .droid_dset import DROIDVideoDataset
+from .droid_dset import DROIDVideoDataset, load_droid_slice_train_val
 from .metaworld_hf_dset import load_metaworld_hf_slice_train_val
 from .point_maze_dset import load_point_maze_slice_train_val
 from .pusht_dset import load_pusht_slice_train_val
@@ -62,6 +62,7 @@ def init_data(
     custom_teleop_dset=False,
     droid_fraction=1,
     val_droid_fraction=1,
+    droid_use_slicing=False,  # If True, use DROIDTrajDataset with TrajSlicerDataset instead of DROIDVideoDataset
     # RoboCasa-specific parameters
     output_rcasa_state=False,
     output_rcasa_info=False,
@@ -86,10 +87,34 @@ def init_data(
     duration=None,
     **kwargs,
 ) -> tuple[Callable]:
-    print(f"{data_paths=}")
+    logger.info(f"📂 Data paths: {data_paths}")
     shuffle = True
     if dataset_type == "custom":
-        if all("droid" in p for p in data_paths) or all("franka_custom" in p for p in data_paths):
+        if (all("droid" in p.lower() for p in data_paths) or all("franka_custom" in p for p in data_paths)) and droid_use_slicing:
+            # DROID with trajectory slicing for fair comparison across num_frames
+            datasets, traj_dsets = load_droid_slice_train_val(
+                transform=transform,
+                data_path=data_paths[0],
+                normalize_action=normalize_action,
+                split_ratio=split_ratio,
+                num_hist=num_hist,
+                num_pred=num_pred,
+                num_frames_val=num_frames_val,
+                frameskip=frameskip,
+                action_skip=action_skip,
+                traj_subset=traj_subset,
+                random_seed=seed,
+                process_actions=process_actions,
+                camera_views=camera_views,
+                fps=fps,
+                camera_frame=camera_frame,
+                mpk_dset=all("franka_custom" in p for p in data_paths),
+                mpk_manifest_patterns=mpk_manifest_patterns,
+                droid_to_rcasa_action_format=droid_to_rcasa_action_format,
+                droid_fraction=droid_fraction,
+            )
+            dataset = datasets["train"]
+        elif all("droid" in p.lower() for p in data_paths) or all("franka_custom" in p for p in data_paths):
             # We never pass the normalize_action argument to DROIDVideoDataset
             dataset = DROIDVideoDataset(
                 data_path=data_paths[0],
@@ -136,6 +161,7 @@ def init_data(
                 action_skip=action_skip,
                 traj_subset=traj_subset,
                 filter_tasks=filter_tasks,
+                filter_first_episodes=filter_first_episodes,
                 with_reward=with_reward,
                 random_seed=seed,
                 process_actions=process_actions,
