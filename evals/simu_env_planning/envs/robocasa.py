@@ -242,10 +242,10 @@ class RoboCasaWrapper(gym.Wrapper):
         model_xml = env_info.get("model_xml", None)
         ep_meta = env_info.get("ep_meta", None)
         # # Uncomment to save out the model XML for debugging
-        xml_path = f"evals/simu_env_planning/envs/robocasa/{self.env_name}_model.xml"
-        with open(xml_path, "w") as f:
-            f.write(model_xml)
-            logger.info(f"Saved model XML to {xml_path}")
+        # xml_path = f"evals/simu_env_planning/envs/robocasa/{self.env_name}_model.xml"
+        # with open(xml_path, "w") as f:
+        #     f.write(model_xml)
+        #     logger.info(f"Saved model XML to {xml_path}")
         if self.custom_task:
             # Modify the XML to add the custom camera
             import xml.etree.ElementTree as ET

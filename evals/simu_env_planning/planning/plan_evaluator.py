@@ -414,18 +414,17 @@ class PlanEvaluator:
                     self.state_g = rollout_infos[-1]["state"]
                 else:
                     # expert obses are just the dset ones
-                    self.expert_actions = torch.tensor(actions).unsqueeze(0)
+                    self.expert_actions = actions.detach().clone().unsqueeze(0)
                     expert_obses = []
                     for i in range(len(observations["visual"])):
                         expert_obses.append(
                             TensorDict(
                                 {
-                                    "visual": torch.tensor(
+                                    "visual": (
                                         self.agent.preprocessor.inverse_transform(observations["visual"][i : i + 1])
-                                        * 255,
-                                        dtype=torch.uint8,
-                                    ),
-                                    "proprio": torch.tensor(observations["proprio"][i : i + 1], dtype=torch.float32),
+                                        * 255
+                                    ).to(torch.uint8),
+                                    "proprio": torch.as_tensor(observations["proprio"][i : i + 1], dtype=torch.float32),
                                 }
                             )
                         )

@@ -41,6 +41,18 @@ task_groups_mapping = {
 # Hardcoded order for task groups in LaTeX tables
 TASK_GROUP_ORDER = ["Maze", "Wall", "Push-T", "MW-\nReach", "MW-\nReach-\nWall", "Rc-R", "Rc-Pl", "DROID"]
 
+# Hardcoded order for planners: CEM (L2, L1), then NG, then Adam, then GD
+PLANNER_ORDER = [
+    r"CEM $L_2$",
+    r"CEM $L_1$",
+    r"NG $L_2$",
+    r"NG $L_1$",
+    r"Adam $L_2$",
+    r"Adam $L_1$",
+    r"GD $L_2$",
+    r"GD $L_1$",
+]
+
 best_eval_setup_per_task_group = {
     "Push-T": r"CEM $L_2$",
     "Maze": r"CEM rand $L_2$",
@@ -862,7 +874,12 @@ def plot_design_choices_grouped_bar(
             all_eval_setups.update(eval_setups.keys())
         # Filter out "Avg" if it's in there
         all_eval_setups.discard("Avg")
-        design_names = sorted(list(all_eval_setups))
+        # Use PLANNER_ORDER for consistent ordering
+        design_names = [p for p in PLANNER_ORDER if p in all_eval_setups]
+        # Add any planners not in the predefined order at the end
+        for p in sorted(list(all_eval_setups)):
+            if p not in design_names:
+                design_names.append(p)
     else:
         aggregated_data = aggregate_task_data_by_groups(
             task_eval_data,
@@ -919,7 +936,18 @@ def plot_design_choices_grouped_bar(
             else:
                 yerr_values.append(s)
 
-        bars = ax.bar(x_pos + offset, means, bar_width, yerr=yerr_values, capsize=3, label=design, color=colors[i])
+        bars = ax.bar(
+            x_pos + offset,
+            means,
+            bar_width,
+            yerr=yerr_values,
+            capsize=2,
+            label=design,
+            color=colors[i],
+            edgecolor="black",
+            linewidth=0.5,
+            error_kw={"elinewidth": 0.8, "capthick": 0.8},
+        )
 
         if bar_label:
             for j, (bar, mean, count) in enumerate(zip(bars, means, counts)):
@@ -1360,9 +1388,17 @@ def generate_latex_table_all(
 
     # Filter to only include specified planners if provided
     if planners_to_include is not None:
-        eval_setups = [es for es in sorted(list(all_eval_setups)) if es in planners_to_include]
+        eval_setups = [es for es in PLANNER_ORDER if es in all_eval_setups and es in planners_to_include]
+        # Add any planners not in the predefined order at the end
+        for es in sorted(list(all_eval_setups)):
+            if es in planners_to_include and es not in eval_setups:
+                eval_setups.append(es)
     else:
-        eval_setups = sorted(list(all_eval_setups))
+        eval_setups = [es for es in PLANNER_ORDER if es in all_eval_setups]
+        # Add any planners not in the predefined order at the end
+        for es in sorted(list(all_eval_setups)):
+            if es not in eval_setups:
+                eval_setups.append(es)
 
     # Clean task group names - remove line breaks
     clean_task_groups = []
@@ -1501,7 +1537,7 @@ def main():
         Compare planners with average across DWM-S and other models without GD (as in ICLR submission): Comment out GD planners from unif_eval_setup_aliases_across_tasks and run:
         python app/plan_common/plot/logs_plan_joint_per_design_choice.py --design_choices_file app/plan_common/plot/design_choice_yamls/plan_setup_all.yaml --output plan_setup_all --verbose --design_choices_eval_setup
         Rebuttal: Additional compare of planners with proprio
-        python app/plan_common/plot/logs_plan_joint_per_design_choice.py --design_choices_file app/plan_common/plot/design_choice_yamls/plan_setup_prop.yaml --output plan_setup_prop --verbose --design_choices_eval_setup
+        python app/plan_common/plot/logs_plan_joint_per_design_choice.py --design_choices_file app/plan_common/plot/design_choice_yamls/plan_setup_prop.yaml --output plan_setup_prop --verbose --design_choices_eval_setup --exclude_robocasa
         Rebuttal: new revised final table:
         python app/plan_common/plot/logs_plan_joint_per_design_choice.py --design_choices_file app/plan_common/plot/design_choice_yamls/final_baseline_comp.yaml --output final_baseline_comp_revised --generate_latex --verbose
         new comparison of ftcond to seqcond:
@@ -1509,6 +1545,7 @@ def main():
 
         Per-seed stats at final checkpoint (use last_n_epochs_override=1 to compare seed variance vs last-epochs variance):
         python app/plan_common/plot/logs_plan_joint_per_design_choice.py --design_choices_file app/plan_common/plot/design_choice_yamls/final_baseline_comp.yaml --output final_baseline_final_ckpt --generate_latex --verbose --last_n_epochs_override 1
+        python app/plan_common/plot/logs_plan_joint_per_design_choice.py --design_choices_file app/plan_common/plot/design_choice_yamls/final_baseline_comp.yaml --output final_ckpt_all_planners --generate_latex_all --verbose --last_n_epochs_override 1
 
 
     In the ICRL submission, we used the last_n_epochs logic. During rebuttal, we introduced the start_from_epoch logic.

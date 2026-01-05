@@ -9,7 +9,7 @@
 <div align="center" style="line-height: 1;">
   <a href="https://github.com/facebookresearch/jepa-wms" target="_blank" style="margin: 2px;"><img alt="Github" src="https://img.shields.io/badge/Github-facebookresearch/jepa--wms-black?logo=github" style="display: inline-block; vertical-align: middle;"/></a>
   <a href="https://huggingface.co/datasets/facebook/jepa-wms" target="_blank" style="margin: 2px;"><img alt="HuggingFace" src="https://img.shields.io/badge/🤗%20HuggingFace-facebook/jepa--wms-ffc107" style="display: inline-block; vertical-align: middle;"/></a>
-  <a href="https://arxiv.org/abs/XXXX.XXXXX" target="_blank" style="margin: 2px;"><img alt="ArXiv" src="https://img.shields.io/badge/arXiv-XXXX.XXXXX-b5212f?logo=arxiv" style="display: inline-block; vertical-align: middle;"/></a>
+  <a href="https://www.arxiv.org/abs/2512.24497" target="_blank" style="margin: 2px;"><img alt="ArXiv" src="https://img.shields.io/badge/arXiv-2512.24497-b5212f?logo=arxiv" style="display: inline-block; vertical-align: middle;"/></a>
 </div>
 
 <br>
@@ -38,7 +38,7 @@
 
 ## 🎯 Pretrained Models
 
-We provide pretrained [JEPA-WM](https://arxiv.org/abs/xxxx.XXXX), [DINO-WM](https://arxiv.org/abs/2411.04983) and [V-JEPA-2-AC(fixed)](https://arxiv.org/abs/2506.09985) baseline models for various environments.
+We provide pretrained [JEPA-WMs](https://arxiv.org/abs/2512.24497), as well as [DINO-WM](https://arxiv.org/abs/2411.04983) and [V-JEPA-2-AC(fixed)](https://arxiv.org/abs/2506.09985) baseline models for various environments.
 
 ### JEPA-WM Models
 
@@ -586,13 +586,14 @@ This project is licensed under [CC-BY-NC 4.0](LICENSE). See [THIRD-PARTY-LICENSE
 ## 📚 Citing JEPA-WMs
 
 If you find this repository useful, please consider giving a ⭐ and citing:
-
-`TODO`
 ```bibtex
-@article{terver2025jepawms,
-  title={What drives success in physical planning with Joint-Embedding Predictive World Models?},
-  author={Terver, Basile and Yang, Jimmy and Ponce, Jean and Bardes, Adrien and LeCun, Yann},
-  journal={arXiv preprint arXiv:XXXX.XXXXX},
-  year={2025}
+@misc{terver2025drivessuccessphysicalplanning,
+      title={What Drives Success in Physical Planning with Joint-Embedding Predictive World Models?},
+      author={Basile Terver and Tsung-Yen Yang and Jean Ponce and Adrien Bardes and Yann LeCun},
+      year={2025},
+      eprint={2512.24497},
+      archivePrefix={arXiv},
+      primaryClass={cs.AI},
+      url={https://arxiv.org/abs/2512.24497},
 }
 ```

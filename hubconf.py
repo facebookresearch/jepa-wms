@@ -24,7 +24,7 @@ MODEL_URLS = {
     "jepa_wm_pointmaze": "https://dl.fbaipublicfiles.com/jepa-wms/jepa_wm_pointmaze.pth",
     "jepa_wm_wall": "https://dl.fbaipublicfiles.com/jepa-wms/jepa_wm_wall.pth",
     # DINO-WM baseline models
-    "dino_wm_droid": "https://dl.fbaipublicfiles.com/jepa-wms/dino_wm_droid.pth",
+    "dino_wm_droid": "https://dl.fbaipublicfiles.com/jepa-wms/droid/dino-wm/jepa-latest.pth.tar",
     "dino_wm_metaworld": "https://dl.fbaipublicfiles.com/jepa-wms/dino_wm_metaworld.pth",
     "dino_wm_pusht": "https://dl.fbaipublicfiles.com/jepa-wms/dino_wm_pusht.pth",
     "dino_wm_pointmaze": "https://dl.fbaipublicfiles.com/jepa-wms/dino_wm_pointmaze.pth",
@@ -75,7 +75,7 @@ _MODEL_CONFIGS = {
         "dino_wm_wall",
     ),
     "dino_wm_droid": (
-        "configs/evals/simu_env_planning/droid/dino-wm/droid_L2_cem_sourcedset_H3_nas3_maxnorm01_ctxt2_gH3_r224_alpha0.0_ep64_decode.yaml",
+        "configs/evals/simu_env_planning/droid/dino-wm/droid_L2_cem_sourcedset_H3_nas3_maxnorm01_ctxt2_gH3_r224_alpha0_ep64_decode.yaml",
         "dino_wm_droid",
     ),
     # V-JEPA-2-AC baseline models

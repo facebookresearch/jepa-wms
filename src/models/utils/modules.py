@@ -9,7 +9,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from timm.models.layers import drop_path
+from timm.layers import drop_path
 from torch.nn.attention import SDPBackend, sdpa_kernel
 
 BLOCK_SIZE = 64

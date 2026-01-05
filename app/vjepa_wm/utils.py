@@ -396,6 +396,14 @@ def load_checkpoint_state_dict(
         msg = predictor.load_state_dict(pretrained_dict, strict=False)
         logger.info(f"loaded pretrained predictor from epoch {epoch} with msg: {msg}")
 
+        # Check for expected missing keys (attention mask buffers) and inform user
+        if msg.missing_keys:
+            attention_mask_keys = [k for k in msg.missing_keys if k.endswith(".bias") and "transformer.layers" in k]
+            if attention_mask_keys:
+                logger.info(
+                    "Note: transformer.layers.x.y.bias missing keys are attention mask buffers, they are regenerated at initialization, so this is expected."
+                )
+
     # -- loading action encoder
     if load_act_enc and action_encoder and checkpoint.get("action_encoder") is not None:
         pretrained_dict = clean_state_dict(checkpoint["action_encoder"])
@@ -767,6 +775,7 @@ def init_video_model(
             proprio_tokens=proprio_tokens,
             init_scale_factor_adaln=init_scale_factor_adaln,
         ).to(device)
+    logger.info(f"Predictor: {predictor}")
     enc_params = sum(p.numel() for p in encoder.parameters())
     pred_params = sum(p.numel() for p in predictor.parameters())
     logger.info(f"🧠 Encoder: {type(encoder).__name__} ({enc_params:,} params, frozen={not any(p.requires_grad for p in encoder.parameters())})")

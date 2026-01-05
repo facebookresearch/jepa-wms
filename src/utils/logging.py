@@ -15,18 +15,6 @@ from typing import Any, Hashable
 
 import torch
 
-try:
-    from opentelemetry.exporter.otlp.proto.http.metric_exporter import OTLPMetricExporter
-    from opentelemetry.metrics import _Gauge as OTGauge
-    from opentelemetry.sdk.metrics import MeterProvider as OTMeterProvider
-    from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader as OTPeriodicExportingMetricReader
-    from opentelemetry.sdk.resources import Resource as OTResource
-except ModuleNotFoundError:
-    print("OTel libraries not installed. If your app uses OTel logging, please install them!")
-
-
-OTEL_EXPORTER_OTLP_ENDPOINT = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "")
-
 logger = logging.getLogger(__name__)
 
 
@@ -235,78 +223,3 @@ def git_information():
         return f"branch: {branch}\ncommit: {commit}\n"
     except Exception:
         return "unknown"
-
-
-class OTelLogger:
-    def __init__(self, resource_attributes):
-        scuba_resource = OTResource(attributes=resource_attributes)
-        endpoint = OTEL_EXPORTER_OTLP_ENDPOINT
-        self.disabled = False
-        if endpoint == "":
-            self.disabled = True
-            return
-        exporter = OTLPMetricExporter(
-            endpoint=endpoint + "/v1/metrics",
-            timeout=60,
-        )
-        reader = OTPeriodicExportingMetricReader(exporter, export_interval_millis=10000, export_timeout_millis=5000)
-
-        self.meter_provider = OTMeterProvider(resource=scuba_resource, metric_readers=[reader], shutdown_on_exit=True)
-        self.meter = self.meter_provider.get_meter("jepa_metrics_meter")
-        self.metrics_instruments: dict[str, OTGauge] = {}
-        self.disallowed_chars = {"(", ")"}
-
-    # OpenTelemetry metric names have some restrictions. Let's filter out
-    # unfriendly names.
-    @lru_cache()
-    def is_legit_name(self, metric_name: str) -> bool:
-        # OpenTelemetry imposes a limit of 63 on metric name.
-        if not (1 <= len(metric_name) <= 63):  # noqa: PLR2004
-            logger.warning(f"Metric name {metric_name} is too long.")
-            return False
-        disallowed_chars = set(metric_name) & self.disallowed_chars
-        if disallowed_chars:
-            logger.warning(f"Metric name {metric_name} contains disallowed characters: {disallowed_chars}.")
-            return False
-        return True
-
-    def log(self, metrics: dict[Hashable, Any], epoch: int, iteration: int):
-        if self.disabled:
-            return
-        for key, val in metrics.items():
-            if not self.is_legit_name(key):
-                continue
-            # If this is the first time we are seeing this metric, create
-            # gauge or counter here using OpenTelemetry.
-            if key not in self.metrics_instruments:
-                if not isinstance(val, int | float):
-                    raise ValueError(f"Unsupported data type for OTel logging: {type(val)}")
-                self.metrics_instruments[key] = self.meter.create_gauge(key, description=key)
-
-            instrument = self.metrics_instruments[key]
-            instrument.set(
-                val,
-                attributes={
-                    "epoch": epoch,
-                    "iteration": iteration,
-                },
-            )
-
-
-class ChainedMetricsLogger(MetricsLogger):
-    """
-    Chained metrics loggers into single logger interface.
-    """
-
-    def __init__(self, loggers: list[MetricsLogger]) -> None:
-        super().__init__()
-        self.metrics_loggers = loggers
-
-    def log(
-        self,
-        metrics: dict[Hashable, Any],
-        epoch: int,
-        iteration: int,
-    ) -> None:
-        for logger in self.metrics_loggers:
-            logger.log(metrics=metrics, epoch=epoch, iteration=iteration)

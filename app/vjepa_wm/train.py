@@ -1649,6 +1649,7 @@ def launch_planning_evals(
                         qos=qos,
                         cpus_per_task=eval_cpus_per_task,
                         delay_seconds=5,
+                        timeout=120, # to schedule faster, could be insufficient if using old GPUs making eval slow
                     )
                 logger.info(f"Launched online evals from templates {eval_cfg_paths}")
         else:
