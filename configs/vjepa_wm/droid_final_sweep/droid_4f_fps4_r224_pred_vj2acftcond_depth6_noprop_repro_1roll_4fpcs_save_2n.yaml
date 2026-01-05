@@ -121,7 +121,7 @@ meta:
   load_checkpoint: true
   load_opt_scale_epoch: true
   read_checkpoint: null
-  pretrained_path: none
+  pretrained_path:
   seed: 234
   eval_freq: 1
   light_eval_freq: 200
@@ -234,7 +234,7 @@ evals:
   nodes: 1
   low_pri: true
   obs: rgb
-  alpha: 0.
+  alpha: 0
   override_cfgs_data: true
   override_datasets: false
   eval_cfg_paths:

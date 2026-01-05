@@ -1,0 +1,225 @@
+app: vjepa_wm
+nodes: 4
+tasks_per_node: 8
+cpus_per_task: 16
+folder: ${CHECKPOINT_ROOT}/mw_final_sweep/mw_4f_fsk5_ask1_r224_pred_dino_wm_depth12_noprop_repro_1roll
+checkpoint_folder: /s3/profiles/jepa-rw/basileterv/vjepa_wm/mw_final_sweep/mw_4f_fsk5_ask1_r224_pred_dino_wm_depth12_noprop_repro_1roll
+data:
+  # Dataset configuration
+  dataset_type: custom
+  datasets:
+    - METAWORLD_HF
+  datasets_weights: null
+  seed: 1
+  img_size: 224
+  # Validation configuration
+  validation:
+    val_datasets: []
+    val_datasets_1: null
+    num_frames_val: 18
+    val_dataset_batch_size: 4
+    val_dataset_drop_last: false
+  # DataLoader configuration
+  loader:
+    batch_size: 8
+    num_workers: 16
+    pin_mem: true
+    persistent_workers: true
+  # Custom dataset parameters
+  custom:
+    split_ratio: 0.9
+    frameskip: 5
+    action_skip: 1
+    state_skip: 1
+    use_hf_format: true
+    normalize_action: true
+    traj_subset: true
+    filter_first_episodes:
+    filter_tasks: null
+    num_hist: 3
+    num_pred: 1
+    with_reward: false
+    custom_teleop_dset: null
+  # Droid-specific parameters
+  droid:
+    camera_frame: false
+    camera_views:
+      - 2
+    droid_to_rcasa_action_format: 1
+    rcasa_to_droid_action_format: false
+    fps: 4
+    dataset_fpcs: [8]
+    mpk_manifest_patterns: []
+data_aug:
+  auto_augment: false
+  random_horizontal_flip: false
+  motion_shift: false
+  random_resize_aspect_ratio:
+  - 1.
+  - 1.
+  random_resize_scale:
+  - 1.777
+  - 1.777
+  reprob: 0.0
+  normalize: [[0.5, 0.5, 0.5], [0.5, 0.5, 0.5]]
+logging:
+  write_tag: jepa
+  wandb:
+    use_wandb: true
+    debug: false
+    project: vjepa_wm
+    disable_wandb_media: true
+    log_media_locally: true
+loss:
+  cos_loss_weight: 0.0
+  l1_loss_weight: 0.0
+  l2_loss_weight: 1.0
+  smooth_l1_loss_weight: 0.0
+meta:
+  plan_only_eval_mode: false
+  light_eval_only_mode: false
+  quick_debug: false
+  freeze_encoder: true
+  load_checkpoint: true
+  load_opt_scale_epoch: true
+  read_checkpoint: null
+  pretrained_path:
+  seed: 1
+  eval_freq: 1
+  light_eval_freq: 300
+  save_every_freq: 1
+  dtype: bfloat16
+  data_traj_rollout_eval:
+    do_data_traj_rollout_eval: true
+    data_traj_eval_rollout_steps: 17
+    data_traj_decode_gt: true
+    data_traj_eval_ctxt_window: 3
+  energy_landscape_eval:
+    do_energy_landscape_eval: false
+    energy_landscape_rollout_steps: 1
+    energy_landscape_ctxt_window: 3
+model:
+  # Shared fields
+  grid_size: 16
+  tubelet_size_enc: 1
+  use_activation_checkpointing: false
+  action_conditioning: feature
+  proprio_encoding: feature
+  num_frames_pred: 4
+  # Visual encoder config
+  visual_encoder:
+    enc_type: dino
+    enc_version: dinov2_vits14
+    pretrain_enc_path: null
+    pretrain_enc_ckpt_key: target_encoder
+    embed_dim: 384
+    enc_use_rope: null
+    enc_name: null
+    use_sdpa_enc: true
+    num_frames_enc: 16
+    uniform_power: true
+  # Action encoder config
+  action_encoder:
+    action_tokens: 0
+    action_emb_dim: 20
+    act_mlp: false
+    action_encoder_inpred: false
+  # Proprio encoder config
+  proprio_encoder:
+    proprio_tokens: 0
+    proprio_emb_dim: 0
+    prop_mlp: false
+    proprio_encoder_inpred: false
+  # Predictor config
+  predictor:
+    tubelet_size: 1
+    pred_num_heads: 16
+    pred_depth: 12
+    pred_embed_dim: 384
+    pred_use_extrinsics: false
+    pred_proj_on_enc: false
+    pred_type: dino_wm
+    act_pred_projector: false
+    use_SiLU: false
+    use_rope: null
+  # VideoWM encoding()
+  wm_encoding:
+    batchify_video: true
+    dup_image: false
+    normalize_reps: false
+  # Rollout config
+  rollout_cfg:
+    rollout_steps: 1
+    train_rollout_prefixes: random
+    rollout_stop_gradient: true
+    ctxt_window_train_rollout: 3
+    do_parallel_rollout: false
+    do_sequential_rollout: true
+    prepend_gt: false
+    sampling_scheduler:
+      type: linear
+      start: 0.
+      end: 0.
+  # Attention config (passed as cfgs_attn_pattern to init_video_model)
+  attn:
+    local_window_time: 3
+    local_window_h: -1
+    local_window_w: -1
+  # Decoder heads config (optional - for visualization only)
+  # To enable, copy heads_cfg from your trained decoder config in configs/vjepa_wm/vm2m/open_source_decs/
+  heads_cfg:
+    architectures: {}
+    pretrain_dec_path:
+      # state_head: ${CHECKPOINT_ROOT}/mw/step2_mw_state_head_dinovits_r224_2n/jepa-latest.pth.tar
+      # image_head: ${CHECKPOINT_ROOT}/vm2m/opensource_decs/step2_lpips_vm2m_vits_vitldec_224_vjtrans05/jepa-latest.pth.tar
+optimization:
+  main_optimizer: transition_model
+  train_heads: false
+  transition_model:
+    iterations_per_epoch: null
+    ipe_scale: 1.
+    clip_grad: 1
+    use_radamw: false
+    betas: [0.9, 0.999]
+    eps: 1.e-8
+    weight_decay: 1.e-7
+    final_weight_decay: 1.e-6
+    num_epochs: 50
+    warmup: 0
+    start_lr: 5.e-4
+    ref_lr: 5.e-4
+    final_lr: 5.e-4
+    mixed_precision: true
+evals:
+  decode: False
+  eval_episodes: 48
+  nodes: 2
+  low_pri: true
+  obs: rgb
+  sum_all_diffs: false
+  eval_cfg_paths:
+    # - configs/online_plan_evals/mw/gd/reach_L2_gd_sourcexp_H6_nas3_ctxt2.yaml
+    - configs/online_plan_evals/mw/ng/reach_L2_ng_sourcexp_H6_nas3_ctxt2.yaml
+    - configs/online_plan_evals/mw/reach_L2_cem_sourcexp_H6_nas3_ctxt2.yaml
+    # - configs/online_plan_evals/mw/gd/reach_L1_gd_sourcexp_H6_nas3_ctxt2.yaml
+    - configs/online_plan_evals/mw/ng/reach_L1_ng_sourcexp_H6_nas3_ctxt2.yaml
+    - configs/online_plan_evals/mw/reach_L1_cem_sourcexp_H6_nas3_ctxt2.yaml
+    #
+    # - configs/online_plan_evals/mw/ng/reach_L2_ng_sourcexp_H15_nas15_ctxt2_maxstp75_itr30.yaml
+    # - configs/online_plan_evals/mw/ng/reach_L2_ng_sourcexp_H15_nas15_ctxt2_maxstp75.yaml
+    # - configs/online_plan_evals/mw/reach_L2_cem_sourcexp_H15_nas15_ctxt2_maxstp75_itr30.yaml
+    # - configs/online_plan_evals/mw/reach_L2_cem_sourcexp_H15_nas15_ctxt2_maxstp75.yaml
+    # reach-wall
+    # - configs/online_plan_evals/mw/gd/reach-wall_L2_gd_sourcexp_H6_nas3_ctxt2.yaml
+    - configs/online_plan_evals/mw/ng/reach-wall_L2_ng_sourcexp_H6_nas3_ctxt2.yaml
+    - configs/online_plan_evals/mw/reach-wall_L2_cem_sourcexp_H6_nas3_ctxt2.yaml
+    # - configs/online_plan_evals/mw/gd/reach-wall_L1_gd_sourcexp_H6_nas3_ctxt2.yaml
+    - configs/online_plan_evals/mw/ng/reach-wall_L1_ng_sourcexp_H6_nas3_ctxt2.yaml
+    - configs/online_plan_evals/mw/reach-wall_L1_cem_sourcexp_H6_nas3_ctxt2.yaml
+    #
+    # - configs/online_plan_evals/mw/ng/reach-wall_L2_ng_sourcexp_H15_nas15_ctxt2_maxstp75_itr30.yaml
+    # - configs/online_plan_evals/mw/ng/reach-wall_L2_ng_sourcexp_H15_nas15_ctxt2_maxstp75.yaml
+    # - configs/online_plan_evals/mw/reach-wall_L2_cem_sourcexp_H15_nas15_ctxt2_maxstp75_itr30.yaml
+    # - configs/online_plan_evals/mw/reach-wall_L2_cem_sourcexp_H15_nas15_ctxt2_maxstp75.yaml
+  wrapper_kwargs:
+    ctxt_window: 2

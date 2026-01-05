@@ -24,7 +24,7 @@ data:
   # DataLoader configuration
   loader:
     batch_size: 8
-    num_workers: 0
+    num_workers: 16
     pin_mem: true
     persistent_workers: true
   # Custom dataset parameters
@@ -84,7 +84,7 @@ meta:
   load_checkpoint: true
   load_opt_scale_epoch: true
   read_checkpoint: null
-  pretrained_path: none
+  pretrained_path:
   seed: 234
   eval_freq: 1
   light_eval_freq: 300
@@ -201,7 +201,7 @@ evals:
   nodes: 1
   low_pri: false
   obs: rgb
-  alpha: 0.
+  alpha: 0
   eval_cfg_paths:
     # rand state
     # - configs/online_plan_evals/mz/gd/mz_L1_gd_sourcerandstate_H6_nas6_ctxt2.yaml

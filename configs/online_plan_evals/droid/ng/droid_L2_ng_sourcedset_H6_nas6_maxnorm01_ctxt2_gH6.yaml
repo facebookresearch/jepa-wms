@@ -62,4 +62,4 @@ planner:
   planning_objective:
     objective_type: L2
     sum_all_diffs: false
-    alpha: 0.0
+    alpha: 0

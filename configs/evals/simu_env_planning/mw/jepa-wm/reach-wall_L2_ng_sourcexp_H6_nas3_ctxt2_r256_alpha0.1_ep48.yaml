@@ -136,7 +136,7 @@ model_kwargs:
       state_skip: 1
       normalize_action: true
       traj_subset: true
-      filter_first_episodes: 100
+      filter_first_episodes:
       filter_tasks:
       num_hist: 3
       num_pred: 1

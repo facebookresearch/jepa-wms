@@ -35,7 +35,7 @@ data:
     state_skip: 1
     normalize_action: true
     traj_subset: true
-    filter_first_episodes: 100
+    filter_first_episodes:
     filter_tasks: null
     num_hist: 3
     num_pred: 1
@@ -85,7 +85,7 @@ meta:
   load_checkpoint: true
   load_opt_scale_epoch: true
   read_checkpoint: null
-  pretrained_path: none
+  pretrained_path:
   seed: 1
   eval_freq: 1
   light_eval_freq: 300
@@ -200,7 +200,7 @@ evals:
   nodes: 2 # 1 for DROID, 2 for rcasa
   low_pri: true
   obs: rgb
-  alpha: 0.
+  alpha: 0
   override_cfgs_data: true # always True
   override_datasets: true # False to eval droid on rcasa
   wrapper_kwargs:

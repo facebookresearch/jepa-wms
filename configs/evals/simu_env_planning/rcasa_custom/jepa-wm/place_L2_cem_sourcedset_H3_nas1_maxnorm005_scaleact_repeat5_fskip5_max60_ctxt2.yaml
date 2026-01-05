@@ -252,4 +252,4 @@ planner:
     sum_all_diffs: false
     angle_model_path: null
     distance_model_path: null
-    alpha: 0.0
+    alpha: 0

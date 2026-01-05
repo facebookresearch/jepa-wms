@@ -3,10 +3,10 @@ tasks_per_node: 8
 cpus_per_task: 16
 mem_per_gpu: 210G
 copy_code: false
-folder:
-  ${CHECKPOINT_ROOT}/droid_final_sweep/droid_4f_fps4_r224_pred_dino_wm_depth6_repro_1roll_4fpcs_2n
+# folder:
+#   /checkpoint/amaia/video/basileterv/experiment/vjepav2/vjepa_wm/droid_final_sweep/droid_4f_fps4_r224_pred_dino_wm_depth6_noprop_repro_1roll_4fpcs_2n/seed1k
 tag:
-  online_gc_zeroshot/droid_L2_cem_sourcedset_H3_nas3_maxnorm01_ctxt2_gH3_r224_alpha0.0_ep64_decode/epoch-315-plan-only
+  online_gc_zeroshot/droid_L2_cem_sourcedset_H3_nas3_maxnorm01_ctxt2_gH3_r224_alpha0_ep64/epoch-315-plan-only
 eval_name: simu_env_planning
 meta:
   quick_debug: false
@@ -49,7 +49,7 @@ model_kwargs:
       action_encoder_inpred: false
     proprio_encoder:
       proprio_tokens: 0
-      proprio_emb_dim: 10
+      proprio_emb_dim: 0
       prop_mlp: false
       proprio_encoder_inpred: false
     predictor:
@@ -63,6 +63,7 @@ model_kwargs:
       act_pred_projector: false
       use_SiLU: false
       use_rope: true
+      use_sdpa: true
     wm_encoding:
       batchify_video: true
       dup_image: false
@@ -84,28 +85,8 @@ model_kwargs:
       local_window_h: -1
       local_window_w: -1
     heads_cfg:
-      architectures:
-        image_head:
-          kind: vit
-          config:
-            patch_size: 8
-            in_chans: 3
-            img_size:
-            - 224
-            - 224
-            embed_dim: 384
-            decoder_embed_dim: 1024
-            depth: 24
-            num_heads: 16
-            mlp_ratio: 4.0
-            num_views: 1
-            use_activation_checkpointing: false
+      architectures: {}
       pretrain_dec_path:
-        image_head:
-          ${CHECKPOINT_ROOT}/vm2m/opensource_decs/step2_lpips_vm2m_vits_vitldec_224_vjtrans05/jepa-latest.pth.tar
-      new_path_heads:
-        state_head: true
-        image_head: true
   data:
     dataset_type: custom
     datasets:
@@ -120,7 +101,7 @@ model_kwargs:
       val_dataset_batch_size: 4
       val_dataset_drop_last: false
       val_dataset_fpcs:
-      - 8
+      - 5
       val_dataset_camera_views:
       - exterior_image_2_left
       val_viz_rank0_loader: true
@@ -131,7 +112,7 @@ model_kwargs:
         drop_last: false
         fps: 4
         fpcs:
-        - 8
+        - 5
         camera_views:
         - exterior_image_2_left
     loader:
@@ -150,7 +131,7 @@ model_kwargs:
       filter_tasks:
       num_hist:
       num_pred:
-      with_reward: false
+      with_reward:
       custom_teleop_dset:
     droid:
       camera_frame: false
@@ -200,7 +181,7 @@ model_kwargs:
     proprio_mode: predict_proprio
 task_specification:
   task: droid-base
-  obs: rgb_state
+  obs: rgb
   obs_concat_channels: false
   goal_source: dset
   succ_def: simu
@@ -236,9 +217,11 @@ planner:
   momentum_std: 0.
   num_act_stepped: 3
   repeat_actskip: false
-  decode_each_iteration: true
+  decode_each_iteration: false
   distribute_planner: false
   planning_objective:
     objective_type: L2
     sum_all_diffs: false
-    alpha: 0.0
+    alpha: 0
+# checkpoint_folder:
+#   /s3/profiles/jepa-rw/basileterv/vjepa_wm/droid_final_sweep/droid_4f_fps4_r224_pred_dino_wm_depth6_noprop_repro_1roll_4fpcs_2n/seed1k

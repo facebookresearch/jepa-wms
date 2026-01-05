@@ -35,7 +35,7 @@ data:
     state_skip: 1
     normalize_action: true
     traj_subset: true
-    filter_first_episodes: 100
+    filter_first_episodes:
     filter_tasks: null
     num_hist: 3
     num_pred: 1
@@ -84,7 +84,7 @@ meta:
   load_checkpoint: true
   load_opt_scale_epoch: true
   read_checkpoint: null
-  pretrained_path: none
+  pretrained_path:
   seed: 1
   eval_freq: 1
   light_eval_freq: 300

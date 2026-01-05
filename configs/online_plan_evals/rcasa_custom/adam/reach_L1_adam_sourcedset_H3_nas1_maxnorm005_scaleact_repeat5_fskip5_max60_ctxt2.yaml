@@ -97,4 +97,4 @@ planner:
   planning_objective:
     objective_type: L1
     sum_all_diffs: false
-    alpha: 0.0
+    alpha: 0

@@ -122,7 +122,7 @@ meta:
   load_checkpoint: true
   load_opt_scale_epoch: true
   read_checkpoint: null
-  pretrained_path: none
+  pretrained_path:
   seed: 234
   eval_freq: 1
   light_eval_freq: 200
@@ -231,14 +231,15 @@ optimization:
     mixed_precision: true
 evals:
   separate: true
-  decode: true
-  eval_episodes: 32 # 64 for DROID, 32 for rcasa
-  nodes: 2 # 1 for DROID, 2 for rcasa
+  decode: false
+  eval_episodes: 64 # 64 for DROID, 32 for rcasa
+  nodes: 1 # 1 for DROID, 2 for rcasa
   low_pri: true
   obs: rgb
-  alpha: 0.
+  alpha: 0
   override_cfgs_data: True # always True
-  override_datasets: false # False to eval droid on rcasa
+  override_datasets: true # False to eval droid on rcasa
+  dump_eval_configs: true
   wrapper_kwargs:
     ctxt_window: 2
     proprio_mode: predict_proprio # predict_proprio | compute_new_pose
@@ -249,31 +250,27 @@ evals:
   # - configs/online_plan_evals/rcasa_custom/gd/reach_L1_gd_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2.yaml
   # - configs/online_plan_evals/rcasa_custom/gd/reach_L2_gd_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2.yaml
 
-  - configs/online_plan_evals/rcasa_custom/reach_L1_cem_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2.yaml
-  - configs/online_plan_evals/rcasa_custom/reach_L2_cem_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2.yaml
-  - configs/online_plan_evals/rcasa_custom/place_L1_cem_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2.yaml
-  - configs/online_plan_evals/rcasa_custom/place_L2_cem_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2.yaml
+  # - configs/online_plan_evals/rcasa_custom/reach_L1_cem_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2.yaml
+  # - configs/online_plan_evals/rcasa_custom/reach_L2_cem_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2.yaml
+  # - configs/online_plan_evals/rcasa_custom/place_L1_cem_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2.yaml
+  # - configs/online_plan_evals/rcasa_custom/place_L2_cem_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2.yaml
 
-  - configs/online_plan_evals/rcasa_custom/ng/reach_L1_ng_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2.yaml
-  - configs/online_plan_evals/rcasa_custom/ng/reach_L2_ng_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2.yaml
-  - configs/online_plan_evals/rcasa_custom/ng/place_L1_ng_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2.yaml
-  - configs/online_plan_evals/rcasa_custom/ng/place_L2_ng_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2.yaml
+  # - configs/online_plan_evals/rcasa_custom/ng/reach_L1_ng_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2.yaml
+  # - configs/online_plan_evals/rcasa_custom/ng/reach_L2_ng_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2.yaml
+  # - configs/online_plan_evals/rcasa_custom/ng/place_L1_ng_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2.yaml
+  # - configs/online_plan_evals/rcasa_custom/ng/place_L2_ng_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2.yaml
+
+  # - configs/online_plan_evals/rcasa_custom/adam/reach_L1_adam_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2.yaml
+  # - configs/online_plan_evals/rcasa_custom/adam/reach_L2_adam_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2.yaml
+  # - configs/online_plan_evals/rcasa_custom/adam/place_L1_adam_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2.yaml
+  # - configs/online_plan_evals/rcasa_custom/adam/place_L2_adam_sourcedset_H3_nas1_maxnorm005_scaleact_repeat5_fskip5_max60_ctxt2.yaml
   # DROID
-    # - configs/online_plan_evals/droid/gd/droid_L1_gd_sourcedset_H3_nas3_maxnorm01_ctxt2_gH3.yaml
-    # - configs/online_plan_evals/droid/gd/droid_L2_gd_sourcedset_H3_nas3_maxnorm01_ctxt2_gH3.yaml
+    - configs/online_plan_evals/droid/ng/droid_L2_ng_sourcedset_H3_nas3_maxnorm01_ctxt2_gH3.yaml
+    - configs/online_plan_evals/droid/droid_L2_cem_sourcedset_H3_nas3_maxnorm01_ctxt2_gH3.yaml
+    - configs/online_plan_evals/droid/adam/droid_L2_adam_sourcedset_H3_nas3_maxnorm01_ctxt2_gH3.yaml
+    - configs/online_plan_evals/droid/gd/droid_L2_gd_sourcedset_H3_nas3_maxnorm01_ctxt2_gH3.yaml
 
-    # # - configs/online_plan_evals/droid/ng/droid_L2_ng_sourcedset_H1_nas1_maxnorm01_ctxt2_gH1.yaml
-    # - configs/online_plan_evals/droid/ng/droid_L2_ng_sourcedset_H3_nas3_maxnorm01_ctxt2_gH3.yaml
-    # # - configs/online_plan_evals/droid/ng/droid_L2_ng_sourcedset_H6_nas6_maxnorm01_ctxt2_gH6.yaml
-
-    # # - configs/online_plan_evals/droid/droid_L2_cem_sourcedset_H1_nas1_maxnorm01_ctxt2_gH1.yaml
-    # - configs/online_plan_evals/droid/droid_L2_cem_sourcedset_H3_nas3_maxnorm01_ctxt2_gH3.yaml
-    # # - configs/online_plan_evals/droid/droid_L2_cem_sourcedset_H6_nas6_maxnorm01_ctxt2_gH6.yaml
-
-    # # - configs/online_plan_evals/droid/ng/droid_L1_ng_sourcedset_H1_nas1_maxnorm01_ctxt2_gH1.yaml
-    # - configs/online_plan_evals/droid/ng/droid_L1_ng_sourcedset_H3_nas3_maxnorm01_ctxt2_gH3.yaml
-    # # - configs/online_plan_evals/droid/ng/droid_L1_ng_sourcedset_H6_nas6_maxnorm01_ctxt2_gH6.yaml
-
-    # # - configs/online_plan_evals/droid/droid_L1_cem_sourcedset_H1_nas1_maxnorm01_ctxt2_gH1.yaml
-    # - configs/online_plan_evals/droid/droid_L1_cem_sourcedset_H3_nas3_maxnorm01_ctxt2_gH3.yaml
-    # # - configs/online_plan_evals/droid/droid_L1_cem_sourcedset_H6_nas6_maxnorm01_ctxt2_gH6.yaml
+    - configs/online_plan_evals/droid/ng/droid_L1_ng_sourcedset_H3_nas3_maxnorm01_ctxt2_gH3.yaml
+    - configs/online_plan_evals/droid/droid_L1_cem_sourcedset_H3_nas3_maxnorm01_ctxt2_gH3.yaml
+    - configs/online_plan_evals/droid/adam/droid_L1_adam_sourcedset_H3_nas3_maxnorm01_ctxt2_gH3.yaml
+    - configs/online_plan_evals/droid/gd/droid_L1_gd_sourcedset_H3_nas3_maxnorm01_ctxt2_gH3.yaml
