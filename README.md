@@ -39,6 +39,7 @@
 ## 🎯 Pretrained Models
 
 We provide pretrained [JEPA-WMs](https://arxiv.org/abs/2512.24497), as well as [DINO-WM](https://arxiv.org/abs/2411.04983) and [V-JEPA-2-AC(fixed)](https://arxiv.org/abs/2506.09985) baseline models for various environments.
+> **Note**: Please download checkpoints via command line: `curl -O <url>`
 
 ### JEPA-WM Models
 
