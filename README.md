@@ -67,6 +67,19 @@ We provide pretrained [JEPA-WMs](https://arxiv.org/abs/2512.24497), as well as [
 |-------------|------------|---------|-------------|---------|
 | DROID & RoboCasa | 256×256 | V-JEPA-2 ViT-G/16 | 24 | [download](https://dl.fbaipublicfiles.com/jepa-wms/droid_vj2ac_noprop.pth.tar) |
 
+### VM2M Decoder Heads (optional)
+
+Decoder heads enable visualization and rollout decoding. They are **not required** for training world models or running planning evaluations.
+
+| Decoder | Encoder | Resolution | Weights |
+|---------|---------|------------|---------|
+| dinov2_vits_224 (05norm) | DINOv2 ViT-S/14 | 224×224 | [download](https://dl.fbaipublicfiles.com/jepa-wms/vm2m_lpips_dv2vits_vitldec_224_05norm.pth.tar) |
+| dinov2_vits_224_INet | DINOv2 ViT-S/14 | 224×224 | [download](https://dl.fbaipublicfiles.com/jepa-wms/vm2m_lpips_dv2vits_vitldec_224_INet.pth.tar) |
+| dinov3_vitl_256_INet | DINOv3 ViT-L/16 | 256×256 | [download](https://dl.fbaipublicfiles.com/jepa-wms/vm2m_lpips_dv3vitl_256_INet.pth.tar) |
+| vjepa2_vitg_256_INet | V-JEPA-2 ViT-G/16 | 256×256 | [download](https://dl.fbaipublicfiles.com/jepa-wms/vm2m_lpips_vj2vitgnorm_vitldec_dup_256_INet.pth.tar) |
+
+> **Decoder assignment:** DINO-WM uses `dinov2_vits_224` (05norm), JEPA-WM uses INet variants (`dinov2_vits_224_INet` for sim envs, `dinov3_vitl_256_INet` for real-robot), VJ2AC uses `vjepa2_vitg_256_INet`.
+
 <details>
 <summary><b>🔌 Loading Models with PyTorch Hub</b></summary>
 
@@ -391,15 +404,13 @@ All configs under `configs/vjepa_wm/`.
 <details>
 <summary><b>🎨 Training Decoder Heads (optional)</b></summary>
 
-Decoder heads enable visualization and light evals (rollout decoding via `val_rollout()` in the training loop).
+Decoder heads enable visualization and light evals (rollout decoding via `val_rollout()` in the training loop). See [VM2M Decoder Heads](#vm2m-decoder-heads-optional) for pretrained weights.
 
 > **Note**: Decoder heads are **not required** for training world models or running planning evaluations. The training configs in `configs/vjepa_wm/*_sweep/` have `heads_cfg: null` by default.
 
 **Two training strategies:**
 - **Cross-environment** (recommended if datasets available): Train one decoder on VideoMix2M (HowTo100M + SSv2 + K400) — works across all environments. See configs in `configs/vjepa_wm/vm2m/open_source_decs/`.
 - **In-domain**: Train one decoder per encoder per environment on environment-specific data
-
-**Pretrained decoder assignment:** DINO-WM uses `dinov2_vits_224` (05norm), JEPA-WM uses INet variants (`dv2vits` for sim envs, `dv3vitl` for real-robot), VJ2AC uses `vjepa2_vitg`. See `IMAGE_DECODER_URLS` in `hubconf.py`.
 
 ```bash
 # Cross-environment decoder (recommended)

@@ -25,3 +25,4 @@ configs/cwtemp/
 MUJOCO_LOG.TXT
 
 macros.py
+CLAUDE.md

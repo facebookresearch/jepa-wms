@@ -23,17 +23,12 @@ logger = get_logger(force=True)
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
-    "--use_config_folder",
-    action="store_true",
-    default=True,
-    help="If specified, use the folder specified in the config",
-)
-parser.add_argument(
     "--folder",
     type=str,
-    help="location to save submitit logs (unless --use_config_folder is specified)",
-    default=f"{os.environ.get('JEPAWM_LOGS')}/submitit/",
+    help="location to save submitit logs; if specified, overrides the folder in the config",
+    default=None,
 )
+DEFAULT_FOLDER = f"{os.environ.get('JEPAWM_LOGS')}/submitit/"
 parser.add_argument(
     "--submitit_folder",
     type=str,
@@ -253,7 +248,7 @@ def launch_evals():
             if args.nodes:
                 _params["nodes"] = args.nodes
 
-            if not args.use_config_folder:
+            if args.folder is not None:
                 _params["folder"] = args.folder
             _params["use_fsdp"] = args.use_fsdp
 
@@ -263,8 +258,9 @@ def launch_evals():
             cpus_per_task = _params.get("cpus_per_task", 32)
             configs += [_params]
 
-    # Use submitit_folder if specified, otherwise fall back to args.folder
-    submitit_folder = args.submitit_folder if args.submitit_folder is not None else args.folder
+    # Use submitit_folder if specified, otherwise fall back to args.folder or DEFAULT_FOLDER
+    folder = args.folder if args.folder is not None else DEFAULT_FOLDER
+    submitit_folder = args.submitit_folder if args.submitit_folder is not None else folder
 
     logger.info(f"Loaded {len(configs)} config files")
     logger.info(f"Running all jobs with {nodes=} / {tasks_per_node=}")
