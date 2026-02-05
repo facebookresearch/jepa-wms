@@ -94,7 +94,7 @@ model_kwargs:
             - 224
             embed_dim: 384
             decoder_embed_dim: 1024
-            depth: 12
+            depth: 24
             num_heads: 16
             mlp_ratio: 4.0
             num_views: 1
