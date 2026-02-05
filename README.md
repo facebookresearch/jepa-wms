@@ -8,7 +8,8 @@
 
 <div align="center" style="line-height: 1;">
   <a href="https://github.com/facebookresearch/jepa-wms" target="_blank" style="margin: 2px;"><img alt="Github" src="https://img.shields.io/badge/Github-facebookresearch/jepa--wms-black?logo=github" style="display: inline-block; vertical-align: middle;"/></a>
-  <a href="https://huggingface.co/datasets/facebook/jepa-wms" target="_blank" style="margin: 2px;"><img alt="HuggingFace" src="https://img.shields.io/badge/🤗%20HuggingFace-facebook/jepa--wms-ffc107" style="display: inline-block; vertical-align: middle;"/></a>
+  <a href="https://huggingface.co/datasets/facebook/jepa-wms" target="_blank" style="margin: 2px;"><img alt="HuggingFace Dataset" src="https://img.shields.io/badge/🤗%20Dataset-facebook/jepa--wms-ffc107" style="display: inline-block; vertical-align: middle;"/></a>
+  <a href="https://huggingface.co/facebook/jepa-wms" target="_blank" style="margin: 2px;"><img alt="HuggingFace Models" src="https://img.shields.io/badge/🤗%20Models-facebook/jepa--wms-ffc107" style="display: inline-block; vertical-align: middle;"/></a>
   <a href="https://www.arxiv.org/abs/2512.24497" target="_blank" style="margin: 2px;"><img alt="ArXiv" src="https://img.shields.io/badge/arXiv-2512.24497-b5212f?logo=arxiv" style="display: inline-block; vertical-align: middle;"/></a>
 </div>
 
@@ -39,33 +40,34 @@
 ## 🎯 Pretrained Models
 
 We provide pretrained [JEPA-WMs](https://arxiv.org/abs/2512.24497), as well as [DINO-WM](https://arxiv.org/abs/2411.04983) and [V-JEPA-2-AC(fixed)](https://arxiv.org/abs/2506.09985) baseline models for various environments.
-> **Note**: Please download checkpoints via command line: `curl -O <url>`
+
+> **Download options**: Models are available on [🤗 Hugging Face Hub](https://huggingface.co/facebook/jepa-wms) (recommended) or via direct download from fbaipublicfiles.
 
 ### JEPA-WM Models
 
 | Environment | Resolution | Encoder | Pred. Depth | Weights |
 |-------------|------------|---------|-------------|---------|
-| DROID & RoboCasa | 256×256 | DINOv3 ViT-L/16 | 12 | [download](https://dl.fbaipublicfiles.com/jepa-wms/droid_jepa-wm_noprop.pth.tar) |
-| Metaworld | 224×224 | DINOv2 ViT-S/14 | 6 | [download](https://dl.fbaipublicfiles.com/jepa-wms/mw_jepa-wm.pth.tar) |
-| Push-T | 224×224 | DINOv2 ViT-S/14 | 6 | [download](https://dl.fbaipublicfiles.com/jepa-wms/pt_jepa-wm.pth.tar) |
-| PointMaze | 224×224 | DINOv2 ViT-S/14 | 6 | [download](https://dl.fbaipublicfiles.com/jepa-wms/mz_jepa-wm.pth.tar) |
-| Wall | 224×224 | DINOv2 ViT-S/14 | 6 | [download](https://dl.fbaipublicfiles.com/jepa-wms/wall_jepa-wm.pth.tar) |
+| DROID & RoboCasa | 256×256 | DINOv3 ViT-L/16 | 12 | [🤗 HF](https://huggingface.co/facebook/jepa-wms/blob/main/jepa_wm_droid.pth.tar) / [direct](https://dl.fbaipublicfiles.com/jepa-wms/droid_jepa-wm_noprop.pth.tar) |
+| Metaworld | 224×224 | DINOv2 ViT-S/14 | 6 | [🤗 HF](https://huggingface.co/facebook/jepa-wms/blob/main/jepa_wm_metaworld.pth.tar) / [direct](https://dl.fbaipublicfiles.com/jepa-wms/mw_jepa-wm.pth.tar) |
+| Push-T | 224×224 | DINOv2 ViT-S/14 | 6 | [🤗 HF](https://huggingface.co/facebook/jepa-wms/blob/main/jepa_wm_pusht.pth.tar) / [direct](https://dl.fbaipublicfiles.com/jepa-wms/pt_jepa-wm.pth.tar) |
+| PointMaze | 224×224 | DINOv2 ViT-S/14 | 6 | [🤗 HF](https://huggingface.co/facebook/jepa-wms/blob/main/jepa_wm_pointmaze.pth.tar) / [direct](https://dl.fbaipublicfiles.com/jepa-wms/mz_jepa-wm.pth.tar) |
+| Wall | 224×224 | DINOv2 ViT-S/14 | 6 | [🤗 HF](https://huggingface.co/facebook/jepa-wms/blob/main/jepa_wm_wall.pth.tar) / [direct](https://dl.fbaipublicfiles.com/jepa-wms/wall_jepa-wm.pth.tar) |
 
 ### DINO-WM Baseline Models
 
 | Environment | Resolution | Encoder | Pred. Depth | Weights |
 |-------------|------------|---------|-------------|---------|
-| DROID & RoboCasa  | 224×224 | DINOv2 ViT-S/14 | 6 | [download](https://dl.fbaipublicfiles.com/jepa-wms/droid_dino-wm_noprop.pth.tar) |
-| Metaworld | 224×224 | DINOv2 ViT-S/14 | 6 | [download](https://dl.fbaipublicfiles.com/jepa-wms/mw_dino-wm.pth.tar) |
-| Push-T | 224×224 | DINOv2 ViT-S/14 | 6 | [download](https://dl.fbaipublicfiles.com/jepa-wms/pt_dino-wm.pth.tar) |
-| PointMaze | 224×224 | DINOv2 ViT-S/14 | 6 | [download](https://dl.fbaipublicfiles.com/jepa-wms/mz_dino-wm.pth.tar) |
-| Wall | 224×224 | DINOv2 ViT-S/14 | 6 | [download](https://dl.fbaipublicfiles.com/jepa-wms/wall_dino-wm.pth.tar) |
+| DROID & RoboCasa  | 224×224 | DINOv2 ViT-S/14 | 6 | [🤗 HF](https://huggingface.co/facebook/jepa-wms/blob/main/dino_wm_droid.pth.tar) / [direct](https://dl.fbaipublicfiles.com/jepa-wms/droid_dino-wm_noprop.pth.tar) |
+| Metaworld | 224×224 | DINOv2 ViT-S/14 | 6 | [🤗 HF](https://huggingface.co/facebook/jepa-wms/blob/main/dino_wm_metaworld.pth.tar) / [direct](https://dl.fbaipublicfiles.com/jepa-wms/mw_dino-wm.pth.tar) |
+| Push-T | 224×224 | DINOv2 ViT-S/14 | 6 | [🤗 HF](https://huggingface.co/facebook/jepa-wms/blob/main/dino_wm_pusht.pth.tar) / [direct](https://dl.fbaipublicfiles.com/jepa-wms/pt_dino-wm.pth.tar) |
+| PointMaze | 224×224 | DINOv2 ViT-S/14 | 6 | [🤗 HF](https://huggingface.co/facebook/jepa-wms/blob/main/dino_wm_pointmaze.pth.tar) / [direct](https://dl.fbaipublicfiles.com/jepa-wms/mz_dino-wm.pth.tar) |
+| Wall | 224×224 | DINOv2 ViT-S/14 | 6 | [🤗 HF](https://huggingface.co/facebook/jepa-wms/blob/main/dino_wm_wall.pth.tar) / [direct](https://dl.fbaipublicfiles.com/jepa-wms/wall_dino-wm.pth.tar) |
 
 ### V-JEPA-2-AC(fixed) Baseline Model
 
 | Environment | Resolution | Encoder | Pred. Depth | Weights |
 |-------------|------------|---------|-------------|---------|
-| DROID & RoboCasa | 256×256 | V-JEPA-2 ViT-G/16 | 24 | [download](https://dl.fbaipublicfiles.com/jepa-wms/droid_vj2ac_noprop.pth.tar) |
+| DROID & RoboCasa | 256×256 | V-JEPA-2 ViT-G/16 | 24 | [🤗 HF](https://huggingface.co/facebook/jepa-wms/blob/main/vjepa2_ac_droid.pth.tar) / [direct](https://dl.fbaipublicfiles.com/jepa-wms/droid_vj2ac_noprop.pth.tar) |
 
 ### VM2M Decoder Heads (optional)
 
@@ -73,10 +75,10 @@ Decoder heads enable visualization and rollout decoding. They are **not required
 
 | Decoder | Encoder | Resolution | Weights |
 |---------|---------|------------|---------|
-| dinov2_vits_224 (05norm) | DINOv2 ViT-S/14 | 224×224 | [download](https://dl.fbaipublicfiles.com/jepa-wms/vm2m_lpips_dv2vits_vitldec_224_05norm.pth.tar) |
-| dinov2_vits_224_INet | DINOv2 ViT-S/14 | 224×224 | [download](https://dl.fbaipublicfiles.com/jepa-wms/vm2m_lpips_dv2vits_vitldec_224_INet.pth.tar) |
-| dinov3_vitl_256_INet | DINOv3 ViT-L/16 | 256×256 | [download](https://dl.fbaipublicfiles.com/jepa-wms/vm2m_lpips_dv3vitl_256_INet.pth.tar) |
-| vjepa2_vitg_256_INet | V-JEPA-2 ViT-G/16 | 256×256 | [download](https://dl.fbaipublicfiles.com/jepa-wms/vm2m_lpips_vj2vitgnorm_vitldec_dup_256_INet.pth.tar) |
+| dinov2_vits_224 (05norm) | DINOv2 ViT-S/14 | 224×224 | [🤗 HF](https://huggingface.co/facebook/jepa-wms/blob/main/dinov2_vits_224.pth.tar) / [direct](https://dl.fbaipublicfiles.com/jepa-wms/vm2m_lpips_dv2vits_vitldec_224_05norm.pth.tar) |
+| dinov2_vits_224_INet | DINOv2 ViT-S/14 | 224×224 | [🤗 HF](https://huggingface.co/facebook/jepa-wms/blob/main/dinov2_vits_224_INet.pth.tar) / [direct](https://dl.fbaipublicfiles.com/jepa-wms/vm2m_lpips_dv2vits_vitldec_224_INet.pth.tar) |
+| dinov3_vitl_256_INet | DINOv3 ViT-L/16 | 256×256 | [🤗 HF](https://huggingface.co/facebook/jepa-wms/blob/main/dinov3_vitl_256_INet.pth.tar) / [direct](https://dl.fbaipublicfiles.com/jepa-wms/vm2m_lpips_dv3vitl_256_INet.pth.tar) |
+| vjepa2_vitg_256_INet | V-JEPA-2 ViT-G/16 | 256×256 | [🤗 HF](https://huggingface.co/facebook/jepa-wms/blob/main/vjepa2_vitg_256_INet.pth.tar) / [direct](https://dl.fbaipublicfiles.com/jepa-wms/vm2m_lpips_vj2vitgnorm_vitldec_dup_256_INet.pth.tar) |
 
 > **Decoder assignment:** DINO-WM uses `dinov2_vits_224` (05norm), JEPA-WM uses INet variants (`dinov2_vits_224_INet` for sim envs, `dinov3_vitl_256_INet` for real-robot), VJ2AC uses `vjepa2_vitg_256_INet`.
 
@@ -105,6 +107,34 @@ model, preprocessor = torch.hub.load('facebookresearch/jepa-wms', 'vjepa2_ac_dro
 # Load V-JEPA-2-AC official ckpt from https://github.com/facebookresearch/vjepa2
 model, preprocessor = torch.hub.load('facebookresearch/jepa-wms', 'vjepa2_ac_oss')
 ```
+
+</details>
+
+<details>
+<summary><b>🤗 Loading Models with Hugging Face Hub</b></summary>
+
+```python
+from huggingface_hub import hf_hub_download
+import torch
+
+# Download a specific checkpoint
+checkpoint_path = hf_hub_download(
+    repo_id="facebook/jepa-wms",
+    filename="jepa_wm_droid.pth.tar"
+)
+
+# Load the checkpoint
+checkpoint = torch.load(checkpoint_path, map_location="cpu")
+
+# Or use directly with torch.hub (automatically tries HF Hub first)
+model, preprocessor = torch.hub.load('facebookresearch/jepa-wms', 'jepa_wm_droid')
+```
+
+**Available model files on HF Hub:**
+- `jepa_wm_droid.pth.tar`, `jepa_wm_metaworld.pth.tar`, `jepa_wm_pusht.pth.tar`, `jepa_wm_pointmaze.pth.tar`, `jepa_wm_wall.pth.tar`
+- `dino_wm_droid.pth.tar`, `dino_wm_metaworld.pth.tar`, `dino_wm_pusht.pth.tar`, `dino_wm_pointmaze.pth.tar`, `dino_wm_wall.pth.tar`
+- `vjepa2_ac_droid.pth.tar`, `vjepa2_ac_oss.pth.tar`
+- Decoder heads: `dinov2_vits_224.pth.tar`, `dinov2_vits_224_INet.pth.tar`, `dinov3_vitl_256_INet.pth.tar`, `vjepa2_vitg_256_INet.pth.tar`
 
 </details>
 

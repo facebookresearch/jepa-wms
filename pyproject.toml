@@ -79,6 +79,7 @@ dev = [
     "flake8>=7.0.0",
     "ipykernel",
     "jupyterlab",
+    "huggingface_hub>=0.20.0",
 ]
 
 [tool.uv.sources]
