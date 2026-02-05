@@ -22,7 +22,11 @@ import os
 
 dependencies = ["torch", "torchvision", "yaml", "omegaconf"]
 
-# Model weight URLs from https://dl.fbaipublicfiles.com/jepa-wms/
+# Hugging Face repository for model checkpoints
+HF_REPO_ID = "facebook/jepa-wms"
+
+# Model weight URLs - Hugging Face Hub is the primary source, fbaipublicfiles is fallback
+# Filenames on Hugging Face Hub follow the pattern: {model_name}.pth.tar
 MODEL_URLS = {
     # JEPA-WM models
     "jepa_wm_droid": "https://dl.fbaipublicfiles.com/jepa-wms/droid_jepa-wm_noprop.pth.tar",
@@ -52,12 +56,41 @@ IMAGE_DECODER_URLS = {
     "vjepa2_vitg_256_INet": "https://dl.fbaipublicfiles.com/jepa-wms/vm2m_lpips_vj2vitgnorm_vitldec_dup_256_INet.pth.tar",
 }
 
+
+def _get_checkpoint_path(model_name: str, use_hf: bool = True) -> str:
+    """
+    Get the checkpoint path for a model, trying Hugging Face Hub first.
+
+    Args:
+        model_name: Name of the model (e.g., 'jepa_wm_droid')
+        use_hf: If True, try to download from Hugging Face Hub first
+
+    Returns:
+        Path to the downloaded checkpoint file, or URL for fallback download
+    """
+    if use_hf:
+        try:
+            from huggingface_hub import hf_hub_download
+
+            # Try to download from Hugging Face Hub
+            checkpoint_path = hf_hub_download(
+                repo_id=HF_REPO_ID,
+                filename=f"{model_name}.pth.tar",
+            )
+            return checkpoint_path
+        except Exception:
+            # Fall back to fbaipublicfiles URL
+            pass
+
+    # Return the fallback URL
+    return MODEL_URLS.get(model_name)
+
 # Model configurations: maps model name to (config_path, weight_key)
 # weight_key is used to look up the URL in MODEL_URLS (may differ from model name for shared weights)
 _MODEL_CONFIGS = {
     # JEPA-WM models
     "jepa_wm_metaworld": (
-        "configs/evals/simu_env_planning/mw/jepa-wm/reach-wall_L2_ng_sourcexp_H6_nas3_ctxt2_r256_alpha0.1_ep48_decode.yaml",
+        "configs/evals/simu_env_planning/mw/jepa-wm/reach-wall_L2_cem_sourcexp_H6_nas3_ctxt2_r256_alpha0.1_ep48_decode.yaml",
         "jepa_wm_metaworld",
     ),
     "jepa_wm_droid": (
@@ -78,7 +111,7 @@ _MODEL_CONFIGS = {
     ),
     # DINO-WM baseline models
     "dino_wm_metaworld": (
-        "configs/evals/simu_env_planning/mw/dino-wm/reach_L2_ng_sourcexp_H6_nas3_ctxt2_r224_alpha0.1_ep48_decode.yaml",
+        "configs/evals/simu_env_planning/mw/dino-wm/reach_L2_cem_sourcexp_H6_nas3_ctxt2_r224_alpha0.1_ep48_decode.yaml",
         "dino_wm_metaworld",
     ),
     "dino_wm_pusht": (
@@ -214,9 +247,9 @@ def _load_model_with_config(config_path, model_name, device="cuda:0", pretrained
     log.info(f"  state_mean: {preprocessor.state_mean}")
     log.info(f"  state_std: {preprocessor.state_std}")
 
-    # Determine checkpoint source: URL (if pretrained) or local path from config
+    # Determine checkpoint source: try HF Hub first (if pretrained), then URL, then local path
     if pretrained and model_name in MODEL_URLS:
-        checkpoint = MODEL_URLS[model_name]
+        checkpoint = _get_checkpoint_path(model_name, use_hf=True)
     else:
         checkpoint = model_kwargs.get("checkpoint")
 
