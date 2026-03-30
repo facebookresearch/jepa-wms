@@ -117,10 +117,10 @@ def main(args_eval, resume_preempt=False):
     log.info("✅ Loaded encoder and predictor")
 
     # -- Launch eval
-    main_distributed_episodes_eval(args_eval, model=model, dset=dset, preprocessor=preprocessor, rank=rank)
+    main_distributed_episodes_eval(args_eval, model=model, dset=dset, preprocessor=preprocessor, rank=rank, world_size=world_size)
 
 
-def main_distributed_episodes_eval(cfg: dict, model=None, dset=None, preprocessor=None, rank=0, device="cuda:0"):
+def main_distributed_episodes_eval(cfg: dict, model=None, dset=None, preprocessor=None, rank=0, device="cuda:0", world_size=None):
     """
     Should work with one or more GPUs, even with distribute_multitask_eval=False.
     If world_size > 1 and distribute_multitask_eval=False, will all have same task_indices
@@ -135,7 +135,12 @@ def main_distributed_episodes_eval(cfg: dict, model=None, dset=None, preprocesso
     cfg = parse_cfg(cfg)
     set_seed(cfg.meta.seed)
     cfg.rank = rank
-    cfg.world_size = dist.get_world_size()
+    if world_size is not None:
+        cfg.world_size = world_size
+    elif dist.is_available() and dist.is_initialized():
+        cfg.world_size = dist.get_world_size()
+    else:
+        cfg.world_size = 1
     cfg.device = device
     cfg.num_active_gpus = cfg.world_size
     cfg.active_ranks = [i for i in range(cfg.world_size)]

@@ -37,6 +37,43 @@
 
 ---
 
+## GRASP Planner
+
+This fork adds the **GRASP** (Gradient RelAxed Stochastic Planner) to JEPA-WMs. GRASP jointly optimizes actions and virtual latent states for goal-conditioned planning with JEPA world models.
+
+**Planner code**: [`evals/simu_env_planning/planning/planning/planner.py`](evals/simu_env_planning/planning/planning/planner.py) (class `GRASPPlanner`)
+
+**Example command**:
+
+Config:
+```yaml
+planner:
+  planner_name: grasp
+  lr_s: 0.001
+  lr_a: 0.02
+  opt_steps: 500
+  state_noise_scale: 0.0001
+  gd_interval: 50
+  gd_opt_steps: 50
+  gd_lr: 0.1
+  schedule_decay: true
+  init_noise_scale: 0.1
+  min_noise_scale: 0.0
+  init_goal_weight: 5.0
+  min_goal_weight: 0.0
+```
+
+Command:
+```bash
+python evals/main.py \
+  --fname configs/online_plan_evals/mw/grasp/mw_L1_grasp_8ep.yaml \
+  --devices cuda:0
+```
+
+See the [GRASP pseudocode](https://github.com/michael-psenka/grasp/blob/main/grasp_pseudocode.py) for a minimal, self-contained reference implementation.
+
+---
+
 ## 🎯 Pretrained Models
 
 We provide pretrained [JEPA-WMs](https://arxiv.org/abs/2512.24497), as well as [DINO-WM](https://arxiv.org/abs/2411.04983) and [V-JEPA-2-AC(fixed)](https://arxiv.org/abs/2506.09985) baseline models for various environments.

@@ -694,6 +694,369 @@ class AdamPlanner(GradientDescentPlanner):
         )
 
 
+class GRASPPlanner(Planner):
+    """GRASP: Gradient RelAxed Stochastic Planner.
+
+    Jointly optimizes actions AND virtual states using:
+    - Stop-gradient dynamics loss (detach state inputs to world model)
+    - Goal shaping loss (pred_next vs goal at every timestep)
+    - Langevin-style state noise
+    - Periodic full-rollout sync (GD on terminal loss)
+
+    Works with both Tensor and TensorDict latent representations.
+    For TensorDict (visual+proprio), virtual states and optimization
+    operate on the visual component only; proprio is predicted by the
+    world model during rollouts.
+    """
+
+    def __init__(
+        self,
+        unroll: Callable,
+        action_dim: int,
+        horizon: int,
+        lr_s: float = 0.1,
+        lr_a: float = 0.001,
+        opt_steps: int = 1000,
+        state_noise_scale: float = 0.5,
+        gd_interval: int = 100,
+        gd_opt_steps: int = 25,
+        gd_lr: float = 0.1,
+        sync_mode: str = "gd",
+        cem_sync_samples: int = 64,
+        cem_sync_topk: int = 8,
+        cem_sync_var_scale: float = 1.0,
+        cem_sync_var_min: float = 0.01,
+        schedule_decay: bool = False,
+        init_noise_scale: float = 0.1,
+        min_noise_scale: float = 0.0,
+        init_goal_weight: float = 1.0,
+        min_goal_weight: float = 0.0,
+        num_act_stepped: int = None,
+        decode_each_iteration: bool = False,
+        decode_unroll: Callable = None,
+        local_generator: torch.Generator = None,
+        action_noise: float = 0.0,
+        sample_type: str = "zero",
+        var_scale: float = 1.0,
+        max_norms: List[float] = None,
+        max_norm_dims: List[List[int]] = [[0, 1, 2], [6]],
+        **kwargs,
+    ):
+        super().__init__(unroll)
+        self.action_dim = action_dim
+        self.horizon = horizon
+        self.lr_s = lr_s
+        self.lr_a = lr_a
+        self.opt_steps = opt_steps
+        self.state_noise_scale = state_noise_scale
+        self.gd_interval = gd_interval
+        self.gd_opt_steps = gd_opt_steps
+        self.gd_lr = gd_lr
+        self.sync_mode = sync_mode
+        self.cem_sync_samples = cem_sync_samples
+        self.cem_sync_topk = cem_sync_topk
+        self.cem_sync_var_scale = cem_sync_var_scale
+        self.cem_sync_var_min = cem_sync_var_min
+        self.schedule_decay = schedule_decay
+        self.init_noise_scale = init_noise_scale
+        self.min_noise_scale = min_noise_scale
+        self.init_goal_weight = init_goal_weight
+        self.min_goal_weight = min_goal_weight
+        self.num_act_stepped = num_act_stepped
+        self.decode_each_iteration = decode_each_iteration
+        self.decode_unroll = decode_unroll
+        self.local_generator = local_generator
+        self.action_noise = action_noise
+        self.sample_type = sample_type
+        self.var_scale = var_scale
+        self.max_norms = max_norms
+        self.max_norm_dims = max_norm_dims
+        self.device = torch.device("cuda")
+
+    def _is_tensordict(self, x):
+        """Check if x is a TensorDict or dict with visual/proprio keys."""
+        if isinstance(x, dict):
+            return True
+        return hasattr(x, '__class__') and 'TensorDict' in x.__class__.__name__
+
+    def _extract_visual(self, z):
+        """Extract visual tensor from z (TensorDict or Tensor)."""
+        if self._is_tensordict(z):
+            return z["visual"]
+        return z
+
+    def _make_context(self, visual_flat, B, vis_shape, z_init):
+        """Build a context state for the unroll function from a flat visual representation.
+
+        For TensorDict models, constructs a TensorDict with visual and proprio keys.
+        The proprio is taken from the initial context (z_init) since we only optimize visual states.
+
+        Args:
+            visual_flat: (B, D_vis) flattened visual state
+            B: batch size
+            vis_shape: shape of a single visual frame (V, H, W, D_emb)
+            z_init: original z_init to extract proprio from
+
+        Returns:
+            context suitable for self.unroll()
+        """
+        vis_spatial = visual_flat.view(B, 1, *vis_shape)  # [B, 1, V, H, W, D]
+        if self._is_tensordict(z_init):
+            from tensordict import TensorDict as TD
+            # Use the last frame's proprio from the original context
+            proprio = z_init["proprio"][:, -1:].detach()  # [B, 1, Np, D_p]
+            proprio = proprio.expand(B, -1, -1, -1)
+            return TD({"visual": vis_spatial, "proprio": proprio}, device=self.device)
+        return vis_spatial
+
+    def _single_step_rollout_flat(self, s_t_flat, a_t, B, vis_shape, z_init):
+        """Single-step world model rollout returning flattened visual prediction.
+
+        Args:
+            s_t_flat: (B, D_vis) flattened visual state, should be DETACHED
+            a_t: (B, 1, action_dim) action
+            B: batch size
+            vis_shape: (V, H, W, D_emb)
+            z_init: original context for proprio extraction
+
+        Returns:
+            pred_next_flat: (B, D_vis) predicted next visual state
+        """
+        ctx = self._make_context(s_t_flat, B, vis_shape, z_init)
+        a_t_transposed = a_t.transpose(0, 1)  # [1, B, action_dim]
+        pred = self.unroll(ctx, act_suffix=a_t_transposed)
+        # pred: TensorDict or Tensor with shape [2, B, ...]
+        pred_vis = self._extract_visual(pred)
+        pred_next = pred_vis[1]  # [B, V, H, W, D]
+        return pred_next.reshape(B, -1)
+
+    def _compute_grasp_loss(self, s_flat, a, g_flat, s_0_flat, B, vis_shape, z_init, goal_weight=1.0):
+        """Compute GRASP loss with stop-gradient dynamics + goal shaping.
+
+        Args:
+            s_flat: (B, T-1, D_vis) virtual states
+            a: (B, T, action_dim) actions
+            g_flat: (B, D_vis) goal visual representation
+            s_0_flat: (B, D_vis) start visual state (fixed)
+            B, vis_shape, z_init: for context construction
+            goal_weight: weight for the goal shaping loss (1.0 = full, 0.0 = no goal shaping)
+        """
+        T_minus_1 = s_flat.shape[1]
+        T = T_minus_1 + 1
+
+        # Full state sequence: s_0, s_1, ..., s_{T-1}, g
+        s_full = torch.cat([s_0_flat.unsqueeze(1), s_flat, g_flat.unsqueeze(1)], dim=1)  # (B, T+1, D)
+
+        losses_dyn = []
+        losses_goal = []
+
+        for t in range(T):
+            s_t = s_full[:, t]  # (B, D)
+            a_t = a[:, t:t+1, :]  # (B, 1, action_dim)
+
+            # Stop-gradient on state input
+            pred_next_flat = self._single_step_rollout_flat(
+                s_t.detach(), a_t, B, vis_shape, z_init
+            )
+
+            s_next = s_full[:, t + 1]
+
+            losses_dyn.append(((pred_next_flat - s_next) ** 2).mean())
+            losses_goal.append(((pred_next_flat - g_flat) ** 2).mean())
+
+        return sum(losses_dyn) + goal_weight * sum(losses_goal)
+
+    def _sync_step(self, s_0_flat, g_flat, a, B, vis_shape, z_init):
+        """Periodic sync: GD on terminal loss |s_T - g|^2, actions only."""
+        a_opt = a.detach().clone().requires_grad_(True)
+        optimizer = torch.optim.Adam([a_opt], lr=self.gd_lr)
+
+        ctx = self._make_context(s_0_flat.detach(), B, vis_shape, z_init)
+
+        for _ in range(self.gd_opt_steps):
+            optimizer.zero_grad()
+            a_transposed = a_opt.transpose(0, 1)  # (T, B, A)
+            traj = self.unroll(ctx, act_suffix=a_transposed)
+            traj_vis = self._extract_visual(traj)
+            s_T = traj_vis[-1]  # [B, V, H, W, D]
+            s_T_flat = s_T.reshape(B, -1)
+            loss = ((s_T_flat - g_flat) ** 2).mean()
+            loss.backward()
+            optimizer.step()
+
+        return a_opt.detach()
+
+    def _cem_sync_step(self, s_0_flat, g_flat, a, s_virtual, B, vis_shape, z_init):
+        """CEM-based sync: sample around current actions with adaptive variance.
+
+        Variance is set from the deviation between virtual states and actual
+        rollout states. A minimum floor ensures all actions get some exploration.
+        """
+        with torch.no_grad():
+            a_mean = a.detach().clone()  # (B, T, act_dim)
+            T = a_mean.shape[1]
+            ctx = self._make_context(s_0_flat.detach(), B, vis_shape, z_init)
+
+            # Compute per-timestep variance from virtual state deviation
+            a_transposed = a_mean.transpose(0, 1)
+            traj = self.unroll(ctx, act_suffix=a_transposed)
+            traj_vis = self._extract_visual(traj)
+            # traj_vis: (T+1, B, V, H, W, D)
+            rollout_flat = traj_vis[1:-1].reshape(T - 1, B, -1).permute(1, 0, 2)
+            # rollout_flat: (B, T-1, D_vis)
+            virtual_flat = s_virtual.detach()  # (B, T-1, D_vis)
+
+            if virtual_flat.shape[1] > 0:
+                deviation = ((rollout_flat - virtual_flat) ** 2).mean(dim=-1)  # (B, T-1)
+                mean_dev = deviation.mean(dim=-1, keepdim=True)  # (B, 1)
+                deviation_full = torch.cat([mean_dev, deviation], dim=1)  # (B, T)
+                var_t = self.cem_sync_var_scale * deviation_full + self.cem_sync_var_min
+            else:
+                s_T_flat = traj_vis[-1].reshape(B, -1)
+                terminal_gap = ((s_T_flat - g_flat) ** 2).mean(dim=-1, keepdim=True)
+                var_t = self.cem_sync_var_scale * terminal_gap + self.cem_sync_var_min
+
+            var_t = var_t.unsqueeze(-1)  # (B, T, 1)
+
+            for _ in range(self.gd_opt_steps):
+                noise = torch.randn(
+                    B, self.cem_sync_samples, T, self.action_dim,
+                    device=a_mean.device,
+                )
+                samples = a_mean.unsqueeze(1) + noise * var_t.unsqueeze(1).sqrt()
+
+                costs = []
+                for i in range(self.cem_sync_samples):
+                    sample_ctx = self._make_context(s_0_flat.detach(), B, vis_shape, z_init)
+                    sample_a = samples[:, i].transpose(0, 1)
+                    sample_traj = self.unroll(sample_ctx, act_suffix=sample_a)
+                    sample_vis = self._extract_visual(sample_traj)
+                    s_T_flat = sample_vis[-1].reshape(B, -1)
+                    cost = ((s_T_flat - g_flat) ** 2).sum(dim=-1)
+                    costs.append(cost)
+                costs = torch.stack(costs, dim=1)  # (B, N)
+
+                _, elite_idx = torch.topk(costs, self.cem_sync_topk, dim=1, largest=False)
+                elite_actions = torch.gather(
+                    samples, 1,
+                    elite_idx.unsqueeze(-1).unsqueeze(-1).expand(-1, -1, T, self.action_dim)
+                )
+
+                a_mean = elite_actions.mean(dim=1)
+                var_t = elite_actions.var(dim=1).mean(dim=-1, keepdim=True) + self.cem_sync_var_min
+
+        return a_mean
+
+    def plan(
+        self,
+        z_init,
+        steps_left: int = None,
+    ) -> PlanningResult:
+        """Plan using GRASP: jointly optimize actions and virtual states."""
+        if steps_left is not None:
+            plan_length = min(self.horizon, steps_left)
+        else:
+            plan_length = self.horizon
+
+        T = plan_length
+        num_virtual_states = T - 1
+
+        # Extract visual representation
+        z_visual = self._extract_visual(z_init)
+        B = z_visual.shape[0]
+        vis_shape = z_visual.shape[2:]  # (V, H, W, D_emb)
+        D_vis = 1
+        for d in vis_shape:
+            D_vis *= d
+
+        # Use last frame of context as s_0
+        s_0_flat = z_visual[:, -1].reshape(B, -1).detach()
+
+        # Get goal visual representation
+        target = self.objective.target_enc
+        g_visual = self._extract_visual(target)
+        if g_visual.dim() == z_visual.dim():
+            g_visual = g_visual[:, -1]
+        g_flat = g_visual.reshape(1, -1).expand(B, -1).detach()
+
+        # Initialize virtual states by linear interpolation
+        if num_virtual_states > 0:
+            t_interp = torch.linspace(0, 1, num_virtual_states + 2, device=self.device)
+            t_interp = t_interp[1:-1].view(1, -1, 1)
+            s = (s_0_flat.unsqueeze(1) + t_interp * (g_flat.unsqueeze(1) - s_0_flat.unsqueeze(1)))
+            s = s.clone().detach().requires_grad_(True)
+        else:
+            s = torch.zeros(B, 0, D_vis, device=self.device)
+
+        # Initialize actions
+        a = torch.zeros(B, T, self.action_dim, device=self.device, requires_grad=True)
+
+        # Optimizer for both states and actions
+        params = [{"params": a, "lr": self.lr_a}]
+        if num_virtual_states > 0:
+            params.append({"params": s, "lr": self.lr_s})
+        optimizer = torch.optim.Adam(params)
+
+        losses = []
+        predicted_best_encs_over_iterations = []
+
+        for k in range(self.opt_steps):
+            # Compute scheduled decay within current GD phase
+            if self.schedule_decay and self.gd_interval > 0:
+                phase_step = k % self.gd_interval
+                decay_frac = phase_step / max(self.gd_interval - 1, 1)  # 0 -> 1 over phase
+                cur_noise = self.init_noise_scale + (self.min_noise_scale - self.init_noise_scale) * decay_frac
+                cur_goal_weight = self.init_goal_weight + (self.min_goal_weight - self.init_goal_weight) * decay_frac
+            else:
+                cur_noise = self.state_noise_scale
+                cur_goal_weight = 1.0
+
+            optimizer.zero_grad()
+            loss = self._compute_grasp_loss(s, a, g_flat, s_0_flat, B, vis_shape, z_init, goal_weight=cur_goal_weight)
+            loss.backward()
+            optimizer.step()
+
+            losses.append(loss.item())
+
+            # Langevin-style state noise (scheduled or constant)
+            if num_virtual_states > 0 and cur_noise > 0:
+                with torch.no_grad():
+                    s.data += cur_noise * torch.randn_like(s)
+
+            # Periodic sync
+            if self.gd_interval > 0 and (k + 1) % self.gd_interval == 0 and k > 0:
+                if self.sync_mode == "cem":
+                    a_synced = self._cem_sync_step(s_0_flat, g_flat, a, s, B, vis_shape, z_init)
+                else:
+                    a_synced = self._sync_step(s_0_flat, g_flat, a, B, vis_shape, z_init)
+                a = a_synced.requires_grad_(True)
+                params = [{"params": a, "lr": self.lr_a}]
+                if num_virtual_states > 0:
+                    params.append({"params": s, "lr": self.lr_s})
+                optimizer = torch.optim.Adam(params)
+
+        # Return optimized actions
+        final_actions = a.squeeze(0).detach()  # (T, action_dim)
+        losses_tensor = torch.tensor(losses).detach().unsqueeze(-1)
+
+        # Get final predicted encodings
+        with torch.no_grad():
+            ctx = self._make_context(s_0_flat, B, vis_shape, z_init)
+            a_transposed = a.detach().transpose(0, 1)
+            predicted_best_encs = self.unroll(ctx, act_suffix=a_transposed)
+            predicted_best_encs_over_iterations.append(predicted_best_encs)
+
+        result = PlanningResult(
+            actions=final_actions[: self.num_act_stepped] if self.num_act_stepped else final_actions,
+            losses=losses_tensor,
+            prev_elite_losses_mean=losses_tensor,
+            prev_elite_losses_std=torch.zeros_like(losses_tensor),
+            pred_frames_over_iterations=None,
+            predicted_best_encs_over_iterations=predicted_best_encs_over_iterations,
+        )
+        return result
+
+
 class FullGatherLayer(torch.autograd.Function):
     """
     Gather tensors from all process and support backward propagation

@@ -16,7 +16,7 @@ from src.utils.logging import get_logger
 logger = get_logger()
 
 
-def init_distributed(port=37129, rank_and_world_size=(None, None)):
+def init_distributed(port=None, rank_and_world_size=(None, None)):
     # try to set all environment variables to avoid triggering a segfault
     # environment variables can be reallocated during the execution of torch.distributed.init_process_group
     # the idea is a race condition may trigger if init_progress_group is modifying an environment variable at
@@ -44,6 +44,8 @@ def init_distributed(port=37129, rank_and_world_size=(None, None)):
             return world_size, rank
 
     try:
+        if port is None:
+            port = int(os.environ.get("MASTER_PORT", 37129))
         os.environ["MASTER_PORT"] = str(port)
         torch.distributed.init_process_group(backend="nccl", world_size=world_size, rank=rank)
     except Exception as e:

@@ -26,3 +26,9 @@ MUJOCO_LOG.TXT
 
 macros.py
 CLAUDE.md
+
+logs
+*sweep.sh
+*baseline.sh
+*batch.sh
+configs
