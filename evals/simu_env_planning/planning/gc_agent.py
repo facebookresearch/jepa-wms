@@ -15,6 +15,7 @@ from evals.simu_env_planning.planning.planning.planner import (
     AdamPlanner,
     CEMPlanner,
     GradientDescentPlanner,
+    GRASPPlanner,
     MPPIPlanner,
     NevergradPlanner,
 )
@@ -87,6 +88,14 @@ class GC_Agent:
                 unroll=self.model.unroll,
                 action_dim=self.model.action_dim,
                 action_masks=None,
+                local_generator=self.local_gpu_generator,
+                decode_unroll=self.model.decode_unroll,
+                **self.cfg.planner,
+            )
+        elif self.cfg.planner.planner_name == "grasp":
+            self.planner = GRASPPlanner(
+                unroll=self.model.unroll,
+                action_dim=self.model.action_dim,
                 local_generator=self.local_gpu_generator,
                 decode_unroll=self.model.decode_unroll,
                 **self.cfg.planner,
