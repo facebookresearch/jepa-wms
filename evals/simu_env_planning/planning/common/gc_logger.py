@@ -71,6 +71,8 @@ class Logger:
     def __init__(self, cfg):
         self._log_dir = make_dir(cfg.work_dir)
         self._save_csv = cfg.logging.save_csv
+        self._run_id = getattr(cfg, "run_id", None)
+        self._use_wandb = getattr(cfg, "_use_wandb", False)
         if cfg.rank == 0:
             print_run(cfg)
         self.cfg = cfg
@@ -172,8 +174,11 @@ class Logger:
 
     def log(self, d, multitask=False):
         d = self.average_task_metrics(d)
+        if self._run_id is not None:
+            d["run_id"] = self._run_id
         if self._save_csv:
             general_possible_keys = [
+                "run_id",
                 "total_time",
                 "episode_reward",
                 "episode_success",
@@ -197,7 +202,6 @@ class Logger:
             if multitask:
                 task_keys = [key for key in d.keys() if key not in general_keys]
                 for task in set(key.split("+")[1] for key in task_keys):
-                    # filter out task_keys for this task
                     task_specific_keys = [k for k in task_keys if task == k.split("+")[1]]
                     task_data = [d[key] for key in task_specific_keys]
                     task_file_path = self._log_dir / f"eval_{task}.csv"
@@ -205,4 +209,11 @@ class Logger:
                     pd.DataFrame([task_data]).to_csv(
                         task_file_path, mode="a", header=task_specific_keys if not file_exists else False, index=None
                     )
+        if self._use_wandb and self.cfg.rank == 0:
+            try:
+                import wandb
+                wandb_d = {k: v for k, v in d.items() if k != "run_id"}
+                wandb.log(wandb_d)
+            except Exception:
+                pass
         self._print(d)

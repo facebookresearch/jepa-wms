@@ -77,8 +77,11 @@ def main(args, resume_preempt=False):
     # ----------------------------------------------------------------------- #
     args = expand_env_vars(args)
     folder = args.get("folder")
+    run_dir = args.get("run_dir", folder)
+    run_id = args.get("run_id", None)
     checkpoint_folder = args.get("checkpoint_folder", folder)
     os.makedirs(checkpoint_folder, exist_ok=True)
+    os.makedirs(run_dir, exist_ok=True)
     # -- META
     cfgs_meta = args.get("meta")
     load_model = cfgs_meta.get("load_checkpoint") or resume_preempt
@@ -250,7 +253,7 @@ def main(args, resume_preempt=False):
         torch.cuda.set_device(device)
 
     # -- log/checkpointing paths
-    train_log_file = os.path.join(folder, f"log_r{rank}.csv")
+    train_log_file = os.path.join(run_dir, f"log_r{rank}.csv")
     pref_tag = f"{tag}-" if tag else ""
     latest_file = pref_tag + f"latest.{latest_format}"
     latest_path = os.path.join(checkpoint_folder, latest_file)
@@ -285,9 +288,9 @@ def main(args, resume_preempt=False):
             csv_log_file = train_log_file
         else:
             if light_eval_only_mode:
-                csv_log_file = os.path.join(folder, f"light_eval_only_eval_r{rank}.csv")
+                csv_log_file = os.path.join(run_dir, f"light_eval_only_eval_r{rank}.csv")
             else:
-                csv_log_file = os.path.join(folder, f"eval_r{rank}.csv")
+                csv_log_file = os.path.join(run_dir, f"eval_r{rank}.csv")
         # Get all unique keys from eval_losses and eval_total_stats
         excluded_keys = [
             "eval_data/image_rollouts",
@@ -343,6 +346,8 @@ def main(args, resume_preempt=False):
             # overridden by quick_debug
             "filter_first_episodes": filter_first_episodes,  # Potentially overridden by mode
             "num_workers": num_workers,
+            # For precomputed features dataset
+            "grid_size": cfgs_model.get("grid_size", 14),
         }
     )
 
@@ -418,21 +423,22 @@ def main(args, resume_preempt=False):
             self.log_media_locally = config.get("log_media_locally", False)
             self.local_log_dir = None
             if self.log_media_locally and rank == 0:
-                self.local_log_dir = os.path.join(folder, "local_logs")
+                self.local_log_dir = os.path.join(run_dir, "local_logs")
                 os.makedirs(self.local_log_dir, exist_ok=True)
             if self.use_wandb and rank == 0:
                 project_name = config.get("project", "vjepa_wm") if not config["debug"] else "vjepa_wm_debug"
-                wandb_run_id_file = os.path.join(folder, "wandb_run_id.txt")
+                wandb_run_id_file = os.path.join(run_dir, "wandb_run_id.txt")
                 if os.path.exists(wandb_run_id_file):
                     with open(wandb_run_id_file, "r") as f:
                         wandb_run_id = f.read().strip()
-                    wandb.init(project=project_name, id=wandb_run_id, resume="allow", dir=folder)
+                    wandb.init(project=project_name, id=wandb_run_id, resume="allow", dir=run_dir)
                     logger.info(f"Resuming Wandb run {wandb_run_id}")
                 else:
-                    wandb.init(project=project_name, dir=folder)
+                    wb_id = run_id if run_id else None
+                    wandb.init(project=project_name, id=wb_id, dir=run_dir)
                     with open(wandb_run_id_file, "w") as f:
                         f.write(wandb.run.id)
-                wandb.run.name = os.path.basename(folder)
+                wandb.run.name = run_id if run_id else os.path.basename(folder)
                 self.job_set = set()
 
         def log(self, epoch, itr, losses, total_stats, eval_losses=None, eval_total_stats=None, image_stats=None):

@@ -26,3 +26,11 @@ MUJOCO_LOG.TXT
 
 macros.py
 CLAUDE.md
+
+train_logs_and_planning_eval_logs/
+simu_env_planning/
+datasets/
+jepa_wm_pusht.pth.tar
+logs/
+.env
+configs/online_plan_evals/pt/gd/pt_L2_gd_sourcedset_H6_nas6_ctxt2_cls.yaml

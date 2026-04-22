@@ -1,0 +1,131 @@
+copy_code: false
+cpus_per_task: 8
+distributed:
+  distribute_multitask_eval: true
+  local_rng_samplers: true
+  seed_shift: horizon_1000
+eval_name: simu_env_planning
+folder: /home/aarav/WorldModels/jepa-wms
+logging:
+  exp_name: gc_zeroshot_dist
+  optional_plots: false
+  save_csv: true
+  tqdm_silent: false
+mem_per_gpu: 32G
+meta:
+  eval_episodes: 96
+  quick_debug: false
+  seed: 1
+model_kwargs:
+  checkpoint: /home/aarav/WorldModels/jepa-wms/jepa_wm_pusht.pth.tar
+  data:
+    custom:
+      frameskip: 5
+    datasets:
+    - PushT
+    img_size: 224
+    loader:
+      batch_size: 8
+  data_aug:
+    normalize:
+    - - 0.485
+      - 0.456
+      - 0.406
+    - - 0.229
+      - 0.224
+      - 0.225
+  module_name: app.vjepa_wm.modelcustom.simu_env_planning.vit_enc_preds
+  pretrain_kwargs:
+    action_conditioning: token
+    action_encoder:
+      action_emb_dim: 0
+      action_encoder_inpred: true
+      action_mlp: false
+      action_tokens: 1
+    attn:
+      local_window_h: -1
+      local_window_time: 3
+      local_window_w: -1
+    grid_size: 16
+    heads_cfg:
+      architectures: {}
+    num_frames_pred: 4
+    predictor:
+      act_pred_projector: false
+      pred_depth: 6
+      pred_embed_dim: 384
+      pred_num_heads: 16
+      pred_type: AdaLN
+      pred_use_extrinsics: false
+      tubelet_size: 1
+      uniform_power: true
+      use_SiLU: false
+      use_rope: true
+    proprio_encoder:
+      prop_mlp: false
+      proprio_emb_dim: 16
+      proprio_encoder_inpred: false
+      proprio_tokens: 0
+    proprio_encoding: feature
+    rollout_cfg:
+      ctxt_window_train_rollout: 3
+      do_parallel_rollout: false
+      do_sequential_rollout: true
+      prepend_gt: false
+      rollout_steps: 2
+      rollout_stop_gradient: true
+      sampling_scheduler:
+        end: 0.0
+        start: 0.0
+        type: linear
+      train_rollout_prefixes: random
+    tubelet_size_enc: 1
+    use_activation_checkpointing: false
+    visual_encoder:
+      embed_dim: 384
+      enc_name: null
+      enc_type: dino
+      enc_use_rope: null
+      enc_version: dinov2_vits14
+      num_frames_enc: null
+      pretrain_enc_ckpt_key: target_encoder
+      pretrain_enc_path: null
+      use_sdpa_enc: null
+    wm_encoding:
+      batchify_video: true
+      dup_image: false
+      normalize_reps: false
+  wrapper_kwargs:
+    ctxt_window: 2
+nodes: 1
+planner:
+  action_lr: 0.01
+  gamma: 1.0
+  horizon: 40
+  num_act_stepped: 1
+  planner_name: grasp
+  state_init: rollout
+  state_lr: 0.01
+  state_noise_std: 0.01
+  steps: 100
+  sync_every: 20
+  sync_lr: 0.01
+  sync_steps: 5
+tag: online_gc_zeroshot/pt_L2_cem_sourcedset_H6_nas6_ctxt2_r224_alpha0.1_ep96_nodecode/epoch-50-plan-only
+task_specification:
+  done_at_succ: false
+  env:
+    freeze_rand_vec: false
+    with_target: true
+    with_velocity: true
+  goal_H: 6
+  goal_source: dset
+  img_size: 224
+  num_frames: 1
+  num_proprios: 1
+  obs: rgb_state
+  obs_concat_channels: false
+  succ_def: simu
+  task: pusht-base
+tasks_per_node: 8
+use_fsdp: false

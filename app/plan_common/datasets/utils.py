@@ -5,6 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 #
 
+import os
 from logging import getLogger
 from typing import Callable
 
@@ -17,6 +18,7 @@ from src.datasets.data_manager import init_data as init_data_src
 from .droid_dset import DROIDVideoDataset
 from .metaworld_hf_dset import load_metaworld_hf_slice_train_val
 from .point_maze_dset import load_point_maze_slice_train_val
+from .precomputed_dset import load_precomputed_slice_train_val
 from .pusht_dset import load_pusht_slice_train_val
 from .robocasa_dset import load_robocasa_slice_train_val
 from .wall_dset import load_wall_slice_train_val
@@ -142,6 +144,33 @@ def init_data(
             )
             dataset = datasets["train"]
             shuffle = True
+        elif all("precomputed" in p for p in data_paths):
+            # Pre-extracted encoder features: data_path is features_path
+            # source_path (original dataset for states/actions) passed via kwargs
+            source_path = kwargs.get("source_path")
+            grid_size = kwargs.get("grid_size", 1)
+            if source_path is not None:
+                source_path = os.path.expandvars(source_path)
+            if source_path is None:
+                raise ValueError("source_path is required for precomputed features dataset")
+            datasets, traj_dsets = load_precomputed_slice_train_val(
+                transform,
+                features_path=data_paths[0],
+                source_path=source_path,
+                grid_size=grid_size,
+                n_rollout=None,
+                normalize_action=normalize_action,
+                num_hist=num_hist,
+                num_pred=num_pred,
+                num_frames_val=num_frames_val,
+                frameskip=frameskip,
+                action_skip=action_skip,
+                with_velocity=True,
+                random_seed=seed,
+                process_actions=process_actions,
+            )
+            dataset = datasets["train"]
+            shuffle = False
         elif all("pusht" in p for p in data_paths):
             datasets, traj_dsets = load_pusht_slice_train_val(
                 transform,

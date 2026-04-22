@@ -3,7 +3,7 @@ tasks_per_node: 8
 cpus_per_task: 16
 mem_per_gpu: 210G
 copy_code: false
-folder: ${JEPAWM_LOGS}/pt_sweep/pt_4f_fsk5_ask1_r224_vjtranoaug_predAdaLN_ftprop_depth6_repro_2roll_save
+folder: /home/aarav/WorldModels/jepa-wms
 tag: online_gc_zeroshot/pt_L2_cem_sourcedset_H6_nas6_ctxt2_r224_alpha0.1_ep96_decode/epoch-50-plan-only
 eval_name: simu_env_planning
 meta:
@@ -21,7 +21,7 @@ logging:
   optional_plots: true
 model_kwargs:
   module_name: app.vjepa_wm.modelcustom.simu_env_planning.vit_enc_preds
-  checkpoint: jepa-latest.pth.tar
+  checkpoint: jepa_wm_pusht.pth.tar
   pretrain_kwargs:
     grid_size: 16
     tubelet_size_enc: 1
@@ -201,7 +201,7 @@ planner:
   var_scale: 1.0
   num_act_stepped: 6
   repeat_actskip: false
-  decode_each_iteration: true
+  decode_each_iteration: false
   distribute_planner: false
   planning_objective:
     objective_type: L2

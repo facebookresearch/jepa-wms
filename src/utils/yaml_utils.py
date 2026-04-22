@@ -9,6 +9,7 @@
 
 import os
 import re
+from pathlib import Path
 
 from ruamel.yaml import YAML
 
@@ -22,6 +23,28 @@ logger = get_logger(__name__)
 _yaml = YAML()
 _yaml.preserve_quotes = True
 _yaml.default_flow_style = False
+
+
+def _load_dotenv():
+    """Load .env from repository root into os.environ (does not overwrite existing vars)."""
+    env_path = Path(__file__).resolve().parents[2] / ".env"
+    if not env_path.is_file():
+        return
+    with open(env_path) as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            if "=" not in line:
+                continue
+            key, _, value = line.partition("=")
+            key = key.strip()
+            value = value.strip().strip("\"'")
+            if key and key not in os.environ:
+                os.environ[key] = value
+
+
+_load_dotenv()
 
 
 def expand_env_vars(value, _path=""):

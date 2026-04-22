@@ -14,6 +14,13 @@ import yaml
 
 from app.scaffold import main as app_main
 from src.utils.distributed import init_distributed
+from src.utils.run_id import (
+    create_latest_symlink,
+    generate_run_id,
+    resolve_run_dir,
+    save_resolved_config,
+    save_run_metadata,
+)
 from src.utils.yaml_utils import expand_env_vars
 
 parser = argparse.ArgumentParser()
@@ -60,14 +67,21 @@ def process_main(rank, fname, world_size, devices):
             params["folder"] = expand_env_vars(params["folder"], _path="folder")
         logger.info("✅ Config loaded")
 
-    # Log config
+    # Generate run ID and set up run directory
     if rank == 0:
         pprint.PrettyPrinter(indent=4).pprint(params)
         folder = params["folder"]
-        params_path = os.path.join(folder, "params-pretrain.yaml")
-        folder = Path(folder)
-        folder.mkdir(parents=True, exist_ok=True)
-        with open(params_path, "w") as f:
+        run_id = generate_run_id()
+        run_dir = resolve_run_dir(folder, run_id)
+        params["run_id"] = run_id
+        params["run_dir"] = run_dir
+        Path(folder).mkdir(parents=True, exist_ok=True)
+        Path(run_dir).mkdir(parents=True, exist_ok=True)
+        save_resolved_config(run_dir, params)
+        save_run_metadata(run_dir, run_id)
+        create_latest_symlink(folder, run_id)
+        # Also save to experiment-level folder for backward compat
+        with open(os.path.join(folder, "params-pretrain.yaml"), "w") as f:
             yaml.dump(params, f)
 
     # Init distributed (access to comm between GPUS on same machine)

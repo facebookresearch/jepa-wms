@@ -162,6 +162,18 @@ class VideoWM(nn.Module):
             proprio = obs.get("proprio")  # Use get() to avoid KeyError if 'proprio' is not present
         else:
             raise ValueError("Input must be a dictionary with keys 'visual' and 'proprio' ")
+
+        # Pre-extracted features: visual is already (b, t, 1, h, w, d) — skip encoder
+        if self.enc_type == "precomputed":
+            visual_embs = visual
+            if self.normalize_reps:
+                visual_embs = F.layer_norm(visual_embs, (visual_embs.size(-1),))
+            if self.use_proprio and proprio is not None:
+                proprio_emb = self.encode_proprio(proprio)
+            else:
+                proprio_emb = None
+            return TensorDict({"visual": visual_embs, "proprio": proprio_emb})
+
         b, t, c, h, w = visual.shape
         if self.batchify_video:
             # image encoder flattens the time dimension as batch dimension

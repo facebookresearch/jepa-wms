@@ -16,6 +16,14 @@ import torch.multiprocessing as mp
 import yaml
 from omegaconf import OmegaConf
 
+from src.utils.run_id import (
+    create_latest_symlink,
+    generate_run_id,
+    resolve_run_dir,
+    save_resolved_config,
+    save_run_metadata,
+)
+
 from evals.simu_env_planning.envs.init import make_env
 from evals.simu_env_planning.planning.common.gc_logger import Logger
 from evals.simu_env_planning.planning.common.parser import parse_cfg
@@ -70,11 +78,18 @@ def main(args_eval, resume_preempt=False):
     if not os.path.exists(folder):
         os.makedirs(folder, exist_ok=True)
 
-    # -- Save args_eval.yaml
-    yaml_file_path = os.path.join(folder, "args_eval.yaml")
-    with open(yaml_file_path, "w") as yaml_file:
-        yaml.dump(args_eval, yaml_file, default_flow_style=False)
-    log.info(f"📁 Saved args_eval to {yaml_file_path}")
+    # -- Generate run ID and create run-specific output directory
+    eval_run_id = generate_run_id()
+    run_dir = resolve_run_dir(folder, eval_run_id)
+    os.makedirs(run_dir, exist_ok=True)
+    args_eval["run_id"] = eval_run_id
+    args_eval["run_dir"] = run_dir
+
+    # -- Save resolved config and metadata to run directory
+    save_resolved_config(run_dir, args_eval, "args_eval.yaml")
+    save_run_metadata(run_dir, eval_run_id)
+    create_latest_symlink(folder, eval_run_id)
+    log.info(f"📁 Eval run {eval_run_id} -> {run_dir}")
 
     # -- Distributed
     try:
@@ -100,7 +115,7 @@ def main(args_eval, resume_preempt=False):
     pretrain_kwargs = model_kwargs.get("pretrain_kwargs", {})
     dset, preprocessor = make_datasets(cfgs_data, cfgs_data_aug, world_size, rank)
     args_eval["frameskip"] = cfgs_data["custom"]["frameskip"]
-    args_eval["work_dir"] = folder
+    args_eval["work_dir"] = run_dir
     checkpoint = args_eval["model_kwargs"].get("checkpoint")
     model = init_module(
         folder=checkpoint_folder,
@@ -116,8 +131,30 @@ def main(args_eval, resume_preempt=False):
     )
     log.info("✅ Loaded encoder and predictor")
 
+    # -- Initialize wandb for eval if configured
+    cfgs_logging = args_eval.get("logging", {})
+    cfgs_wandb = cfgs_logging.get("wandb", {})
+    use_wandb = cfgs_wandb.get("use_wandb", False)
+    if use_wandb and rank == 0:
+        import wandb
+        wandb_project = cfgs_wandb.get("project", "jepa_wm_eval")
+        wandb.init(
+            project=wandb_project,
+            id=eval_run_id,
+            name=eval_run_id,
+            dir=run_dir,
+            config=args_eval,
+        )
+        log.info(f"📊 Wandb eval run initialized: {wandb_project}/{eval_run_id}")
+    args_eval["_use_wandb"] = use_wandb
+
     # -- Launch eval
     main_distributed_episodes_eval(args_eval, model=model, dset=dset, preprocessor=preprocessor, rank=rank)
+
+    # -- Finish wandb
+    if use_wandb and rank == 0:
+        import wandb
+        wandb.finish()
 
 
 def main_distributed_episodes_eval(cfg: dict, model=None, dset=None, preprocessor=None, rank=0, device="cuda:0"):
@@ -135,7 +172,7 @@ def main_distributed_episodes_eval(cfg: dict, model=None, dset=None, preprocesso
     cfg = parse_cfg(cfg)
     set_seed(cfg.meta.seed)
     cfg.rank = rank
-    cfg.world_size = dist.get_world_size()
+    cfg.world_size = dist.get_world_size() if dist.is_available() and dist.is_initialized() else 1
     cfg.device = device
     cfg.num_active_gpus = cfg.world_size
     cfg.active_ranks = [i for i in range(cfg.world_size)]
@@ -245,7 +282,8 @@ def main_distributed_episodes_eval(cfg: dict, model=None, dset=None, preprocesso
                 total_lpips,
                 total_emb_l2,
             ) = evaluator.eval(cfg, agent, env, task_idx=task_idx, ep=ep)
-            dist.barrier()  # should not provoke any error
+            if dist.is_available() and dist.is_initialized():
+                dist.barrier()
             episode_end_time = time()
             # Check for duplicate task and episode index
             if (task_idx, ep) in processed_episodes:
@@ -291,9 +329,13 @@ def main_distributed_episodes_eval(cfg: dict, model=None, dset=None, preprocesso
         all_results = [None] * cfg.world_size
         log.info(f"{rank=}: {results=}")
         if rank == 0:
-            dist.gather_object(results, object_gather_list=all_results, dst=0)
+            if dist.is_available() and dist.is_initialized():
+                dist.gather_object(results, object_gather_list=all_results, dst=0)
+            else:
+                all_results = [results]
         else:
-            dist.gather_object(results, object_gather_list=None, dst=0)
+            if dist.is_available() and dist.is_initialized():
+                dist.gather_object(results, object_gather_list=None, dst=0)
             combined_results = {}
         if rank == 0:
             combined_results = aggregate_results(cfg, all_results)
