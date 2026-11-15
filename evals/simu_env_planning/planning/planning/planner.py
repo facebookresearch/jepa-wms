@@ -18,7 +18,7 @@ from src.utils.logging import get_logger
 
 logger = get_logger(__name__)
 
-########### PLANNERS IN LATENT SPACE ###############
+# Planners in latent space
 
 
 class PlanningResult(NamedTuple):
@@ -602,25 +602,18 @@ class GradientDescentPlanner(Planner):
             loss = self.objective(predicted_encs, actions_transposed)  # (1,)
 
             total_loss = loss.mean()
-            total_loss.backward()
+            total_loss.backward(inputs=(actions,))
+            optimizer.step()
 
-            # Manual gradient descent update with noise
             with torch.no_grad():
-                actions_new = actions - self.lr * actions.grad
-
                 # Add Gaussian noise if specified
                 if self.action_noise > 0:
-                    actions_new += torch.randn_like(actions_new) * self.action_noise
+                    actions.add_(torch.randn_like(actions) * self.action_noise)
 
                 # Apply clipping if max_norms is specified (similar to CEM)
                 if self.max_norms is not None:
                     for dims, maxnorm in zip(self.max_norm_dims, self.max_norms):
-                        actions_new[:, :, dims] = torch.clip(actions_new[:, :, dims], min=-maxnorm, max=maxnorm)
-
-                actions.copy_(actions_new)
-
-            # Reset gradients after manual update
-            actions.grad.zero_()
+                        actions[:, :, dims] = torch.clip(actions[:, :, dims], min=-maxnorm, max=maxnorm)
 
             losses.append(total_loss.item())
 
