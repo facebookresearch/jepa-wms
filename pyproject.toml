@@ -15,7 +15,7 @@ keywords = ["machine learning", "world models", "jepa", "reinforcement learning"
 dependencies = [
     # Core ML framework
     "torch>=2.7.0",
-    "torchvision==0.22.0",
+    "torchvision>=0.22.0",
     "torchrl>=0.9.2",
     "tensordict>=0.9.1",
     "timm>=1.0.19",
