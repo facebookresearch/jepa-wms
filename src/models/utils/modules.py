@@ -267,6 +267,10 @@ class RoPEAttention(nn.Module):
             v = merge_(v, action_v)
 
         if attn_mask is not None:
+            # q and k are rebuilt by torch.cat above (contiguous) while v is still a strided
+            # view of qkv. Older ROCm builds of the EFFICIENT_ATTENTION kernel return wrong
+            # values when k and v have different sequence strides, so give SDPA one layout.
+            q, k, v = q.contiguous(), k.contiguous(), v.contiguous()
             with sdpa_kernel(ALL_SDPA_BACKENDS):
                 x = F.scaled_dot_product_attention(
                     q, k, v, dropout_p=self.proj_drop_prob, is_causal=self.is_causal, attn_mask=attn_mask
